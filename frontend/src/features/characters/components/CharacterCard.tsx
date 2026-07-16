@@ -1,0 +1,64 @@
+'use client';
+
+import Image from 'next/image';
+import { useState } from 'react';
+import type { Character } from '../types';
+
+function CharacterPlaceholder() {
+  return (
+    <div className="grid h-full w-full place-items-center bg-gradient-to-br from-katha-primary/15 to-katha-accent/10">
+      <div className="text-center text-white/35">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="mx-auto h-10 w-10"
+        >
+          <circle cx="12" cy="8" r="3.5" />
+          <path d="M5 20c.7-4.1 3.1-6.2 7-6.2s6.3 2.1 7 6.2" />
+        </svg>
+        <span className="mt-2 block text-xs">Chưa có ảnh</span>
+      </div>
+    </div>
+  );
+}
+
+export function CharacterCard({ character }: { character: Character }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageUrl = character.ref_image_urls[0];
+
+  return (
+    <article className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] hover:shadow-2xl">
+      <div className="relative aspect-[4/3] overflow-hidden bg-black/20">
+        {imageUrl && !imageFailed ? (
+          <Image
+            src={imageUrl}
+            alt={`Ảnh tham chiếu nhân vật ${character.name}`}
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            onError={() => setImageFailed(true)}
+            className="object-cover transition duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <CharacterPlaceholder />
+        )}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 to-transparent" />
+        {character.age !== null && (
+          <span className="absolute bottom-3 right-3 rounded-full border border-white/15 bg-black/45 px-2.5 py-1 text-xs font-medium text-white/80 backdrop-blur">
+            {character.age} tuổi
+          </span>
+        )}
+      </div>
+
+      <div className="p-5">
+        <h2 className="text-lg font-bold tracking-tight">{character.name}</h2>
+        <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-white/55">
+          {character.personality_vi || 'Chưa có mô tả tính cách.'}
+        </p>
+      </div>
+    </article>
+  );
+}

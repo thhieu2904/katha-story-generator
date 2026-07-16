@@ -2,22 +2,19 @@
 
 import logging
 from contextlib import asynccontextmanager
-from functools import lru_cache
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from katha.core.config import Settings
+from katha.core.config import get_settings
 from katha.core.dependencies import get_db
+from katha.features.auth.router import router as auth_router
+from katha.features.characters.router import router as characters_router
+from katha.features.config_data.router import router as config_router
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
 
 
 def _get_r2_client():
@@ -53,6 +50,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(config_router, prefix="/api", tags=["config"])
+app.include_router(characters_router, prefix="/api", tags=["characters"])
 
 
 @app.get("/health")

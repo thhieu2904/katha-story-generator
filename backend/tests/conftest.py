@@ -50,3 +50,18 @@ async def session(postgres_url, run_migrations):
     async with AsyncSession(engine) as s:
         yield s
     await engine.dispose()
+
+
+@pytest.fixture
+def admin_user():
+    """Trusted admin used by API integration tests."""
+
+    from uuid import UUID
+
+    from katha.features.auth.schemas import TokenUser
+
+    return TokenUser(
+        id=UUID("00000000-0000-0000-0000-000000000001"),
+        email="admin@example.com",
+        app_role="admin",
+    )

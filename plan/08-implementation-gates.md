@@ -33,10 +33,10 @@
 
 | Gate | Trạng thái | Ngày chốt | Ghi chú |
 |------|-----------|-----------|----------|
-| G1 | ⬜ OPEN | — | — |
+| G1 | ✅ CHỐT | 2026-07-17 | Reader đọc truyện public; toàn bộ `/admin/*` và API phục vụ admin yêu cầu tài khoản có role `admin`. Backend là lớp enforcement cuối cùng. |
 | G2 | ⬜ OPEN | — | — |
 | G3 | ⬜ OPEN | — | — |
 | G4 | ⬜ OPEN | — | — |
-| G5 | ⬜ OPEN | — | — |
+| G5 | ✅ CHỐT | 2026-07-17 | Character Bank MVP chỉ đọc 7 nhân vật seed; không CRUD, upload hay sinh reference mới trong Phase 2. |
 | G6 | ⬜ OPEN | — | — |
 | G7 | ⬜ OPEN | — | — |

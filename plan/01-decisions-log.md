@@ -1,7 +1,7 @@
 # Katha — Nhật ký quyết định
 
 > Ghi lại TẤT CẢ quyết định đã thảo luận, lý do, và trạng thái.
-> Ngày cập nhật: 2026-07-11
+> Ngày cập nhật: 2026-07-17
 
 ---
 
@@ -156,3 +156,15 @@
   - `usage_logs` — xem chi phí trên OpenAI dashboard
 - **Lý do**: Giảm complexity. Các bảng này không phục vụ core flow. Data NCKH thu thập bằng cách khác.
 - **Xem thêm**: `08-implementation-gates.md` cho các quyết định chưa chốt
+
+### D22: Reader public, khu vực admin bắt buộc role admin (2026-07-17)
+- **Quyết định**: Reader sẽ đọc truyện public; các route `/admin/*` và API phục vụ quản trị yêu cầu đăng nhập bằng Supabase Auth với `app_metadata.app_role = "admin"`.
+- **Phân quyền**: Backend luôn enforce role; frontend guard chỉ phục vụ UX. Role thiếu hoặc không hợp lệ được xem là `reader`.
+- **Không làm trong MVP**: Đăng ký, quên/đổi mật khẩu và quản trị user.
+- **Chốt gate**: G1.
+
+### D23: Character Bank chỉ đọc dữ liệu seed trong MVP (2026-07-17)
+- **Quyết định**: Phase 2 chỉ hiển thị 7 nhân vật seed qua API và trang admin.
+- **Không làm trong Phase 2**: Tạo, sửa, xóa nhân vật; upload hoặc sinh ảnh reference mới.
+- **Nguồn ảnh**: `ref_image_urls` do script upload reference của Phase 1 cập nhật.
+- **Chốt gate**: G5.

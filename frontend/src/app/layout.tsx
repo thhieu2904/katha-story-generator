@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Noto_Sans_Khmer } from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/features/auth/AuthProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -28,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${inter.variable} ${notoSansKhmer.variable}`}>
       <body className="font-sans antialiased bg-katha-surface text-white min-h-screen">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
