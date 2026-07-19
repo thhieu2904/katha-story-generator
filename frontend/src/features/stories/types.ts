@@ -9,6 +9,7 @@ export interface Story {
   target_age: string | null;
   length_pref: string | null;
   status: string;
+  text_revision: number;
   cover_image_url: string | null;
   created_by: string | null;
   character_ids: number[];
@@ -24,6 +25,7 @@ export interface StoryListItem {
   target_age: string | null;
   length_pref: string | null;
   status: string;
+  text_revision: number;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -61,4 +63,26 @@ export interface ArtStyle {
   name_vi: string;
   name_en: string;
   sample_image_url: string | null;
+}
+
+export interface StoryTextPage {
+  id: number;
+  page_no: number;
+  text_vi: string;
+  text_km: string;
+  spellcheck_flags: Record<string, unknown>[];
+}
+
+export interface StoryText {
+  id: number;
+  title_vi: string;
+  title_km: string;
+  description_vi: string;
+  target_age: string;
+  length_pref: string;
+  status: string;
+  text_revision: number;
+  character_ids: number[];
+  updated_at: string | null;
+  pages: StoryTextPage[];
 }

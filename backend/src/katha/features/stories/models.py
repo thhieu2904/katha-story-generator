@@ -1,6 +1,6 @@
 """SQLAlchemy models for stories, story_pages, and story_characters tables."""
 
-from sqlalchemy import Column, ForeignKey, Integer, Text, func
+from sqlalchemy import CheckConstraint, Column, ForeignKey, Integer, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
 from sqlalchemy.orm import relationship
 
@@ -11,6 +11,7 @@ class Story(Base):
     """A generated story with metadata and status tracking."""
 
     __tablename__ = "stories"
+    __table_args__ = (CheckConstraint("text_revision >= 0", name="stories_text_revision_check"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     title_vi = Column(Text, nullable=True)
@@ -23,6 +24,8 @@ class Story(Base):
     length_pref = Column(Text, nullable=True)  # CHECK constraint in SQL migration
     status = Column(Text, server_default="draft")  # CHECK constraint in SQL migration
     cover_image_url = Column(Text, nullable=True)
+    text_revision = Column(Integer, nullable=False, default=0, server_default="0")
+    text_generation_claim_id = Column(UUID(as_uuid=True), nullable=True)
     # FK to auth.users handled in raw SQL migration — no SQLAlchemy ForeignKey
     created_by = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -60,7 +63,7 @@ class StoryPage(Base):
     story_id = Column(
         Integer,
         ForeignKey("stories.id", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
     )
     page_no = Column(Integer, nullable=False)
     text_vi = Column(Text, nullable=True)

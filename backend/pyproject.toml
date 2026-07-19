@@ -12,6 +12,7 @@ dependencies = [
     "boto3",
     "httpx",
     "pyjwt[crypto]",
+    "openai>=2.46.0",
 ]
 
 [build-system]

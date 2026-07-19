@@ -12,6 +12,7 @@ export const LENGTH_PREF_OPTIONS = [
 
 export const STATUS_LABELS: Record<string, string> = {
   draft: 'Nháp',
+  generating_text: 'Đang sinh nội dung',
   text_draft: 'Bản thảo',
   text_confirmed: 'Đã duyệt text',
   generating_images: 'Đang tạo ảnh',

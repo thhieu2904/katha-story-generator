@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { StorySetupForm } from '@/features/stories/components/StorySetupForm';
 import { ArchiveStoryDialog } from '@/features/stories/components/ArchiveStoryDialog';
 import { useStory } from '@/features/stories/useStory';
-import { updateStory } from '@/features/stories/api';
+import { fetchStory, generateStoryText, updateStory } from '@/features/stories/api';
 import type { StoryCreate } from '@/features/stories/types';
 
 export default function EditStoryPage() {
@@ -38,6 +38,8 @@ function EditStoryInner({ storyId }: { storyId: number }) {
   const { story, error: fetchError, loading, retry } = useStory(storyId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [needsReconcile, setNeedsReconcile] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(
     () => searchParams.get('success') === 'created' ? 'Tạo truyện thành công!' : null
@@ -65,6 +67,57 @@ function EditStoryInner({ storyId }: { storyId: number }) {
     }
   };
 
+  const handleGenerate = async (data: StoryCreate) => {
+    setIsGenerating(true);
+    setSubmitError(null);
+    setSuccessMessage(null);
+    try {
+      await updateStory(storyId, data);
+      await generateStoryText(storyId);
+      router.replace(`/admin/stories/${storyId}/edit`);
+    } catch (err) {
+      // A timed-out or disconnected request may still have completed server-side.
+      // Reconcile canonical status before enabling another generation attempt.
+      try {
+        const current = await fetchStory(storyId);
+        if (current.status === 'text_draft' || current.status === 'generating_text') {
+          router.replace(`/admin/stories/${storyId}/edit`);
+          return;
+        }
+      } catch {
+        setNeedsReconcile(true);
+        setSubmitError(
+          'Chưa thể xác định yêu cầu đã hoàn tất hay chưa. Hãy kiểm tra lại trạng thái trước khi thử lại.',
+        );
+        return;
+      }
+      setSubmitError(
+        err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi sinh nội dung',
+      );
+      retry();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  const handleReconcile = async () => {
+    setIsGenerating(true);
+    setSubmitError(null);
+    try {
+      const current = await fetchStory(storyId);
+      if (current.status === 'draft') {
+        setNeedsReconcile(false);
+        retry();
+        return;
+      }
+      router.replace(`/admin/stories/${storyId}/edit`);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Chưa thể kiểm tra trạng thái truyện',
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
   const handleArchiveSuccess = () => {
     setIsArchiveDialogOpen(false);
     router.replace('/admin/stories');
@@ -133,6 +186,16 @@ function EditStoryInner({ storyId }: { storyId: number }) {
       {submitError && (
         <div className="mb-8 rounded-xl border border-katha-error/25 bg-katha-error/8 p-4">
           <p className="text-sm text-red-200">{submitError}</p>
+          {needsReconcile && (
+            <button
+              type="button"
+              onClick={handleReconcile}
+              disabled={isGenerating}
+              className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-katha-surface disabled:opacity-50"
+            >
+              Kiểm tra lại trạng thái
+            </button>
+          )}
         </div>
       )}
 
@@ -140,7 +203,10 @@ function EditStoryInner({ storyId }: { storyId: number }) {
         <StorySetupForm
           story={story}
           onSubmit={handleSubmit}
+          onGenerate={handleGenerate}
           isSubmitting={isSubmitting}
+          isGenerating={isGenerating}
+          isBlocked={needsReconcile}
         />
       </div>
 

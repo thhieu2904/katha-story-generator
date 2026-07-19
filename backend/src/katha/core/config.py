@@ -27,6 +27,11 @@ class Settings(BaseSettings):
 
     # Phase 3
     OPENAI_API_KEY: str = ""
+    OPENAI_TEXT_MODEL: str = "gpt-4o-mini"
+    OPENAI_TIMEOUT_SECONDS: float = 60
+    OPENAI_MAX_RETRIES: int = 1
+    TEXT_OPERATION_TIMEOUT_SECONDS: float = 270
+    TEXT_GENERATION_STALE_SECONDS: int = 600
 
     model_config = {
         "env_file": ".env",

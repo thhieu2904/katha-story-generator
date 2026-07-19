@@ -23,6 +23,8 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
     switch (status) {
       case 'draft':
         return 'bg-amber-500/15 text-amber-300 border-amber-500/20';
+      case 'generating_text':
+        return 'bg-violet-500/15 text-violet-300 border-violet-500/20';
       case 'text_draft':
       case 'text_confirmed':
         return 'bg-blue-500/15 text-blue-300 border-blue-500/20';
@@ -91,6 +93,13 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
                   Tiếp tục thiết lập
                 </Link>
               </>
+            ) : story.status !== 'archived' ? (
+              <Link
+                href={`/admin/stories/${story.id}/edit`}
+                className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-katha-primary-light"
+              >
+                {story.status === 'generating_text' ? 'Xem tiến trình' : 'Xem nội dung'}
+              </Link>
             ) : (
               <span className="text-xs text-white/50">{statusLabel}</span>
             )}

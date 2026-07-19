@@ -73,8 +73,13 @@ async def list_stories(session: AsyncSession, include_archived: bool = False) ->
     return list(result.scalars().all())
 
 
-async def get_story(session: AsyncSession, story_id: int) -> Story | None:
-    result = await session.execute(select(Story).where(Story.id == story_id))
+async def get_story(
+    session: AsyncSession, story_id: int, *, for_update: bool = False
+) -> Story | None:
+    query = select(Story).where(Story.id == story_id)
+    if for_update:
+        query = query.with_for_update()
+    result = await session.execute(query)
     story = result.scalar_one_or_none()
     if not story:
         return None
@@ -87,9 +92,7 @@ async def get_story(session: AsyncSession, story_id: int) -> Story | None:
 
 
 async def update_story(session: AsyncSession, story_id: int, data: StoryUpdate) -> Story:
-    # NOTE: MVP uses last-write-wins for concurrent admin edits.
-    # No row-level locking or conditional update in this phase.
-    story = await get_story(session, story_id)
+    story = await get_story(session, story_id, for_update=True)
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
 
@@ -141,7 +144,7 @@ async def update_story(session: AsyncSession, story_id: int, data: StoryUpdate) 
 
 
 async def archive_story(session: AsyncSession, story_id: int) -> Story:
-    story = await get_story(session, story_id)
+    story = await get_story(session, story_id, for_update=True)
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
 

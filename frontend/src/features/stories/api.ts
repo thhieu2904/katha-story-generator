@@ -7,6 +7,7 @@ import type {
   Backbone,
   Genre,
   ArtStyle,
+  StoryText,
 } from './types';
 
 export function fetchStories() {
@@ -35,6 +36,17 @@ export function archiveStory(id: number) {
   return apiFetch<Story>(`/api/stories/${id}/archive`, {
     method: 'POST',
   });
+}
+
+export function generateStoryText(id: number) {
+  return apiFetch<StoryText>(`/api/stories/${id}/generate-text`, {
+    method: 'POST',
+    timeoutMs: 285_000,
+  });
+}
+
+export function fetchStoryText(id: number) {
+  return apiFetch<StoryText>(`/api/stories/${id}/text`);
 }
 
 export function fetchBackbones() {

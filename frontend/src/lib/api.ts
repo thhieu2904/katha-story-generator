@@ -14,6 +14,7 @@ export class ApiError extends Error {
 
 export interface ApiRequestInit extends RequestInit {
   accessToken?: string;
+  timeoutMs?: number;
 }
 
 async function safeErrorMessage(response: Response): Promise<string> {
@@ -35,7 +36,13 @@ export async function apiFetch<T>(
   path: string,
   options: ApiRequestInit = {},
 ): Promise<T> {
-  const { accessToken, headers: callerHeaders, ...requestOptions } = options;
+  const {
+    accessToken,
+    timeoutMs,
+    headers: callerHeaders,
+    signal: callerSignal,
+    ...requestOptions
+  } = options;
   const headers = new Headers(callerHeaders);
   let token = accessToken;
   if (!token && supabase) {
@@ -50,13 +57,25 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json');
   }
 
+  const timeoutSignal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
+  const signal = callerSignal && timeoutSignal
+    ? AbortSignal.any([callerSignal, timeoutSignal])
+    : callerSignal || timeoutSignal;
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...requestOptions,
       headers,
+      signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new ApiError(
+        'Yêu cầu đã hết thời gian chờ. Đang kiểm tra lại trạng thái truyện.',
+        0,
+      );
+    }
     throw new ApiError('Không thể kết nối với máy chủ. Vui lòng thử lại.', 0);
   }
 

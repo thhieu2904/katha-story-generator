@@ -130,7 +130,7 @@
 ✅ Phase 2:   Config APIs + Character Bank read-only — code-complete offline
 🔨 Phase 3:   Text generation / edit / confirm
     - 3A: ✅ Baseline commit `3048010`; code-complete offline — Docker/live verification pending
-    - 3B: 📋 Plan READY; chưa triển khai
+    - 3B: ✅ Code-complete offline; chờ review accept + migration/live AI smoke
     - 3C: 📋 Core contract READY; chỉ bắt đầu sau khi 3B được review accept
 ⬜ Phase 4:   Image generation
 ⬜ Phase 5:   Review, publish, reader
@@ -145,6 +145,15 @@
 3. Chỉ sau đó mới bắt đầu Phase 3C core; archive `text_draft` giữ ở P1 deferred.
 
 ---
+
+### Phase 3B implementation evidence (2026-07-20)
+
+- Alembic graph: single head `003`; migration thêm `generating_text`, `text_revision`, UUID claim và `story_pages.story_id NOT NULL`.
+- Backend: Responses API structured outputs, deterministic Vietnamese/Khmer validation, atomic claim/finalize/reset và canonical `GET /text`.
+- Frontend: save-before-generate, timeout 285 giây + reconcile status, list CTA/status và bilingual read-only preview.
+- Offline gates: Ruff pass, mypy pass, `73 passed, 19 deselected`; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
+- Migration integration chưa chạy vì Docker Desktop không hoạt động (`dockerDesktopLinuxEngine` unavailable).
+- Live OpenAI smoke chưa chạy vì cần `OPENAI_API_KEY`; không dùng key thật trong automated suite.
 
 ## 6. File map — Đọc gì ở đâu
 

@@ -5,12 +5,15 @@ import type { Story, StoryCreate, Backbone, Genre, ArtStyle } from '../types';
 import type { Character } from '@/features/characters/types';
 import { fetchBackbones, fetchGenres, fetchArtStyles } from '../api';
 import { fetchCharacters } from '@/features/characters/api';
-import { TARGET_AGE_OPTIONS, LENGTH_PREF_OPTIONS } from '../constants';
+import { TARGET_AGE_OPTIONS, LENGTH_PREF_OPTIONS, STATUS_LABELS } from '../constants';
 
 interface StorySetupFormProps {
   story?: Story;
   onSubmit: (data: StoryCreate) => Promise<void>;
+  onGenerate?: (data: StoryCreate) => Promise<void>;
   isSubmitting: boolean;
+  isGenerating?: boolean;
+  isBlocked?: boolean;
 }
 
 interface FormState {
@@ -62,7 +65,14 @@ function Thumbnail({ src, alt, kind }: ThumbnailProps) {
   );
 }
 
-export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupFormProps) {
+export function StorySetupForm({
+  story,
+  onSubmit,
+  onGenerate,
+  isSubmitting,
+  isGenerating = false,
+  isBlocked = false,
+}: StorySetupFormProps) {
   const [configs, setConfigs] = useState<{
     backbones: Backbone[];
     genres: Genre[];
@@ -125,10 +135,12 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
 
   const retryLoadConfigs = () => setRequestId(n => n + 1);
 
-  const isReadOnly = story && story.status !== 'draft';
+  const isReadOnly = Boolean(story && story.status !== 'draft');
+  const isBusy = isSubmitting || isGenerating || isBlocked;
+  const controlsDisabled = isReadOnly || isBusy;
 
   const toggleCharacter = (id: number) => {
-    if (isReadOnly) return;
+    if (controlsDisabled) return;
     setForm(prev => {
       const isSelected = prev.character_ids.includes(id);
       if (isSelected) {
@@ -157,12 +169,18 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isReadOnly) return;
+    if (controlsDisabled) return;
     if (validate()) {
       void onSubmit(form);
     }
   };
 
+  const handleGenerate = () => {
+    if (controlsDisabled || !onGenerate) return;
+    if (validate()) {
+      void onGenerate(form);
+    }
+  };
   if (!fetched) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -194,7 +212,7 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
       {isReadOnly && (
         <div className="rounded-2xl border border-katha-primary/25 bg-katha-primary/10 p-4 text-center">
           <p className="text-katha-primary-light font-medium">
-            Truyện này đang ở trạng thái <strong>{story.status}</strong> nên không thể chỉnh sửa thiết lập.
+            Truyện này đang ở trạng thái <strong>{STATUS_LABELS[story?.status || ''] || story?.status}</strong> nên không thể chỉnh sửa thiết lập.
           </p>
         </div>
       )}
@@ -207,7 +225,7 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
         <textarea
           value={form.description_vi}
           onChange={(e) => setForm({ ...form, description_vi: e.target.value })}
-          disabled={isReadOnly}
+          disabled={controlsDisabled}
           placeholder="Nhập mô tả ngắn gọn cho câu chuyện của bạn..."
           className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-white/30 transition focus:border-katha-primary focus:outline-none focus:ring-1 focus:ring-katha-primary disabled:opacity-50 min-h-[120px]"
         />
@@ -229,7 +247,7 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {configs.characters.map((char) => {
               const isSelected = form.character_ids.includes(char.id);
-              const isDisabled = isReadOnly || (!isSelected && form.character_ids.length >= 3);
+              const isDisabled = controlsDisabled || (!isSelected && form.character_ids.length >= 3);
               return (
                 <div
                   key={char.id}
@@ -272,7 +290,7 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
                   key={bb.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition
                     ${form.backbone_id === bb.id ? 'border-katha-primary bg-katha-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'}
-                    ${isReadOnly ? 'opacity-70 cursor-default' : ''}
+                    ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                   `}
                 >
                   <input
@@ -280,8 +298,8 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
                     name="backbone"
                     value={bb.id}
                     checked={form.backbone_id === bb.id}
-                    onChange={() => !isReadOnly && setForm({ ...form, backbone_id: bb.id })}
-                    disabled={isReadOnly}
+                    onChange={() => !controlsDisabled && setForm({ ...form, backbone_id: bb.id })}
+                    disabled={controlsDisabled}
                     className="mt-1 h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                   />
                   <div>
@@ -308,7 +326,7 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
                   key={genre.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition
                     ${form.genre_id === genre.id ? 'border-katha-primary bg-katha-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'}
-                    ${isReadOnly ? 'opacity-70 cursor-default' : ''}
+                    ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                   `}
                 >
                   <input
@@ -316,8 +334,8 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
                     name="genre"
                     value={genre.id}
                     checked={form.genre_id === genre.id}
-                    onChange={() => !isReadOnly && setForm({ ...form, genre_id: genre.id })}
-                    disabled={isReadOnly}
+                    onChange={() => !controlsDisabled && setForm({ ...form, genre_id: genre.id })}
+                    disabled={controlsDisabled}
                     className="mt-1 h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                   />
                   <div>
@@ -343,10 +361,10 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
             {configs.artStyles.map((style) => (
               <div
                 key={style.id}
-                onClick={() => !isReadOnly && setForm({ ...form, art_style_id: style.id })}
+                onClick={() => !controlsDisabled && setForm({ ...form, art_style_id: style.id })}
                 className={`relative cursor-pointer overflow-hidden rounded-xl border transition
                   ${form.art_style_id === style.id ? 'border-katha-primary bg-katha-primary/10 ring-1 ring-katha-primary' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}
-                  ${isReadOnly ? 'opacity-70 cursor-default' : ''}
+                  ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                 `}
               >
                 <div className="aspect-[4/3] w-full bg-white/5 flex items-center justify-center">
@@ -381,8 +399,8 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
                   name="target_age"
                   value={opt.value}
                   checked={form.target_age === opt.value}
-                  onChange={() => !isReadOnly && setForm({ ...form, target_age: opt.value })}
-                  disabled={isReadOnly}
+                  onChange={() => !controlsDisabled && setForm({ ...form, target_age: opt.value })}
+                  disabled={controlsDisabled}
                   className="h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
                 <span className="text-sm">{opt.label}</span>
@@ -402,8 +420,8 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
                   name="length_pref"
                   value={opt.value}
                   checked={form.length_pref === opt.value}
-                  onChange={() => !isReadOnly && setForm({ ...form, length_pref: opt.value })}
-                  disabled={isReadOnly}
+                  onChange={() => !controlsDisabled && setForm({ ...form, length_pref: opt.value })}
+                  disabled={controlsDisabled}
                   className="h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
                 <span className="text-sm">{opt.label}</span>
@@ -414,14 +432,31 @@ export function StorySetupForm({ story, onSubmit, isSubmitting }: StorySetupForm
       </div>
 
       {!isReadOnly && (
-        <div className="pt-4 border-t border-white/10 flex justify-end">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="rounded-lg bg-katha-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-katha-primary-light disabled:opacity-50"
-          >
-            {isSubmitting ? 'Đang xử lý...' : story ? 'Cập nhật' : 'Lưu bản nháp'}
-          </button>
+        <div className="border-t border-white/10 pt-4">
+          {isGenerating && (
+            <p className="mb-4 text-right text-sm text-katha-primary-light">
+              Đang sinh nội dung song ngữ…
+            </p>
+          )}
+          <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="submit"
+              disabled={isBusy}
+              className="rounded-lg border border-white/15 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Đang cập nhật...' : story ? 'Cập nhật thiết lập' : 'Lưu bản nháp'}
+            </button>
+            {story && onGenerate && (
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isBusy}
+                className="rounded-lg bg-katha-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-katha-primary-light disabled:opacity-50"
+              >
+                {isGenerating ? 'Đang sinh nội dung…' : 'Sinh nội dung truyện'}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </form>

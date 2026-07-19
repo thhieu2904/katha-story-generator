@@ -99,10 +99,16 @@ class StoryResponse(BaseModel):
     length_pref: str | None
     status: str
     cover_image_url: str | None
+    text_revision: int
     created_by: UUID | None
     character_ids: list[int]
     created_at: datetime | None
     updated_at: datetime | None
+
+    @field_validator("text_revision", mode="before")
+    @classmethod
+    def default_text_revision(cls, value: int | None) -> int:
+        return 0 if value is None else value
 
 
 class StoryListItem(BaseModel):
@@ -114,6 +120,36 @@ class StoryListItem(BaseModel):
     target_age: str | None
     length_pref: str | None
     status: str
+    text_revision: int
     created_by: UUID | None
     created_at: datetime | None
     updated_at: datetime | None
+
+    @field_validator("text_revision", mode="before")
+    @classmethod
+    def default_text_revision(cls, value: int | None) -> int:
+        return 0 if value is None else value
+
+
+class StoryPageTextResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    page_no: int
+    text_vi: str
+    text_km: str
+    spellcheck_flags: list[dict]
+
+
+class StoryTextResponse(BaseModel):
+    id: int
+    title_vi: str
+    title_km: str
+    description_vi: str
+    target_age: str
+    length_pref: str
+    status: str
+    text_revision: int
+    character_ids: list[int]
+    updated_at: datetime | None
+    pages: list[StoryPageTextResponse]

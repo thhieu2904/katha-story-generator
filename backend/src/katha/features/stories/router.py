@@ -8,9 +8,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from katha.core.dependencies import get_db
 from katha.features.auth.dependencies import get_admin_user
 from katha.features.auth.schemas import TokenUser
-from katha.features.stories import service
+from katha.features.stories import generation_service, service
+from katha.features.stories.generation_dependencies import get_story_text_ai
 from katha.features.stories.models import Story
-from katha.features.stories.schemas import StoryCreate, StoryListItem, StoryResponse, StoryUpdate
+from katha.features.stories.schemas import (
+    StoryCreate,
+    StoryListItem,
+    StoryResponse,
+    StoryTextResponse,
+    StoryUpdate,
+)
+from katha.integrations.openai_story_text import StoryTextAI
 
 router = APIRouter()
 
@@ -67,3 +75,24 @@ async def archive_story(
 ) -> Story:
     """Archive a draft story."""
     return await service.archive_story(session, story_id)
+
+
+@router.post("/stories/{story_id}/generate-text", response_model=StoryTextResponse)
+async def generate_story_text(
+    story_id: Annotated[int, Path(gt=0)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[TokenUser, Depends(get_admin_user)],
+    provider: Annotated[StoryTextAI, Depends(get_story_text_ai)],
+) -> StoryTextResponse:
+    """Generate, translate, validate, and atomically persist bilingual story text."""
+    return await generation_service.generate_story_text(session, story_id, provider)
+
+
+@router.get("/stories/{story_id}/text", response_model=StoryTextResponse)
+async def get_story_text(
+    story_id: Annotated[int, Path(gt=0)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[TokenUser, Depends(get_admin_user)],
+) -> StoryTextResponse:
+    """Return canonical bilingual story text without side effects."""
+    return await generation_service.get_story_text(session, story_id)

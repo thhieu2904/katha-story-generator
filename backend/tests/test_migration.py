@@ -351,3 +351,46 @@ class Test002MigrationLifecycle:
                     },
                 )
             engine.dispose()
+
+
+class Test003StoryTextGeneration:
+    """Schema invariants introduced for atomic text generation."""
+
+    @pytest.mark.asyncio
+    async def test_generation_columns_and_page_fk_invariant(self, session):
+        result = await session.execute(
+            text(
+                "SELECT column_name, data_type, is_nullable, column_default "
+                "FROM information_schema.columns "
+                "WHERE table_name IN ('stories', 'story_pages') "
+                "AND column_name IN "
+                "('text_revision', 'text_generation_claim_id', 'story_id')"
+            )
+        )
+        columns = {row[0]: row[1:] for row in result.fetchall()}
+
+        assert columns["text_revision"][0] == "integer"
+        assert columns["text_revision"][1] == "NO"
+        assert columns["text_generation_claim_id"][0] == "uuid"
+        assert columns["story_id"][1] == "NO"
+
+    @pytest.mark.asyncio
+    async def test_generating_text_status_is_accepted(self, session):
+        await session.execute(
+            text(
+                "INSERT INTO stories (description_vi, status, text_revision) "
+                "VALUES ('generation status test', 'generating_text', 0)"
+            )
+        )
+        await session.rollback()
+
+    @pytest.mark.asyncio
+    async def test_negative_text_revision_is_rejected(self, session):
+        with pytest.raises(IntegrityError):
+            await session.execute(
+                text(
+                    "INSERT INTO stories (description_vi, status, text_revision) "
+                    "VALUES ('negative revision test', 'draft', -1)"
+                )
+            )
+        await session.rollback()
