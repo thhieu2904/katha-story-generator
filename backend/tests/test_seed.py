@@ -5,6 +5,8 @@ from sqlalchemy import text
 
 from katha.features.config_data.seed import run_seed
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_seed_inserts_all_records(session, postgres_url):

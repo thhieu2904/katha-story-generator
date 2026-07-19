@@ -12,6 +12,8 @@ from katha.features.auth.schemas import TokenUser
 from katha.features.config_data.seed import run_seed
 from katha.main import app
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_seeded_phase2_read_api(

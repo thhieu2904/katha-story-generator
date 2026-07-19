@@ -101,11 +101,12 @@ npm run dev                 # Start dev server
 
 ```bash
 cd backend
-uv run ruff check src/           # Lint
-uv run ruff format --check src/  # Format check
-uv run mypy src/                 # Type check
-uv run pytest tests/ -v          # Tests (requires Docker for testcontainers)
-docker build -t katha-backend .  # Docker build smoke test
+uv run ruff check src/ tests/ alembic/versions/002_target_age_groups.py
+uv run ruff format --check src/ tests/ alembic/versions/002_target_age_groups.py
+uv run mypy src/
+uv run pytest -m "not integration" tests/ -q  # Offline suite
+uv run pytest -m integration tests/ -q        # Requires Docker/Testcontainers
+docker build -t katha-backend .               # Docker build smoke test
 ```
 
 ### Frontend
@@ -145,7 +146,8 @@ uv run python -m katha.features.config_data.seed
 
 ## Project Status
 
-- [ ] Phase 1: Foundation (repo, scaffold, DB, seed, health)
-- [ ] Phase 2: Auth + Character/Config CRUD
-- [ ] Phase 3: Story creation pipeline
+- [x] Phase 1: Foundation — code-complete offline; Docker/Supabase/R2 live checks pending
+- [x] Phase 2: Auth + config APIs + Character Bank read-only — code-complete offline
+- [x] Phase 3A: Story setup/list — code-complete offline; Docker/live checks pending
+- [ ] Phase 3B–3C: Text generation, editor, confirmation
 - [ ] Phase 4: Polish + deploy

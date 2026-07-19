@@ -1,6 +1,7 @@
 # Katha — Thiết kế kỹ thuật
 
-> Ngày cập nhật: 2026-07-11
+> Ngày cập nhật: 2026-07-20
+> Trạng thái: Đồng bộ Phase 3A code-complete offline; Docker/live verification pending
 
 ---
 
@@ -207,7 +208,7 @@ BƯỚC 5: Xuất bản
 │  Text + ảnh vẫn giữ trong DB/R2
 ```
 
-### Chi phí ước tính 1 truyện 8 trang + bìa
+### Chi phí ước tính 1 truyện 8 trang nội dung
 
 | Bước | Chi phí |
 |------|---------|
@@ -215,16 +216,17 @@ BƯỚC 5: Xuất bản
 | Dịch VN→KM lần đầu | ~$0.002 |
 | Edit 5 lần × $0.005 | ~$0.025 |
 | Dịch VN→EN (cho ảnh) | ~$0.002 |
-| Sinh 8 ảnh + 1 bìa × $0.13 | ~$1.17 |
+| Sinh 8 ảnh nội dung × $0.13 | ~$1.04 |
 | Validate KM | ~$0 (offline) |
-| **Tổng** | **~$1.20** |
+| **Tổng** | **~$1.07** |
 
-> Chi phí $0.13/ảnh (gpt-image-2). Nếu gen lại 2 ảnh: +$0.26 → ~$1.46
+> Chi phí $0.13/ảnh (gpt-image-2). Nếu gen lại 2 ảnh: +$0.26 → ~$1.33
+> Bìa là code template nên không gọi Image API và không tính vào chi phí ảnh.
 
 ### 3.2 Prompt Engineering — Cách ghép prompt
 
 ```python
-# Ví dụ system prompt khi sinh outline
+# Ví dụ system prompt khi sinh truyện
 
 system_prompt = f"""
 You are an expert children's book author. 
@@ -251,16 +253,19 @@ CHARACTERS:
 LENGTH PREFERENCE: {length_pref}
 # "medium" → AI tự quyết số trang phù hợp
 
-Create a page-by-page outline in Vietnamese for a children's story about:
+Create the Vietnamese title and full page-by-page story directly
+(no separate outline step per D25) for a children's story about:
 {description_vi_translated_to_en}
 
-For each page, provide:
-- page_no
-- summary_vi (2-3 sentences describing what happens)
-- characters (list of character names appearing)
-- scene_hint (brief English description of the visual scene)
+Return:
+- title_vi
+- pages:
+  - page_no
+  - text_vi (the complete narration for that page, not a summary)
 """
 ```
+
+Phase 3B phải chốt riêng mọi field phục vụ image pipeline, field đó transient hay persisted, và mapping vào schema/API nào. Round 3 không áp đặt characters-per-page, scene hint hoặc field image mới.
 
 ### 3.3 Image Prompt — Cách giữ nhất quán nhân vật
 

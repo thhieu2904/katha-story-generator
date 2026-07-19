@@ -1,6 +1,6 @@
 # Katha — User Flows & UI Wireframes
 
-> Ngày cập nhật: 2026-07-11
+> Ngày cập nhật: 2026-07-20 — Phase 3A code-complete offline; Docker/live pending
 > Wireframes dạng text — chỉ mô tả layout, không phải design cuối cùng
 
 ---
@@ -9,70 +9,34 @@
 
 ```
 ADMIN FLOW:
-  Login → Dashboard → Characters (xem/seed) → Create Story → Edit Text
+  Login → Dashboard → Characters (read-only seed) → Create Story → Review/Edit
   → Generate Images → Review → Publish
-  (CRUD nhân vật tùy Gate G5 — xem 08-implementation-gates.md)
 
-USER FLOW:    ← OPEN: Gate G1 — public hay login? Xem 08
-  [Login?] → Story List → Read Story (page flip, bilingual)
+USER FLOW:    ← Reader public (D22)
+  Story List → Read Story (page flip, bilingual)
 ```
 
 ---
 
-## 2. Admin — Quản lý nhân vật
-
-> ⚠️ **Gate G5** (`08-implementation-gates.md`): Character bank chỉ seed hay có CRUD/gen ref mới?
-> Nếu chỉ seed → section này chỉ cần UI xem danh sách. Wireframes bên dưới là cho trường hợp có CRUD.
-
-### 2.1 Danh sách nhân vật
+## 2. Admin — Character Bank read-only
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  🎭 Ngân hàng nhân vật                    [+ Tạo mới]  │
+│  🎭 Ngân hàng nhân vật                                  │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐                │
 │  │  [ảnh]  │  │  [ảnh]  │  │  [ảnh]  │                │
 │  │  Srey   │  │  Dara   │  │  Bopha  │                │
 │  │  8 tuổi │  │  10 tuổi│  │  6 tuổi │                │
-│  │ [Sửa]   │  │ [Sửa]   │  │ [Sửa]   │                │
 │  └─────────┘  └─────────┘  └─────────┘                │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Tạo/Sửa nhân vật
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Tạo nhân vật mới                                       │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  Tên:        [Srey                    ]                 │
-│  Tuổi:       [8  ]                                      │
-│  Tính cách:  [Tò mò, dũng cảm, hay cười]               │
-│                                                         │
-│  Mô tả ngoại hình (tiếng Việt):                        │
-│  [Bé gái tóc dài đen buộc 2 bím, mặc sampot           │
-│   xanh lá truyền thống, mắt sáng tò mò,               │
-│   đeo bông tai vàng nhỏ                           ]    │
-│                                                         │
-│  [✨ Tạo ảnh tham chiếu]                                │
-│                                                         │
-│  Chọn ảnh reference (1-3 ảnh):                         │
-│  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐                  │
-│  │ ✓   │  │     │  │ ✓   │  │     │  ← AI sinh 4     │
-│  │[ảnh]│  │[ảnh]│  │[ảnh]│  │[ảnh]│    admin chọn     │
-│  └─────┘  └─────┘  └─────┘  └─────┘    ảnh ưng ý     │
-│                                                         │
-│  [Lưu nhân vật]                                         │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Logic**:
-- Admin nhập mô tả VN → hệ thống dùng LLM expand thành `appearance_prompt_en` cố định
-- Gọi Image API sinh 4 phương án ảnh → admin chọn 1-3 ảnh làm reference
-- Ảnh reference lưu R2, dùng cho MỌI truyện có nhân vật này
+**Logic MVP (D23)**:
+- Chỉ hiển thị 7 nhân vật seed và ảnh reference đã có.
+- Không có CTA tạo/sửa/xóa hoặc sinh reference image mới.
 
 ---
 
@@ -107,33 +71,36 @@ USER FLOW:    ← OPEN: Gate G1 — public hay login? Xem 08
 │                                                         │
 │  Độ dài:      (○) Ngắn   (●) Vừa   (○) Dài            │
 │                                                         │
-│  Độ tuổi:     [▼ 5-8 tuổi ]  ← OPEN: xem 08            │
+│  Nhóm tuổi:  (○) Mầm non 3-5  (●) Tiểu học sớm 6-8  (○) Tiểu học muộn 9-12  ← D24 chốt│
 │                                                         │
-│  [✨ Tạo outline]                                       │
+│  [Lưu bản nháp]                                         │
 └─────────────────────────────────────────────────────────┘
+> ✅ Bìa là code template React/Tailwind (D27), không nằm trong story_pages.
 ```
 
-### 3.2 Bước 2: Text Phase — Xem nội dung + Edit (VN primary, KM subtitle)
+### 3.2 Bước 2: AI sinh truyện + Review/Edit (D25 — không có outline riêng)
+
+Sau khi setup đã lưu, CTA Phase 3B là **Sinh nội dung truyện**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  📝 Nội dung truyện                                      📄 8 trang│
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ≡  Trang 1: Bìa — OPEN: bìa là asset riêng hay page? Xem 08  [🗑]   │
+│  ≡  (Bìa: code template — không nằm trong story_pages, xem D27)     │
 │                                                                     │
-│  ≡  Trang 2:                                                 [🗑]   │
+│  ≡  Trang 1:                                                 [🗑]   │
 │     Ngày xưa, ở một ngôi làng nhỏ bên bờ sông Mekong,             │
 │     có một cô bé tên Srey. Srey rất thích chơi một mình           │
 │     với con búp bê gỗ mà bà nội đã tặng.                          │
 │     កាលពីដើមឡើយ នៅភូមិតូចមួយជាប់មាត់ទន្លេមេគង្គ...              │
 │                                                                     │
-│  ≡  Trang 3:                                                 [🗑]   │
+│  ≡  Trang 2:                                                 [🗑]   │
 │     Một buổi sáng, bạn Dara chạy tới rủ Srey ra công viên        │
 │     chơi. Srey ôm chặt búp bê, sợ Dara sẽ đòi mượn.             │
 │     ព្រឹកមួយថ្ងៃ មិត្តដារ៉ារត់មកជួបស្រី...                        │
 │                                                                     │
-│  ≡  Trang 4: ...                                             [🗑]   │
+│  ≡  Trang 3: ...                                             [🗑]   │
 │  ≡  ...                                                             │
 │                                                                     │
 │  [+ Thêm trang]                                                    │
@@ -235,7 +202,7 @@ Khi AI xử lý edit xong → toast notification:
 
 ### 4.1 Danh sách truyện
 
-> ⚠️ **OPEN — xem `08-implementation-gates.md` (G1)**: Reader public hay cần login?
+> Reader là public và không yêu cầu đăng nhập (D22).
 
 ```
 ┌─────────────────────────────────────────────────────────┐

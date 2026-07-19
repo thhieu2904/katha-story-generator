@@ -50,3 +50,6 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "integration: requires Docker and PostgreSQL Testcontainers",
+]

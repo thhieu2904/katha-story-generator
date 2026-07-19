@@ -35,8 +35,8 @@
 |------|-----------|-----------|----------|
 | G1 | ✅ CHỐT | 2026-07-17 | Reader đọc truyện public; toàn bộ `/admin/*` và API phục vụ admin yêu cầu tài khoản có role `admin`. Backend là lớp enforcement cuối cùng. |
 | G2 | ⬜ OPEN | — | — |
-| G3 | ⬜ OPEN | — | — |
+| G3 | ✅ CHỐT | 2026-07-19 | Bìa dùng code template (React/Tailwind/SVG), không sinh bằng AI. Cover không nằm trong story_pages. cover_image_url nullable, reserved cho future export. |
 | G4 | ⬜ OPEN | — | — |
 | G5 | ✅ CHỐT | 2026-07-17 | Character Bank MVP chỉ đọc 7 nhân vật seed; không CRUD, upload hay sinh reference mới trong Phase 2. |
-| G6 | ⬜ OPEN | — | — |
+| G6 | ✅ CHỐT | 2026-07-19 | target_age dùng text enum group: preschool, early_primary, late_primary. Migration 002 chuyển từ integer. |
 | G7 | ⬜ OPEN | — | — |

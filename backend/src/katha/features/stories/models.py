@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, ForeignKey, Integer, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
+from sqlalchemy.orm import relationship
 
 from katha.db.base import Base
 
@@ -18,7 +19,7 @@ class Story(Base):
     backbone_id = Column(Integer, ForeignKey("story_backbones.id"), nullable=True)
     genre_id = Column(Integer, ForeignKey("story_genres.id"), nullable=True)
     art_style_id = Column(Integer, ForeignKey("art_styles.id"), nullable=True)
-    target_age = Column(Integer, nullable=True)
+    target_age = Column(Text, nullable=True)
     length_pref = Column(Text, nullable=True)  # CHECK constraint in SQL migration
     status = Column(Text, server_default="draft")  # CHECK constraint in SQL migration
     cover_image_url = Column(Text, nullable=True)
@@ -26,6 +27,11 @@ class Story(Base):
     created_by = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    characters = relationship("Character", secondary="story_characters")
+    backbone = relationship("StoryBackbone")
+    genre = relationship("StoryGenre")
+    art_style = relationship("ArtStyle")
 
 
 class StoryCharacter(Base):

@@ -173,7 +173,7 @@ CREATE TABLE stories (
     backbone_id     int REFERENCES story_backbones(id),
     genre_id        int REFERENCES story_genres(id),
     art_style_id    int REFERENCES art_styles(id),
-    target_age      int,                        -- Độ tuổi mục tiêu
+    target_age      text CHECK (target_age IN ('preschool', 'early_primary', 'late_primary')), -- 3 nhóm tuổi mục tiêu
     length_pref     text CHECK (length_pref IN ('short', 'medium', 'long')),
     status          text DEFAULT 'draft'
                     CHECK (status IN (
@@ -186,7 +186,7 @@ CREATE TABLE stories (
                         'published',            -- Đã xuất bản, reader thấy
                         'archived'              -- Ẩn khỏi reader, giữ data
                     )),
-    cover_image_url text,                       -- Ảnh bìa trên R2
+    cover_image_url text,                       -- Nullable, reserved cho future export. Bìa code template không nằm trong story_pages.
     created_by      uuid REFERENCES auth.users(id),
     created_at      timestamptz DEFAULT now(),
     updated_at      timestamptz DEFAULT now()

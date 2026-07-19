@@ -1,7 +1,7 @@
 # Katha — Nhật ký quyết định
 
 > Ghi lại TẤT CẢ quyết định đã thảo luận, lý do, và trạng thái.
-> Ngày cập nhật: 2026-07-17
+> Ngày cập nhật: 2026-07-20
 
 ---
 
@@ -51,6 +51,7 @@
   - Range cho phép: 4–16 trang
 - **Lý do**: Admin không có căn cứ chọn số trang trước khi biết nội dung. AI quyết dựa trên complexity tốt hơn.
 - **KHÔNG hiển thị chi phí** cho user
+- **⚠️ SUPERSEDED by D25 và D26**: Không có outline riêng; AI sinh trực tiếp title + full story pages. Range hiện hành là short 4–6, medium 8–10, long 12–14 và hard limit 16 trang nội dung.
 
 ### D07: Edit flow — Quick actions + Chat (không inline edit trong MVP)
 - **Quyết định**: 
@@ -168,3 +169,39 @@
 - **Không làm trong Phase 2**: Tạo, sửa, xóa nhân vật; upload hoặc sinh ảnh reference mới.
 - **Nguồn ảnh**: `ref_image_urls` do script upload reference của Phase 1 cập nhật.
 - **Chốt gate**: G5.
+
+### D24 — Target age dùng ba nhóm text
+- Ngày: 2026-07-19
+- Quyết định: target_age lưu text: preschool (3-5), early_primary (6-8), late_primary (9-12). Không dùng integer.
+- Lý do: Rõ ràng hơn cho prompt và UI; tránh nhập tuổi cụ thể
+- Trạng thái: ✅ Chốt
+
+### D25 — Không có outline riêng
+- Ngày: 2026-07-19
+- Quyết định: Phase 3B sinh trực tiếp title + full story pages. Không tạo outline riêng.
+- Lý do: Giảm complexity; outline tích hợp trong prompt
+- Trạng thái: ✅ Chốt
+
+### D26 — Mapping length và hard limit
+- Ngày: 2026-07-19
+- Quyết định: short=4-6 trang, medium=8-10, long=12-14. Hard limit 16 trang nội dung.
+- Lý do: Phù hợp lứa tuổi và chi phí AI
+- Trạng thái: ✅ Chốt
+
+### D27 — Bìa code template
+- Ngày: 2026-07-19
+- Quyết định: Bìa là React/Tailwind/SVG template, không sinh AI. Không nằm trong story_pages.
+- Lý do: Nhất quán thương hiệu, giảm chi phí, dễ chỉnh layout
+- Trạng thái: ✅ Chốt
+
+### D28 — Mọi admin thấy/sửa mọi story
+- Ngày: 2026-07-19
+- Quyết định: Không filter story theo created_by. Mọi admin truy cập được tất cả story.
+- Lý do: Đội nhỏ, cần cộng tác
+- Trạng thái: ✅ Chốt
+
+### D29 — Setup editable ở draft, khóa từ text_draft
+- Ngày: 2026-07-19
+- Quyết định: Story setup chỉ sửa khi status=draft. Từ text_draft trở đi, setup bị khóa.
+- Lý do: Đảm bảo nhất quán giữa config và nội dung AI sinh
+- Trạng thái: ✅ Chốt

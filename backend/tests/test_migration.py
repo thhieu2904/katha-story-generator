@@ -4,7 +4,10 @@ Uses testcontainers PostgreSQL with auth.users stub from conftest.py.
 """
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import IntegrityError
+
+pytestmark = pytest.mark.integration
 
 EXPECTED_TABLES = [
     "story_backbones",
@@ -127,3 +130,224 @@ async def test_unique_constraint_story_pages(session):
     )
     uniques = result.fetchall()
     assert len(uniques) >= 1, "Expected UNIQUE constraint on story_pages"
+
+
+# ─── Migration 002: target_age integer → text ────
+
+
+class Test002TargetAgeGroups:
+    """Tests for migration 002: target_age groups."""
+
+    @pytest.mark.asyncio
+    async def test_target_age_column_is_text(self, session):
+        """After migration 002, target_age column should be TEXT."""
+        result = await session.execute(
+            text(
+                "SELECT data_type FROM information_schema.columns "
+                "WHERE table_name = 'stories' AND column_name = 'target_age'"
+            )
+        )
+        row = result.fetchone()
+        assert row is not None
+        assert row[0] == "text"
+
+    @pytest.mark.asyncio
+    async def test_target_age_check_constraint_exists(self, session):
+        """stories_target_age_check constraint should exist."""
+        result = await session.execute(
+            text(
+                "SELECT constraint_name "
+                "FROM information_schema.table_constraints "
+                "WHERE constraint_type = 'CHECK' "
+                "  AND table_schema = 'public' "
+                "  AND table_name = 'stories' "
+                "  AND constraint_name = 'stories_target_age_check'"
+            )
+        )
+        assert result.fetchone() is not None, "stories_target_age_check constraint not found"
+
+    @pytest.mark.asyncio
+    async def test_valid_enum_values_accepted(self, session):
+        """Insert preschool/early_primary/late_primary should succeed."""
+        for val in ("preschool", "early_primary", "late_primary"):
+            await session.execute(
+                text(
+                    "INSERT INTO stories "
+                    "(description_vi, target_age, status, length_pref) "
+                    "VALUES (:desc, :age, 'draft', 'short')"
+                ),
+                {"desc": f"test story {val}", "age": val},
+            )
+        await session.rollback()
+
+    @pytest.mark.asyncio
+    async def test_invalid_enum_rejected(self, session):
+        """Insert invalid target_age value should raise IntegrityError."""
+        with pytest.raises(IntegrityError):
+            await session.execute(
+                text(
+                    "INSERT INTO stories "
+                    "(description_vi, target_age, status, length_pref) "
+                    "VALUES ('test', 'invalid_value', 'draft', 'short')"
+                ),
+            )
+        await session.rollback()
+
+    @pytest.mark.asyncio
+    async def test_null_target_age_accepted(self, session):
+        """Insert NULL target_age should succeed (nullable column)."""
+        await session.execute(
+            text(
+                "INSERT INTO stories "
+                "(description_vi, target_age, status, length_pref) "
+                "VALUES ('test null', NULL, 'draft', 'short')"
+            ),
+        )
+        await session.rollback()
+
+
+class Test002MigrationLifecycle:
+    """Test the full migration 002 lifecycle: upgrade → data mapping → downgrade.
+
+    Requires the conftest fixture to be at 'head'. This test temporarily
+    downgrades to 001, seeds legacy data, upgrades to 002, verifies mapping,
+    downgrades back, then restores to head.
+    """
+
+    def test_migration_002_data_mapping(self, postgres_url, run_migrations):
+        """Legacy integer values map correctly to text enums."""
+        import os
+
+        from alembic.config import Config
+
+        from alembic import command
+
+        sync_url = postgres_url.replace("postgresql+asyncpg://", "postgresql://")
+        alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+        alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+        engine = create_engine(sync_url)
+        descriptions = [
+            "r3 preschool lower",
+            "r3 preschool upper",
+            "r3 early lower",
+            "r3 early upper",
+            "r3 late lower",
+            "r3 late upper",
+            "r3 unmapped",
+            "r3 null",
+        ]
+
+        try:
+            command.upgrade(alembic_cfg, "head")
+
+            # Downgrade to 001 (before target_age text migration)
+            command.downgrade(alembic_cfg, "001")
+
+            # Insert legacy values in a short, committed transaction.
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO stories "
+                        "(description_vi, target_age, status, length_pref) "
+                        "VALUES "
+                        "('r3 preschool lower', 3, 'draft', 'short'),"
+                        "('r3 preschool upper', 5, 'draft', 'short'),"
+                        "('r3 early lower', 6, 'draft', 'medium'),"
+                        "('r3 early upper', 7, 'draft', 'medium'),"
+                        "('r3 late lower', 9, 'draft', 'long'),"
+                        "('r3 late upper', 10, 'draft', 'long'),"
+                        "('r3 unmapped', 15, 'draft', 'short'),"
+                        "('r3 null', NULL, 'draft', 'short')"
+                    )
+                )
+
+            # Upgrade to 002
+            command.upgrade(alembic_cfg, "002")
+
+            # Verify the new type and all representative mappings.
+            with engine.connect() as connection:
+                data_type = connection.execute(
+                    text(
+                        "SELECT data_type FROM information_schema.columns "
+                        "WHERE table_name = 'stories' AND column_name = 'target_age'"
+                    )
+                ).scalar_one()
+                rows = connection.execute(
+                    text(
+                        "SELECT description_vi, target_age FROM stories "
+                        "WHERE description_vi LIKE 'r3 %' ORDER BY description_vi"
+                    )
+                ).fetchall()
+
+            mapping = dict(rows)
+            assert data_type == "text"
+            assert mapping["r3 preschool lower"] == "preschool"
+            assert mapping["r3 preschool upper"] == "preschool"
+            assert mapping["r3 early lower"] == "early_primary"
+            assert mapping["r3 early upper"] == "early_primary"
+            assert mapping["r3 late lower"] == "late_primary"
+            assert mapping["r3 late upper"] == "late_primary"
+            assert mapping["r3 unmapped"] is None
+            assert mapping["r3 null"] is None
+
+            # All valid enum values are accepted.
+            with engine.begin() as connection:
+                for value in ("preschool", "early_primary", "late_primary"):
+                    connection.execute(
+                        text(
+                            "INSERT INTO stories "
+                            "(description_vi, target_age, status, length_pref) "
+                            "VALUES (:description, :target_age, 'draft', 'short')"
+                        ),
+                        {
+                            "description": f"r3 valid {value}",
+                            "target_age": value,
+                        },
+                    )
+
+            # Close the failed transaction before running more Alembic DDL.
+            with pytest.raises(IntegrityError), engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO stories "
+                        "(description_vi, target_age, status, length_pref) "
+                        "VALUES ('r3 invalid', 'invalid', 'draft', 'short')"
+                    )
+                )
+
+            # Downgrade back to 001 and verify integer restoration
+            command.downgrade(alembic_cfg, "001")
+            with engine.connect() as connection:
+                data_type = connection.execute(
+                    text(
+                        "SELECT data_type FROM information_schema.columns "
+                        "WHERE table_name = 'stories' AND column_name = 'target_age'"
+                    )
+                ).scalar_one()
+                rows = connection.execute(
+                    text(
+                        "SELECT description_vi, target_age FROM stories "
+                        "WHERE description_vi LIKE 'r3 %'"
+                    )
+                ).fetchall()
+
+            downgraded = dict(rows)
+            assert data_type == "integer"
+            assert downgraded["r3 preschool lower"] == 4
+            assert downgraded["r3 early lower"] == 7
+            assert downgraded["r3 late lower"] == 10
+        finally:
+            # Restore only after every previous transaction and connection is closed.
+            command.upgrade(alembic_cfg, "head")
+            with engine.begin() as connection:
+                connection.execute(
+                    text("DELETE FROM stories WHERE description_vi = ANY(:descriptions)"),
+                    {
+                        "descriptions": descriptions
+                        + [
+                            f"r3 valid {value}"
+                            for value in ("preschool", "early_primary", "late_primary")
+                        ]
+                    },
+                )
+            engine.dispose()

@@ -2,7 +2,7 @@
 
 > ⚠️ **FILE NÀY LÀ BẮT BUỘC ĐỌC** khi bắt đầu chat mới về dự án Katha.
 > Đọc file này TRƯỚC, sau đó đọc các file được reference bên dưới.
-> Ngày cập nhật: 2026-07-11
+> Ngày cập nhật: 2026-07-20
 
 ---
 
@@ -29,9 +29,9 @@
 
 ### Chi phí đã tính
 - 1 ảnh truyện: ~$0.13 (gpt-image-2)
-- 1 truyện (8 trang + bìa): ~$1.20 (96% là ảnh)
-- Text gen gần như free (~$0.02/truyện)
-- Budget $19.6 → tối đa ~16 truyện
+- 1 truyện (8 trang): ~$1.07 (97% là ảnh)
+- Text gen gần như free (~$0.03/truyện)
+- Budget $19.6 → tối đa ~18 truyện
 - Batch API đã nghiên cứu → KHÔNG dùng (UX kém)
 
 ### Kiến trúc core
@@ -44,7 +44,10 @@
 - **3 backbone**: Ngụ ngôn, Ba hồi, Lặp lại
 - **4 genre**: Cổ tích, Anh hùng, Hài hước, Răn dạy
 - **3 art style**: Màu nước, Phẳng, 3D cartoon (admin chọn khi tạo)
-- **Số trang**: AI suggest (4-16), admin tinh chỉnh
+- **Số trang nội dung**: `short` 4–6, `medium` 8–10, `long` 12–14
+- **Hard limit**: tối đa 16 trang nội dung
+- **Sinh text**: AI sinh trực tiếp title + full story pages; không có outline riêng
+- **Bìa**: code template React/Tailwind/SVG, không sinh AI và không nằm trong `story_pages`
 - **Layout**: Landscape (tất cả)
 - **Song ngữ**: KM primary (reader) / VN primary (admin edit)
 
@@ -56,13 +59,15 @@
 
 ### Auth + Data
 - 2-5 tài khoản tạo sẵn (Supabase Auth)
+- Reader public, không yêu cầu đăng nhập (D22)
+- Character Bank chỉ đọc 7 nhân vật seed trong MVP (D23)
 - Archive thay vì delete (giữ data cho NCKH)
 - Vocabulary layer: future phase, KHÔNG trong MVP
 
 ### DB Schema — ĐÃ HOÀN THÀNH ✅
 - **Source of truth**: `07-database-schema.md` — 7 bảng, đã chốt ngày 2026-07-11
 - KHÔNG có `story_outlines`, `story_edit_logs`, `usage_logs`, `vocabulary` trong MVP
-- Quyết định chưa chốt → xem `08-implementation-gates.md`
+- Chỉ G2 và G4 còn mở; G1/G3/G5/G6 đã chốt trong D22–D27
 
 ### Tất cả decisions chi tiết: xem `01-decisions-log.md`
 
@@ -116,23 +121,22 @@
 ✅ Pre-work:  Character assets (7 nhân vật + ref sheets)
 ✅ Pre-work:  DB schema design (7 bảng) → 07-database-schema.md
 ✅ Phase 0:   Đồng bộ plan / documentation
-⬜ Phase 1:   Foundation — Git, frontend/, backend/, Alembic migration, seed, Supabase/R2, health check
-⬜ Phase 2:   Config + Character bank
-⬜ Phase 3:   Text generation / edit / confirm
+✅ Phase 1:   Foundation — code-complete offline; Docker/Supabase/R2 live checks pending
+✅ Phase 2:   Config APIs + Character Bank read-only — code-complete offline
+🔨 Phase 3:   Text generation / edit / confirm
+    - 3A: ✅ Code-complete offline — Docker/live verification pending
+    - 3B: ⬜ Chưa lập implementation plan
+    - 3C: ⬜ Chưa bắt đầu
 ⬜ Phase 4:   Image generation
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
 ⬜ Phase 7:   NCKH evaluation
 ```
 
-### Bước tiếp theo NGAY: Phase 1
-1. Init Git repo + monorepo (`frontend/` + `backend/`)
-2. Scaffold FastAPI + Next.js
-3. Alembic migration tạo 7 bảng theo `07-database-schema.md`
-4. Viết seed spec (prompt_template_en, prompt_modifier_en, mapping characters.json → schema)
-5. Chạy seed data
-6. Kết nối Supabase + R2
-7. Health check endpoint
+### Bước tiếp theo
+
+1. Reviewer kiểm tra actual diff và evidence Round 3.
+2. Sau khi Round 3 được chấp nhận, lập plan Phase 3B.
 
 ---
 
@@ -171,7 +175,7 @@
 ## 8. Quy tắc cho agent mới
 
 1. **Đọc file này trước** → hiểu context
-2. **Không hỏi lại** những quyết định đã chốt (D01-D21)
+2. **Không hỏi lại** những quyết định đã chốt (D01-D29)
 3. **Giữ tiếng Việt** khi giao tiếp, code comments bằng tiếng Anh
 4. **Budget-aware**: mọi quyết định API phải tính chi phí
 5. **Đừng over-engineer**: MVP first, cần chạy được trước

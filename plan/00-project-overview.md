@@ -1,7 +1,7 @@
 # Katha Story Generator — Tổng quan dự án
 
-> Ngày cập nhật: 2026-07-11
-> Trạng thái: Planning — chưa code
+> Ngày cập nhật: 2026-07-20
+> Trạng thái: Phase 3A — Code-complete offline; Docker/live verification pending
 
 ---
 
@@ -34,7 +34,7 @@ Giáo viên dạy tiếng Khmer cần truyện tranh minh họa để hỗ trợ
 
 | Role | Ai? | Làm gì? |
 |------|-----|---------|
-| **Admin / Giáo viên** | Người Việt biết tiếng Khmer | Tạo nhân vật, tạo truyện, review/edit, xuất bản |
+| **Admin / Giáo viên** | Người Việt biết tiếng Khmer | Chọn 7 nhân vật seed, tạo truyện, review/edit, xuất bản |
 | **User / Học sinh** | Người đang học Khmer | Đọc truyện, xem song ngữ |
 
 ---
@@ -42,8 +42,8 @@ Giáo viên dạy tiếng Khmer cần truyện tranh minh họa để hỗ trợ
 ## 4. Scope — MVP vs Tương lai
 
 ### MVP (8 tuần)
-- ✅ Ngân hàng nhân vật (7 nhân vật seed; CRUD/gen ref mới tùy Gate G5 — xem `08-implementation-gates.md`)
-- ✅ Tạo truyện (backbone + genre + AI outline + quick actions + chat edit)
+- ✅ Ngân hàng nhân vật read-only với 7 nhân vật seed
+- ✅ Tạo truyện (backbone + genre + AI sinh `title_vi` và full story pages trực tiếp theo D25)
 - ✅ Sinh ảnh minh họa (nhất quán nhân vật)
 - ✅ Dịch sang Khmer + spellcheck
 - ✅ Review workflow (admin duyệt)

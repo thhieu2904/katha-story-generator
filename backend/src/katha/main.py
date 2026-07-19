@@ -13,6 +13,7 @@ from katha.core.dependencies import get_db
 from katha.features.auth.router import router as auth_router
 from katha.features.characters.router import router as characters_router
 from katha.features.config_data.router import router as config_router
+from katha.features.stories.router import router as stories_router
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(config_router, prefix="/api", tags=["config"])
 app.include_router(characters_router, prefix="/api", tags=["characters"])
+app.include_router(stories_router, prefix="/api", tags=["stories"])
 
 
 @app.get("/health")

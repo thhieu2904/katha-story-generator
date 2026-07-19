@@ -1,8 +1,9 @@
 # Katha — Kế hoạch triển khai
 
-> Ngày cập nhật: 2026-07-11
+> Ngày cập nhật: 2026-07-20
 > DB schema: xem `07-database-schema.md` (source of truth duy nhất)
 > Quyết định chưa chốt: xem `08-implementation-gates.md`
+> Các gate đã chốt: G1 (D22), G3 (D27), G5 (D23), G6 (D24).
 
 ---
 
@@ -13,10 +14,13 @@
 ✅ Pre-work:  Character assets (7 nhân vật + ref sheets)
 ✅ Pre-work:  DB schema design (7 bảng) → 07-database-schema.md
 ✅ Phase 0:   Đồng bộ plan / documentation
-⬜ Phase 1:   Foundation — Git, frontend/, backend/, Alembic migration, seed, Supabase/R2, health check
-⬜ Phase 2:   Config + Character bank
-⬜ Phase 3:   Text generation / edit / confirm
-⬜ Phase 4:   Image generation
+✅ Phase 1:   Foundation — code-complete offline; Docker/Supabase/R2 live checks pending
+✅ Phase 2:   Config APIs + Character Bank read-only — code-complete offline
+🔨 Phase 3:   Text generation / edit / confirm
+    - 3A: ✅ Code-complete offline — Docker/live verification pending
+    - 3B: Text Generation — AI sinh title + full story pages trực tiếp (D25)
+    - 3C: Story Editor & Confirmation
+⬜ Phase 4:   Image generation cho các trang nội dung
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
 ⬜ Phase 7:   NCKH evaluation
@@ -24,7 +28,9 @@
 
 ---
 
-## Phase 1 — Foundation (3-4 ngày)
+## Phase 1 — Foundation (3-4 ngày) — Code-complete offline
+
+> Docker image build và live Supabase/R2/health smoke vẫn pending.
 
 ### Mục tiêu
 Setup repo, scaffold `frontend/` + `backend/`, chạy migration theo `07-database-schema.md`, seed data, kết nối Supabase + R2, health check.
@@ -91,34 +97,30 @@ Setup repo, scaffold `frontend/` + `backend/`, chạy migration theo `07-databas
 
 ---
 
-## Phase 2 — Config + Character Bank (3-4 ngày)
+## Phase 2 — Config APIs + Character Bank read-only (3-4 ngày) — Code-complete offline
 
 ### Mục tiêu
-API đọc config (backbones, genres, art styles) + CRUD character.
-
-> ⚠️ **Gate G5** (`08-implementation-gates.md`): Character bank chỉ seed hay có CRUD/gen ref mới?
-> Nếu chỉ seed → phase này chỉ cần API đọc. Nếu có CRUD → cần thêm UI tạo/sửa nhân vật.
+API đọc config (backbones, genres, art styles), API đọc 7 nhân vật seed và UI Character Bank read-only theo D23.
 
 ### Việc cần làm
 
-- [ ] **2.1** API config data (read-only)
+- [x] **2.1** API config data (read-only)
   - `GET /backbones` — danh sách cấu trúc truyện
   - `GET /genres` — danh sách thể loại
   - `GET /art-styles` — danh sách phong cách vẽ
 
-- [ ] **2.2** API characters
+- [x] **2.2** API characters read-only
   - `GET /characters` — danh sách nhân vật
   - `GET /characters/:id` — chi tiết
-  - (CRUD endpoints tùy gate G5)
 
-- [ ] **2.3** Auth middleware
+- [x] **2.3** Auth middleware
   - Verify Supabase JWT
   - `get_current_user` dependency
-  - Phân quyền admin vs reader → **Gate G1** (`08-implementation-gates.md`)
+  - Admin API được bảo vệ; Reader public theo D22
 
-- [ ] **2.4** UI character list
+- [x] **2.4** UI character list
   - Card grid hiển thị 7 nhân vật với ảnh ref
-  - (Tạo/sửa UI tùy gate G5)
+  - Không có CTA tạo/sửa/xóa trong MVP
 
 ### Deliverable
 - API hoạt động: đọc config + characters
@@ -132,7 +134,7 @@ API đọc config (backbones, genres, art styles) + CRUD character.
 ### Mục tiêu
 Flow tạo truyện → sinh text VN → dịch KM → edit (quick actions + chat) → confirm text.
 
-> ⚠️ **Gate G6** (`08-implementation-gates.md`): `target_age` format?
+> `target_age` đã chốt theo D24: `preschool` (3–5), `early_primary` (6–8), `late_primary` (9–12).
 
 ### Việc cần làm
 
@@ -169,7 +171,7 @@ Flow tạo truyện → sinh text VN → dịch KM → edit (quick actions + cha
   - Chọn nhân vật (multi-select), backbone, genre, art style
   - Nhập mô tả/chủ đề (VN)
   - Chọn độ dài (Ngắn/Vừa/Dài)
-  - Chọn độ tuổi → **Gate G6**
+  - Chọn một trong ba nhóm tuổi D24 đã chốt
 
 - [ ] **3.7** UI text editor song ngữ
   - Hiển thị text đầy đủ: VN (primary) + KM (subtitle)
@@ -193,9 +195,8 @@ Flow tạo truyện → sinh text VN → dịch KM → edit (quick actions + cha
 ### Mục tiêu
 Sinh ảnh minh họa cho từng trang (text đã khóa ở Phase 3).
 
-> ⚠️ **Gate G2** (`08-implementation-gates.md`): Character nào trên từng trang?
-> ⚠️ **Gate G3** (`08-implementation-gates.md`): Bìa là asset riêng hay page?
-> ⚠️ **Gate G4** (`08-implementation-gates.md`): Cách chạy/retry/progress sinh ảnh?
+> ⚠️ **OPEN — Gate G2**: Character nào trên từng trang?
+> ⚠️ **OPEN — Gate G4**: Cách chạy/retry/progress sinh ảnh?
 
 ### Việc cần làm
 
@@ -211,14 +212,14 @@ Sinh ảnh minh họa cho từng trang (text đã khóa ở Phase 3).
   - Upload kết quả lên R2
   - Retry/progress → **Gate G4**
 
-- [ ] **4.3** Cover image → **Gate G3**
+- [ ] **4.3** Không sinh ảnh bìa; code-template cover được làm cùng Reader/Story Card ở Phase 5 (D27)
 
 - [ ] **4.4** UI progress
   - Progress bar: "🎨 Đang vẽ trang 3/8..."
   - Preview ảnh hiện dần khi gen xong
 
 ### Deliverable
-- Truyện 8 trang + bìa có ảnh nhất quán
+- Các trang nội dung có ảnh nhất quán; bìa là code template riêng và không tính là image API call
 - Progress tracking hoạt động
 
 ---
@@ -228,8 +229,7 @@ Sinh ảnh minh họa cho từng trang (text đã khóa ở Phase 3).
 ### Mục tiêu
 Admin duyệt ảnh từng trang, sửa text KM, gen lại ảnh. Xuất bản. Reader đọc truyện.
 
-> ⚠️ **Gate G1** (`08-implementation-gates.md`): Reader public hay login?
-
+> Reader public, không yêu cầu đăng nhập (D22).
 ### Việc cần làm
 
 - [ ] **5.1** API review
@@ -251,7 +251,7 @@ Admin duyệt ảnh từng trang, sửa text KM, gen lại ảnh. Xuất bản. 
 - [ ] **5.4** API reader
   - `GET /public/stories` — danh sách published
   - `GET /public/stories/:id` — chi tiết + pages
-  - Auth: tùy **Gate G1**
+  - Public route, không yêu cầu auth
 
 - [ ] **5.5** UI reader
   - Story list: card grid, ảnh bìa, title KM + VN
