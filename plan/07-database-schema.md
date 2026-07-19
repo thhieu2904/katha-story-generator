@@ -178,6 +178,7 @@ CREATE TABLE stories (
     status          text DEFAULT 'draft'
                     CHECK (status IN (
                         'draft',                -- Vừa tạo, chưa gen text
+                        'generating_text',      -- Request AI đang giữ claim sinh text
                         'text_draft',           -- Đã gen text, đang edit
                         'text_confirmed',       -- Admin chốt text, khóa
                         'generating_images',    -- Đang gen ảnh (background job)
@@ -186,6 +187,8 @@ CREATE TABLE stories (
                         'published',            -- Đã xuất bản, reader thấy
                         'archived'              -- Ẩn khỏi reader, giữ data
                     )),
+    text_revision   int NOT NULL DEFAULT 0 CHECK (text_revision >= 0),
+    text_generation_claim_id uuid,              -- Ownership token; updated_at chỉ dùng stale detection
     cover_image_url text,                       -- Nullable, reserved cho future export. Bìa code template không nằm trong story_pages.
     created_by      uuid REFERENCES auth.users(id),
     created_at      timestamptz DEFAULT now(),
@@ -196,11 +199,13 @@ CREATE TABLE stories (
 **Status lifecycle (2-phase):**
 
 ```
-draft → text_draft → text_confirmed → generating_images → pending_review → approved → published
-                                                                                    ↘ archived
+draft → generating_text → text_draft → text_confirmed → generating_images → pending_review → approved → published
+                              ↘ edit loop                                                     ↘ archived
 ```
 
-- TEXT PHASE: draft → text_draft ↔ (edit loop) → text_confirmed (text bị khóa)
+- TEXT PHASE: draft → generating_text → text_draft ↔ (edit loop) → text_confirmed (text bị khóa)
+- `text_revision`: 0 ở draft, 1 sau generation, tăng đúng một lần trên mỗi content mutation; validate-only không tăng.
+- `text_generation_claim_id`: UUID ownership khi generating; clear khi success/reset. `updated_at` chỉ dùng stale detection.
 - IMAGE PHASE: text_confirmed → generating_images → pending_review ↔ (review loop) → approved
 - PUBLISH: approved → published hoặc archived
 
@@ -212,7 +217,7 @@ Quan hệ nhiều-nhiều giữa stories và characters.
 
 ```sql
 CREATE TABLE story_characters (
-    story_id        int REFERENCES stories(id) ON DELETE CASCADE,
+    story_id        int NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
     character_id    int REFERENCES characters(id),
     PRIMARY KEY (story_id, character_id)
 );
@@ -230,21 +235,21 @@ Bảng nặng nhất — chứa toàn bộ nội dung text (3 ngôn ngữ) + ả
 ```sql
 CREATE TABLE story_pages (
     id              serial PRIMARY KEY,
-    story_id        int REFERENCES stories(id) ON DELETE CASCADE,
+    story_id        int NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
     page_no         int NOT NULL,               -- Thứ tự trang (1, 2, 3...)
 
     -- Nội dung text (3 ngôn ngữ)
     text_vi         text,                       -- Bản gốc tiếng Việt (admin edit)
     text_en         text,                       -- Bản dịch tiếng Anh (dùng cho image prompt)
-    text_km         text,                       -- Bản dịch Khmer (AI dịch, admin có thể sửa)
+    text_km         text,                       -- Bản dịch Khmer; sửa qua AI retranslate, không inline edit
 
     -- Ảnh minh họa
     image_prompt_en text,                       -- Prompt đã dùng sinh ảnh
     image_url       text,                       -- URL ảnh trên R2
 
     -- Khmer validation
-    spellcheck_flags jsonb DEFAULT '[]',        -- Từ Khmer nghi sai chính tả
-                                                -- VD: [{"word": "ប្រដាក្មេង", "position": 12}]
+    spellcheck_flags jsonb DEFAULT '[]',        -- Warning hỗ trợ review, không phải proof spelling/grammar
+    khmer_validated_at timestamptz,              -- NULL = chưa validate translation hiện tại
 
     -- Review (từng trang riêng lẻ)
     review_status   text DEFAULT 'pending'
@@ -265,7 +270,8 @@ CREATE TABLE story_pages (
 - `text_en` dùng nội bộ cho image prompt, user không thấy
 - `text_km` là bản hiển thị cho reader — KM primary
 - `review_status` duyệt TỪNG TRANG, không phải cả truyện
-- `spellcheck_flags` chạy tự động sau khi dịch KM (khmercut + spellchecker)
+- `spellcheck_flags` là warning-only từ baseline validator và optional advanced adapter; không auto-correct.
+- `khmer_validated_at=NULL` nghĩa là translation hiện tại chưa chạy validator pipeline; `validate-km` cập nhật metadata mà không tăng text revision.
 
 ---
 

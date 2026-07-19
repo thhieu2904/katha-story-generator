@@ -54,6 +54,8 @@
 - **⚠️ SUPERSEDED by D25 và D26**: Không có outline riêng; AI sinh trực tiếp title + full story pages. Range hiện hành là short 4–6, medium 8–10, long 12–14 và hard limit 16 trang nội dung.
 
 ### D07: Edit flow — Quick actions + Chat (không inline edit trong MVP)
+
+> Semantics/labels của quick actions và structural edit được D30 làm rõ.
 - **Quyết định**: 
   - Quick actions: [Thu ngắn lại] [Dài thêm] [Kịch tính hơn] [Đơn giản hơn] + preset khác
   - Chat: nhập yêu cầu tùy ý ("xóa trang 3", "thêm nhân vật Dara vào trang 5")
@@ -183,6 +185,8 @@
 - Trạng thái: ✅ Chốt
 
 ### D26 — Mapping length và hard limit
+
+> Initial-even và odd-after-edit policy được D30 làm rõ.
 - Ngày: 2026-07-19
 - Quyết định: short=4-6 trang, medium=8-10, long=12-14. Hard limit 16 trang nội dung.
 - Lý do: Phù hợp lứa tuổi và chi phí AI
@@ -204,4 +208,46 @@
 - Ngày: 2026-07-19
 - Quyết định: Story setup chỉ sửa khi status=draft. Từ text_draft trở đi, setup bị khóa.
 - Lý do: Đảm bảo nhất quán giữa config và nội dung AI sinh
+- Trạng thái: ✅ Chốt
+
+### D30 — Page count và structural edit policy
+- Ngày: 2026-07-20
+- Quyết định:
+  - Phase 3B initial generation chỉ sinh số trang chẵn: short `{4,6}`, medium `{8,10}`, long `{12,14}`.
+  - Sau edit cho phép mọi số trong band, gồm `5/9/13`; confirm không kiểm tra chẵn/lẻ.
+  - Mọi quick action giữ nguyên page count/order. Label: `Rút gọn nội dung`, `Viết chi tiết hơn`, `Kịch tính hơn`, `Đơn giản hơn`.
+  - Add/delete/reorder dùng control riêng; custom instruction chỉ đổi cấu trúc khi admin yêu cầu rõ.
+  - Archive `text_draft` deferred khỏi Phase 3C P0, chỉ là P1 nếu còn thời gian.
+- Lý do: Giữ UX rõ, tránh AI tự đổi cấu trúc và vẫn hỗ trợ add/delete một trang trong band.
+- Trạng thái: ✅ Chốt
+
+### D31 — Target độ dài nội dung theo nhóm tuổi
+- Ngày: 2026-07-20
+- Quyết định:
+  - `preschool`: 1–2 câu, 12–30 từ mục tiêu, hard max 45 từ/page.
+  - `early_primary`: 2–4 câu, 30–60 từ mục tiêu, hard max 80 từ/page.
+  - `late_primary`: 3–5 câu, 50–90 từ mục tiêu, hard max 120 từ/page.
+  - Soft ranges chỉ dùng cho prompt/quality diagnostics; hard max mới reject output bất thường.
+  - Absolute caps: title 160 ký tự, page 1200 ký tự, instruction 5–1000 ký tự.
+- Lý do: Kiểm soát độ khó đọc, output token và nội dung bất thường mà không hard-reject sai vì lệch nhẹ soft target.
+- Trạng thái: ✅ Chốt
+
+### D32 — Khmer validation và retranslation contract
+- Ngày: 2026-07-20
+- Quyết định:
+  - `GET /text` không có side effect.
+  - `POST /api/stories/{id}/validate-km` validate toàn bộ page snapshot; ghi flags/timestamp chỉ khi revision vẫn đúng và không tăng `text_revision`.
+  - `POST /api/stories/{id}/retranslate-km` dùng union target `title | page`; retranslate thay đổi canonical Khmer content nên tăng revision.
+  - Validator warning-only, không auto-correct và không giả là proof spelling/grammar.
+- Lý do: Có đường validate page cũ của 3B và sửa cả title/page Khmer mà vẫn bảo toàn optimistic concurrency.
+- Trạng thái: ✅ Chốt
+
+### D33 — Text generation claim và timeout budget
+- Ngày: 2026-07-20
+- Quyết định:
+  - Migration 003 thêm `text_generation_claim_id uuid NULL`; UUID quyết định ownership, `updated_at` chỉ xác định stale.
+  - Timeout seconds: SDK attempt 60, one retry, whole operation 270, frontend 285, proxy 300, stale 600.
+  - Output token caps: generation 6000, translation/edit 8000, add-page/retranslate 1500.
+  - Sau timeout/mất kết nối, frontend refetch status/revision trước khi resend.
+- Lý do: Ngăn request cũ finalize/reset sau stale reclaim và giữ synchronous MVP trong budget vận hành rõ ràng.
 - Trạng thái: ✅ Chốt

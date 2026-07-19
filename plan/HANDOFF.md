@@ -45,6 +45,8 @@
 - **4 genre**: Cổ tích, Anh hùng, Hài hước, Răn dạy
 - **3 art style**: Màu nước, Phẳng, 3D cartoon (admin chọn khi tạo)
 - **Số trang nội dung**: `short` 4–6, `medium` 8–10, `long` 12–14
+- **Initial generation**: chỉ số chẵn `{4,6}`, `{8,10}`, `{12,14}`; sau edit cho phép số lẻ trong band và confirm không kiểm tra chẵn/lẻ
+- **Độ dài/page**: preschool 12–30 từ (max 45), early primary 30–60 (max 80), late primary 50–90 (max 120)
 - **Hard limit**: tối đa 16 trang nội dung
 - **Sinh text**: AI sinh trực tiếp title + full story pages; không có outline riêng
 - **Bìa**: code template React/Tailwind/SVG, không sinh AI và không nằm trong `story_pages`
@@ -52,9 +54,11 @@
 - **Song ngữ**: KM primary (reader) / VN primary (admin edit)
 
 ### Edit flow
-- Quick actions: [Thu ngắn] [Dài thêm] [Kịch tính hơn] [Đơn giản hơn]
-- Chat: nhập yêu cầu tùy ý
-- Drag-drop: sortable list đổi thứ tự trang
+- Quick actions: [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn]
+- Tất cả quick actions giữ nguyên page count/order
+- Custom instruction mặc định giữ cấu trúc; chỉ add/delete/reorder khi admin yêu cầu rõ
+- Add/delete/reorder dùng control riêng; archive `text_draft` deferred P1
+- Validate page Khmer cũ qua explicit `POST /validate-km`; retranslate title/page qua endpoint chung
 - KHÔNG có inline text edit trong MVP
 
 ### Auth + Data
@@ -64,10 +68,11 @@
 - Archive thay vì delete (giữ data cho NCKH)
 - Vocabulary layer: future phase, KHÔNG trong MVP
 
-### DB Schema — ĐÃ HOÀN THÀNH ✅
-- **Source of truth**: `07-database-schema.md` — 7 bảng, đã chốt ngày 2026-07-11
+### DB Schema design — 7 bảng, không thêm bảng mới ✅
+- **Source of truth**: `07-database-schema.md`; migration 003 dự kiến thêm status/revision/generation claim UUID, migration 004 thêm Khmer validation timestamp
 - KHÔNG có `story_outlines`, `story_edit_logs`, `usage_logs`, `vocabulary` trong MVP
-- Chỉ G2 và G4 còn mở; G1/G3/G5/G6 đã chốt trong D22–D27
+- Generation ownership dùng `text_generation_claim_id`; `updated_at` chỉ xác định stale
+- Chỉ G2 và G4 còn mở; G1/G3/G5/G6 đã chốt
 
 ### Tất cả decisions chi tiết: xem `01-decisions-log.md`
 
@@ -110,7 +115,7 @@
 | Database | PostgreSQL | Supabase |
 | Storage | Cloudflare R2 | Cloudflare |
 | AI | OpenAI (gpt-image-2 + gpt-4o-mini) | API |
-| Khmer NLP | khmercut + khmer-spellchecker | VPS |
+| Khmer NLP | Baseline Unicode validator + optional adapter sau dependency spike | VPS |
 
 ---
 
@@ -124,9 +129,9 @@
 ✅ Phase 1:   Foundation — code-complete offline; Docker/Supabase/R2 live checks pending
 ✅ Phase 2:   Config APIs + Character Bank read-only — code-complete offline
 🔨 Phase 3:   Text generation / edit / confirm
-    - 3A: ✅ Code-complete offline — Docker/live verification pending
-    - 3B: ⬜ Chưa lập implementation plan
-    - 3C: ⬜ Chưa bắt đầu
+    - 3A: ✅ Baseline commit `3048010`; code-complete offline — Docker/live verification pending
+    - 3B: 📋 Plan READY; chưa triển khai
+    - 3C: 📋 Core contract READY; chỉ bắt đầu sau khi 3B được review accept
 ⬜ Phase 4:   Image generation
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
@@ -135,8 +140,9 @@
 
 ### Bước tiếp theo
 
-1. Reviewer kiểm tra actual diff và evidence Round 3.
-2. Sau khi Round 3 được chấp nhận, lập plan Phase 3B.
+1. Dùng baseline Phase 3A `3048010` làm điểm bắt đầu ổn định.
+2. Triển khai Phase 3B theo `PHASE_3B_TEXT_GENERATION_PLAN.md` và review accept contract 3B.
+3. Chỉ sau đó mới bắt đầu Phase 3C core; archive `text_draft` giữ ở P1 deferred.
 
 ---
 
@@ -154,6 +160,8 @@
 | `06-project-structure.md` | Cấu trúc thư mục frontend/ + backend/ |
 | `07-database-schema.md` | **DB schema duy nhất** — source of truth cho migration |
 | `08-implementation-gates.md` | Quyết định chưa chốt — dev KHÔNG được tự ý quyết |
+| `PHASE_3B_TEXT_GENERATION_PLAN.md` | Source of truth triển khai generation + bilingual preview |
+| `PHASE_3C_STORY_EDITOR_CONFIRMATION_PLAN.md` | Source of truth editor + validation + confirm sau khi 3B accept |
 | `characters/README.md` | Tổng quan character bank |
 | `characters/characters.json` | Data nhân vật (JSON) |
 | `characters/prompts.md` | Prompt đã dùng gen ảnh |
@@ -175,7 +183,7 @@
 ## 8. Quy tắc cho agent mới
 
 1. **Đọc file này trước** → hiểu context
-2. **Không hỏi lại** những quyết định đã chốt (D01-D29)
+2. **Không hỏi lại** những quyết định đã chốt (D01-D33)
 3. **Giữ tiếng Việt** khi giao tiếp, code comments bằng tiếng Anh
 4. **Budget-aware**: mọi quyết định API phải tính chi phí
 5. **Đừng over-engineer**: MVP first, cần chạy được trước
