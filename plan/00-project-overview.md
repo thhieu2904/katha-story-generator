@@ -69,7 +69,7 @@ Giáo viên dạy tiếng Khmer cần truyện tranh minh họa để hỗ trợ
 | Storage | Cloudflare R2 | Cloudflare |
 | AI (text) | OpenAI gpt-4o-mini | API |
 | AI (image) | OpenAI gpt-image-2 | API |
-| Khmer NLP | khmercut + khmer-spellchecker | Cài trên VPS |
+| Khmer NLP | baseline Unicode validator; advanced adapter deferred P1 | Cài trên VPS |
 
 ---
 

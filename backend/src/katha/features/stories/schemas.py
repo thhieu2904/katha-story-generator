@@ -139,6 +139,7 @@ class StoryPageTextResponse(BaseModel):
     text_vi: str
     text_km: str
     spellcheck_flags: list[dict]
+    khmer_validated_at: datetime | None
 
 
 class StoryTextResponse(BaseModel):

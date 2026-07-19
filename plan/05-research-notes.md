@@ -144,7 +144,7 @@
 
 ### Lý do quan trọng cho dự án
 - BẮT BUỘC phải validate text Khmer sau khi dịch (LLM + Translation API đều có thể sai)
-- khmercut + spellchecker = lớp kiểm tra tự động, giảm tải cho reviewer thủ công
+- baseline technical validator = lớp kiểm tra tự động, giảm tải cho reviewer thủ công
 - Font hiển thị: phải dùng Noto Sans Khmer hoặc Kantumruy Pro + line-height nới rộng
 
 ### Nguồn tham khảo
@@ -532,3 +532,13 @@ Số truyện tối đa (không buffer): ~16 truyện
 
 *File này được tạo tự động từ quá trình nghiên cứu. Cần verify lại từng nguồn trước khi trích dẫn trong báo cáo NCKH.*
 
+
+---
+
+## 11. Phase 3C Khmer dependency spike (2026-07-20)
+
+- `khmercut==0.1.0`: là segmenter, không phải spellchecker; smoke build trên Windows/Python 3.11 gặp lỗi encoding metadata nên không pin.
+- KOOMPI Khmer spellchecker: nguồn dictionary/Hunspell assets, chưa phải Python runtime adapter sẵn dùng và còn cần review engine/license/corpus.
+- `khmerthings`: candidate Python 3.11 ít dependency nhưng đang Alpha/0.x; chưa có corpus + native review đủ để đưa vào P0.
+- Quyết định P0: baseline-only, kiểm tra NFC, U+FFFD/control, Khmer-script presence, length và Unicode code-point offsets; warning-only, không auto-correct, không tuyên bố kiểm tra grammar/spelling.
+- Advanced segmentation/dictionary adapter và corpus 30–50 mẫu được deferred P1.

@@ -394,3 +394,21 @@ class Test003StoryTextGeneration:
                 )
             )
         await session.rollback()
+
+
+class Test004StoryEditorValidation:
+    """Schema invariant for explicit Khmer validation state."""
+
+    @pytest.mark.asyncio
+    async def test_khmer_validated_at_is_nullable_timestamptz(self, session):
+        result = await session.execute(
+            text(
+                "SELECT data_type, is_nullable FROM information_schema.columns "
+                "WHERE table_name = 'story_pages' "
+                "AND column_name = 'khmer_validated_at'"
+            )
+        )
+        row = result.fetchone()
+        assert row is not None
+        assert row[0] == "timestamp with time zone"
+        assert row[1] == "YES"

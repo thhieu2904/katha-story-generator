@@ -1,7 +1,7 @@
 # Katha — Thiết kế kỹ thuật
 
 > Ngày cập nhật: 2026-07-20
-> Trạng thái: Đồng bộ Phase 3A code-complete offline; Docker/live verification pending
+> Trạng thái: Đồng bộ Phase 3C core code-complete offline; Docker/live/native Khmer verification pending
 
 ---
 
@@ -133,7 +133,7 @@ BƯỚC 1: Sinh toàn bộ text tiếng Việt + dịch Khmer (~30-60 giây)
 ▼
 BƯỚC 2: Admin edit (lặp nhiều lần — rẻ)
 │
-│  Quick actions: [Thu ngắn] [Dài thêm] [Kịch tính hơn] [Đơn giản hơn]
+│  Quick actions: [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn]
 │  Chat: "Thêm nhân vật Dara vào trang 4", "Xóa trang 6"
 │  Drag-drop: đổi thứ tự trang
 │  Thêm/xóa trang
@@ -175,7 +175,7 @@ BƯỚC 3: Sinh ảnh minh họa (Background job, ~2-5 phút)
 │  │ 3c. Sinh ảnh (Image API + character ref images)  │
 │  │     → upload R2 → story_pages.image_url          │
 │  │                                                  │
-│  │ 3d. Validate KM (khmercut + spellchecker)        │
+│  │ 3d. Validate KM (baseline technical validator)        │
 │  │     → story_pages.spellcheck_flags               │
 │  └─────────────────────────────────────────────────┘
 │
@@ -192,7 +192,7 @@ BƯỚC 4: Review ảnh (sửa TỪNG TRANG riêng lẻ)
 │  
 │  Ảnh ưng → approve trang đó
 │  Ảnh không ưng → [🔄 Tạo lại ảnh trang này] (chỉ gen lại 1 ảnh, ~$0.13)
-│  Text KM cần sửa nhỏ → sửa trực tiếp (không gen lại ảnh)
+│  Text đã khóa; Khmer chỉ được retranslate trước confirm ở Phase 3C
 │
 │  KHÔNG gen lại hàng loạt — từng trang một
 │

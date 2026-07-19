@@ -57,7 +57,7 @@
 
 > Semantics/labels của quick actions và structural edit được D30 làm rõ.
 - **Quyết định**: 
-  - Quick actions: [Thu ngắn lại] [Dài thêm] [Kịch tính hơn] [Đơn giản hơn] + preset khác
+  - Quick actions: [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn] + preset khác
   - Chat: nhập yêu cầu tùy ý ("xóa trang 3", "thêm nhân vật Dara vào trang 5")
   - Drag-drop: sortable list để đổi thứ tự trang (dnd-kit, đơn giản)
   - Thêm/xóa trang: nút [+ Thêm trang] và [🗑] trên mỗi trang

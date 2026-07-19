@@ -98,7 +98,11 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
                 href={`/admin/stories/${story.id}/edit`}
                 className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-katha-primary-light"
               >
-                {story.status === 'generating_text' ? 'Xem tiến trình' : 'Xem nội dung'}
+                {story.status === 'generating_text'
+                  ? 'Xem trạng thái'
+                  : story.status === 'text_draft'
+                    ? 'Tiếp tục biên tập'
+                    : 'Xem nội dung'}
               </Link>
             ) : (
               <span className="text-xs text-white/50">{statusLabel}</span>

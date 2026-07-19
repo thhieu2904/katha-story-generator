@@ -14,6 +14,14 @@ from katha.features.stories.generation_models import (
     GeneratedStoryVi,
     TranslatedStoryKm,
 )
+from katha.features.story_editor.schemas import (
+    ADD_PAGE_MAX_OUTPUT_TOKENS,
+    EDIT_MAX_OUTPUT_TOKENS,
+    RETRANSLATE_MAX_OUTPUT_TOKENS,
+    AddedPageVi,
+    RetranslatedTextKm,
+    RevisedStoryVi,
+)
 
 ParsedT = TypeVar("ParsedT", bound=BaseModel)
 
@@ -57,6 +65,30 @@ class OpenAIStoryTextAI:
             prompt=prompt,
             output_type=TranslatedStoryKm,
             max_output_tokens=TRANSLATION_MAX_OUTPUT_TOKENS,
+        )
+
+    async def revise_story(self, instructions: str, prompt: str) -> RevisedStoryVi:
+        return await self._parse(
+            instructions=instructions,
+            prompt=prompt,
+            output_type=RevisedStoryVi,
+            max_output_tokens=EDIT_MAX_OUTPUT_TOKENS,
+        )
+
+    async def add_page(self, instructions: str, prompt: str) -> AddedPageVi:
+        return await self._parse(
+            instructions=instructions,
+            prompt=prompt,
+            output_type=AddedPageVi,
+            max_output_tokens=ADD_PAGE_MAX_OUTPUT_TOKENS,
+        )
+
+    async def retranslate_khmer(self, instructions: str, prompt: str) -> RetranslatedTextKm:
+        return await self._parse(
+            instructions=instructions,
+            prompt=prompt,
+            output_type=RetranslatedTextKm,
+            max_output_tokens=RETRANSLATE_MAX_OUTPUT_TOKENS,
         )
 
     async def _parse(

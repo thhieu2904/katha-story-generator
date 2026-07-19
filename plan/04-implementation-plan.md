@@ -18,8 +18,8 @@
 ✅ Phase 2:   Config APIs + Character Bank read-only — code-complete offline
 🔨 Phase 3:   Text generation / edit / confirm
     - 3A: ✅ Code-complete offline — Docker/live verification pending
-    - 3B: Text Generation — AI sinh title + full story pages trực tiếp (D25)
-    - 3C: Story Editor & Confirmation
+    - 3B: ✅ Text Generation — baseline `b99eb32`
+    - 3C: ✅ Core P0 code-complete offline
 ⬜ Phase 4:   Image generation cho các trang nội dung
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
@@ -129,67 +129,47 @@ API đọc config (backbones, genres, art styles), API đọc 7 nhân vật seed
 
 ---
 
-## Phase 3 — Text Generation / Edit / Confirm (5-6 ngày)
+## Phase 3 — Text Generation / Edit / Confirm — Code-complete offline
 
 ### Mục tiêu
-Flow tạo truyện → sinh text VN → dịch KM → edit (quick actions + chat) → confirm text.
 
-> `target_age` đã chốt theo D24: `preschool` (3–5), `early_primary` (6–8), `late_primary` (9–12).
+Flow tạo truyện → sinh text Việt → dịch Khmer → biên tập/đổi cấu trúc có kiểm soát → xác nhận khóa text.
 
-### Việc cần làm
+### Phase 3A — Setup
 
-- [ ] **3.1** API tạo truyện
-  - `POST /stories` — tạo story record
-  - `POST /stories/:id/generate-text` — gọi LLM sinh text VN + auto dịch KM
-  - `POST /stories/:id/edit` — gửi chat/quick action, AI trả text VN mới + auto dịch lại KM
-  - `POST /stories/:id/confirm` — khóa text, chuyển status → `text_confirmed`
-  - `PUT /stories/:id/pages` — cập nhật pages (reorder, add, delete)
+- [x] CRUD story draft, lựa chọn config/nhân vật, policy nhóm tuổi và số trang.
+- [x] Setup bị khóa khi story rời `draft`.
 
-- [ ] **3.2** AI text generation service
-  - System prompt = base + backbone.prompt_template_en + genre.prompt_modifier_en
-  - + character descriptions (appearance_prompt_en)
-  - Output: text đầy đủ (không phải tóm tắt) cho từng trang
-  - Pipeline text ghi trực tiếp vào `story_pages.text_vi` + `text_km`
-  - Auto-save bản hiện tại sau mỗi AI response — KHÔNG lưu version/undo
+### Phase 3B — Generation
 
-- [ ] **3.3** Translator service
-  - `translate(text, "vi", "km")` — cho hiển thị song ngữ
-  - `translate(text, "vi", "en")` — cho image prompt (Phase 4)
-  - Auto dịch lại từng trang khi sửa text VN
+- [x] `POST /api/stories/{id}/generate-text` với claim UUID, stale reclaim và conditional finalize/reset.
+- [x] `GET /api/stories/{id}/text` là canonical read, không có side effect.
+- [x] Sinh Vietnamese structured output, dịch Khmer và persist atomically thành `text_draft` revision 1.
 
-- [ ] **3.4** Khmer validator
-  - Tích hợp khmercut + khmer-spellchecker
-  - Output: `spellcheck_flags` JSON → lưu vào `story_pages`
-  - Auto chạy sau mỗi lần dịch
+### Phase 3C — Editor & confirmation
 
-- [ ] **3.5** Prompt engineering
-  - Viết prompt_template_en cho 3 backbones
-  - Viết prompt_modifier_en cho 4 genres
-  - Test & tune
+- [x] `POST /api/stories/{id}/text/edits` cho quick action/custom instruction.
+- [x] `POST /api/stories/{id}/pages`, `PUT /pages/order`, `DELETE /pages/{page_id}`.
+- [x] `POST /api/stories/{id}/validate-km` không tăng revision.
+- [x] `POST /api/stories/{id}/retranslate-km` cho title/page và tăng revision khi có thay đổi.
+- [x] `POST /api/stories/{id}/confirm-text` chỉ chuyển `text_draft → text_confirmed`, không sinh ảnh.
+- [x] Quick actions giữ count/order; add/delete/reorder dùng control riêng; custom instruction chỉ đổi cấu trúc khi yêu cầu rõ.
+- [x] Editor song ngữ với dnd-kit, fallback lên/xuống, Khmer warnings, timeout/conflict reconcile và read-only sau confirm.
+- [x] Số trang sau edit có thể lẻ nhưng phải còn trong band 4–6 / 8–10 / 12–14.
+- [ ] Archive `text_draft` — deferred P1.
+- [ ] Advanced Khmer dictionary/segmentation adapter — deferred P1; P0 dùng baseline technical validator warning-only.
 
-- [ ] **3.6** UI story setup form
-  - Chọn nhân vật (multi-select), backbone, genre, art style
-  - Nhập mô tả/chủ đề (VN)
-  - Chọn độ dài (Ngắn/Vừa/Dài)
-  - Chọn một trong ba nhóm tuổi D24 đã chốt
+### Evidence hiện tại
 
-- [ ] **3.7** UI text editor song ngữ
-  - Hiển thị text đầy đủ: VN (primary) + KM (subtitle)
-  - Sortable list (dnd-kit) — drag-drop đổi thứ tự
-  - Xóa/thêm trang
-  - Quick actions: [Thu ngắn] [Dài thêm] [Kịch tính hơn] [Đơn giản hơn]
-  - Chat input
-  - Toast báo thay đổi (KHÔNG có nút hoàn tác — xem D07)
-  - Nút [Xác nhận nội dung & Sinh ảnh]
+- Backend offline: `84 passed, 20 deselected`, Ruff/mypy pass, Alembic head `004`.
+- Frontend: ESLint pass (1 warning `<img>` tồn tại từ trước), TypeScript pass, production build pass.
+- Docker PostgreSQL integration, live OpenAI và native-speaker Khmer review còn deferred.
 
 ### Deliverable
-- Flow: nhập mô tả → sinh text VN + KM → edit → confirm
-- Text editor song ngữ với quick actions + chat + drag-drop
-- Auto-save bản hiện tại
-- Dịch VN→KM tự động + spellcheck flags
+
+Canonical bilingual editor đã auto-save từng mutation thành công, chống stale overwrite bằng revision, giữ Việt/Khmer atomic, và khóa text khi admin bấm **Xác nhận nội dung**.
 
 ---
-
 ## Phase 4 — Image Generation (3-4 ngày)
 
 ### Mục tiêu

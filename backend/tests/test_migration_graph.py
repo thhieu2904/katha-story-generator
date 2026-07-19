@@ -4,11 +4,11 @@ from alembic.config import Config
 from alembic.script import ScriptDirectory
 
 
-def test_migration_graph_has_single_003_head() -> None:
+def test_migration_graph_has_single_004_head() -> None:
     config = Config("alembic.ini")
     script = ScriptDirectory.from_config(config)
-    revision = script.get_revision("003")
+    revision = script.get_revision("004")
 
     assert revision is not None
-    assert revision.down_revision == "002"
-    assert script.get_current_head() == "003"
+    assert revision.down_revision == "003"
+    assert script.get_current_head() == "004"

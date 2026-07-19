@@ -6,7 +6,7 @@
 
 - Ngày lập: 2026-07-20.
 - Loại tài liệu: implementation plan / handoff cho dev.
-- Trạng thái: **READY sau khi Phase 3B code-complete offline**.
+- Trạng thái: **CORE P0 CODE-COMPLETE OFFLINE** (2026-07-20); Docker/live/native Khmer review pending.
 - Chính sách số trang sau edit đã được chốt ở Section 3.3; không còn product micro-gate.
 - Phase này chỉ chuyển `text_draft → text_confirmed`; không tự sinh ảnh.
 - Docker, OpenAI live smoke và native-speaker quality review là các gate tách riêng.
@@ -1086,25 +1086,25 @@ Nếu chưa có frontend test runner, không bắt buộc mở thêm framework c
 
 ### Code-complete offline — Core P0
 
-- [ ] Phase 3B accepted.
-- [ ] Page policy được chốt/ghi rõ.
-- [ ] Migration 004 + single head pass offline graph checks.
-- [ ] Editor API contracts/auth/status guards pass.
-- [ ] Quick actions giữ exact count/order; custom instruction structural guard pass với fake provider.
-- [ ] Add/delete/reorder/retranslate title/page pass.
-- [ ] Validate-km bootstrap cập nhật flags/timestamp mà không tăng revision.
-- [ ] Revision conflicts không overwrite.
-- [ ] Translation failure không tạo bilingual drift.
-- [ ] Baseline Khmer validator luôn chạy được.
-- [ ] Advanced validator failure degrade an toàn.
-- [ ] Warnings không auto-correct hoặc hard-block sau acknowledgment.
-- [ ] Confirm chỉ chuyển `text_confirmed`, không gọi image.
-- [ ] Frontend editor đủ loading/error/conflict/read-only states.
-- [ ] Dnd + accessibility fallback có mặt.
-- [ ] Backend Ruff/format/mypy/offline tests pass.
-- [ ] Frontend lint/TypeScript/build pass.
-- [ ] Lockfile và secret checks pass.
-- [ ] Docs không còn hai mâu thuẫn CTA/inline Khmer.
+- [x] Phase 3B accepted.
+- [x] Page policy được chốt/ghi rõ.
+- [x] Migration 004 + single head pass offline graph checks.
+- [x] Editor API contracts/auth/status guards pass.
+- [x] Quick actions giữ exact count/order; custom instruction structural guard pass với fake provider.
+- [x] Add/delete/reorder/retranslate title/page pass.
+- [x] Validate-km bootstrap cập nhật flags/timestamp mà không tăng revision.
+- [x] Revision conflicts không overwrite.
+- [x] Translation failure không tạo bilingual drift.
+- [x] Baseline Khmer validator luôn chạy được.
+- [x] P0 không pin advanced adapter; dependency boundary luôn fallback baseline.
+- [x] Warnings không auto-correct hoặc hard-block sau acknowledgment.
+- [x] Confirm chỉ chuyển `text_confirmed`, không gọi image.
+- [x] Frontend editor đủ loading/error/conflict/read-only states.
+- [x] Dnd + accessibility fallback có mặt.
+- [x] Backend Ruff/format/mypy/offline tests pass.
+- [x] Frontend lint/TypeScript/build pass.
+- [x] Lockfile và secret/diff checks pass.
+- [x] Docs không còn hai mâu thuẫn CTA/inline Khmer.
 
 ### P1 nếu deadline cho phép
 

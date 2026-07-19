@@ -71,6 +71,7 @@ export interface StoryTextPage {
   text_vi: string;
   text_km: string;
   spellcheck_flags: Record<string, unknown>[];
+  khmer_validated_at: string | null;
 }
 
 export interface StoryText {

@@ -1,6 +1,6 @@
 # Katha — User Flows & UI Wireframes
 
-> Ngày cập nhật: 2026-07-20 — Phase 3A code-complete offline; Docker/live pending
+> Ngày cập nhật: 2026-07-20 — Phase 3C core code-complete offline; Docker/live/native Khmer review pending
 > Wireframes dạng text — chỉ mô tả layout, không phải design cuối cùng
 
 ---
@@ -107,20 +107,20 @@ Sau khi setup đã lưu, CTA Phase 3B là **Sinh nội dung truyện**.
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │  QUICK ACTIONS                                                      │
-│  [Thu ngắn lại] [Dài thêm] [Kịch tính hơn] [Đơn giản hơn]        │
+│  [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn]        │
 │                                                                     │
 │  💬 Hoặc nhập yêu cầu:                                             │
 │  ┌──────────────────────────────────────────────────────┐           │
 │  │                                                      │ [Gửi]    │
 │  └──────────────────────────────────────────────────────┘           │
 ├─────────────────────────────────────────────────────────────────────┤
-│  [▶ Xác nhận nội dung & Sinh ảnh]                                  │
+│  [Xác nhận nội dung]                                  │
 └─────────────────────────────────────────────────────────────────────┘
 
 Khi AI xử lý edit xong → toast notification:
   ┌─────────────────────────────────────────┐
-  │ ✅ Đã giảm từ 8 trang → 6 trang        │
-  │    Gộp trang 4+5, xóa trang 7          │
+  │ ✅ Đã lưu: sửa 3 trang        │
+  │    Quick action giữ nguyên số trang và thứ tự          │
   └─────────────────────────────────────────┘
 ```
 

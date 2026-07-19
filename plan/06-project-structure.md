@@ -1,6 +1,6 @@
 # Katha — Cấu trúc dự án
 
-> Ngày cập nhật: 2026-07-11
+> Ngày cập nhật: 2026-07-20
 > Trạng thái: ĐÃ CHỐT ✅
 
 ---
@@ -196,7 +196,7 @@ frontend/
     │   │   ├── StorySetupForm.tsx    # Chọn backbone, genre, art style
     │   │   ├── PageEditor.tsx       # 1 trang trong text editor
     │   │   ├── PageList.tsx          # Sortable list (drag-drop)
-    │   │   ├── QuickActions.tsx      # [Thu ngắn] [Dài thêm] ...
+    │   │   ├── QuickActions.tsx      # [Rút gọn nội dung] [Viết chi tiết hơn] ...
     │   │   ├── ChatInput.tsx         # Chat edit input
     │   │   ├── ImageProgress.tsx     # Progress bar sinh ảnh
     │   │   └── ReviewPage.tsx        # Review 1 trang (ảnh + text)
@@ -419,3 +419,13 @@ Backend (FastAPI / VPS)
    - Backend: `DATABASE_URL`, `SUPABASE_JWT_SECRET`, `OPENAI_API_KEY`, `R2_*` credentials
 
 3. **Tailwind**: Dùng Tailwind v4 — import trực tiếp `@import 'tailwindcss'` trong globals.css, không cần `@tailwind` directives cũ
+
+---
+
+## 7. Phase 3C — cấu trúc thực tế
+
+Backend dùng feature riêng `src/katha/features/story_editor/` gồm `router.py`, `schemas.py`, `service.py`, `ports.py`, `prompts.py`, `diff.py`; adapter Khmer ở `src/katha/integrations/khmer/`. OpenAI adapter dùng chung được mở rộng, không gọi provider trực tiếp từ router.
+
+Frontend dùng `src/features/story-editor/` gồm API/types/constants/hook và các component editor. Route `app/admin/stories/[id]/edit/page.tsx` chỉ parse ID rồi render feature. Dnd-kit là dependency UI mới duy nhất.
+
+Migration 004 chỉ thêm `story_pages.khmer_validated_at`; không thêm bảng, edit log, history hay inline editor.

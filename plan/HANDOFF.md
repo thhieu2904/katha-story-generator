@@ -69,7 +69,7 @@
 - Vocabulary layer: future phase, KHÔNG trong MVP
 
 ### DB Schema design — 7 bảng, không thêm bảng mới ✅
-- **Source of truth**: `07-database-schema.md`; migration 003 dự kiến thêm status/revision/generation claim UUID, migration 004 thêm Khmer validation timestamp
+- **Source of truth**: `07-database-schema.md`; migration 003 đã thêm status/revision/generation claim UUID; migration 004 đã thêm Khmer validation timestamp
 - KHÔNG có `story_outlines`, `story_edit_logs`, `usage_logs`, `vocabulary` trong MVP
 - Generation ownership dùng `text_generation_claim_id`; `updated_at` chỉ xác định stale
 - Chỉ G2 và G4 còn mở; G1/G3/G5/G6 đã chốt
@@ -130,8 +130,8 @@
 ✅ Phase 2:   Config APIs + Character Bank read-only — code-complete offline
 🔨 Phase 3:   Text generation / edit / confirm
     - 3A: ✅ Baseline commit `3048010`; code-complete offline — Docker/live verification pending
-    - 3B: ✅ Code-complete offline; chờ review accept + migration/live AI smoke
-    - 3C: 📋 Core contract READY; chỉ bắt đầu sau khi 3B được review accept
+    - 3B: ✅ Baseline commit `b99eb32`; code-complete offline — Docker/live AI smoke pending
+    - 3C: ✅ Core P0 code-complete offline — Docker/live/native Khmer review pending
 ⬜ Phase 4:   Image generation
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
@@ -140,9 +140,10 @@
 
 ### Bước tiếp theo
 
-1. Dùng baseline Phase 3A `3048010` làm điểm bắt đầu ổn định.
-2. Triển khai Phase 3B theo `PHASE_3B_TEXT_GENERATION_PLAN.md` và review accept contract 3B.
-3. Chỉ sau đó mới bắt đầu Phase 3C core; archive `text_draft` giữ ở P1 deferred.
+1. Bật Docker Desktop và chạy migration/integration suite 001 → 004 trên PostgreSQL thật.
+2. Chạy live smoke có kiểm soát cho generation/edit/add/retranslate với `OPENAI_API_KEY` ngoài test suite.
+3. Nhờ người đọc Khmer review sample; archive `text_draft` tiếp tục deferred P1.
+4. Chỉ mở Phase 4 sau khi chốt Gate G2 và G4.
 
 ---
 
@@ -154,6 +155,15 @@
 - Offline gates: Ruff pass, mypy pass, `73 passed, 19 deselected`; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
 - Migration integration chưa chạy vì Docker Desktop không hoạt động (`dockerDesktopLinuxEngine` unavailable).
 - Live OpenAI smoke chưa chạy vì cần `OPENAI_API_KEY`; không dùng key thật trong automated suite.
+### Phase 3C implementation evidence (2026-07-20)
+
+- Alembic graph: single head `004`; thêm nullable `story_pages.khmer_validated_at` và downgrade đối xứng.
+- Backend: 7 editor/validation/confirm routes; optimistic `text_revision`; final lock/check sau AI; atomic selective translation; server-side diff; baseline Khmer warning-only.
+- Frontend: full bilingual editor, quick actions, one-shot instruction, add/delete, dnd-kit pointer/touch/keyboard + up/down, retranslate, explicit validate bootstrap, conflict/timeout reconciliation và confirm read-only.
+- Offline gates: Ruff pass, mypy pass, `84 passed, 20 deselected`; OpenAPI đủ 7 route; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
+- Docker integration 20 test chưa chạy vì Docker Desktop pipe không tồn tại; live OpenAI và native Khmer review vẫn deferred.
+- `text_draft` archive và advanced dictionary/segmentation adapter là P1, chưa triển khai.
+- Báo cáo chi tiết: `PHASE_3C_IMPLEMENTATION_REPORT.md` ở repo root.
 
 ## 6. File map — Đọc gì ở đâu
 

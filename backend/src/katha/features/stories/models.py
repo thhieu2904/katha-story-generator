@@ -72,6 +72,7 @@ class StoryPage(Base):
     image_prompt_en = Column(Text, nullable=True)
     image_url = Column(Text, nullable=True)
     spellcheck_flags = Column(JSONB, server_default="[]")
+    khmer_validated_at = Column(TIMESTAMP(timezone=True), nullable=True)
     review_status = Column(Text, server_default="pending")  # CHECK in SQL migration
     # FK to auth.users handled in raw SQL migration — no SQLAlchemy ForeignKey
     reviewed_by = Column(UUID(as_uuid=True), nullable=True)
