@@ -412,3 +412,65 @@ class Test004StoryEditorValidation:
         assert row is not None
         assert row[0] == "timestamp with time zone"
         assert row[1] == "YES"
+
+
+class Test003004MigrationLifecycle:
+    """Exercise Phase 3 generation/editor migration upgrade and downgrade boundaries."""
+
+    def test_phase3_migrations_upgrade_and_downgrade(self, postgres_url, run_migrations):
+        import os
+
+        from alembic.config import Config
+
+        from alembic import command
+
+        sync_url = postgres_url.replace("postgresql+asyncpg://", "postgresql://")
+        config = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+        config.set_main_option("sqlalchemy.url", sync_url)
+        engine = create_engine(sync_url)
+
+        try:
+            command.upgrade(config, "head")
+            command.downgrade(config, "002")
+            with engine.connect() as connection:
+                generation_columns = connection.execute(
+                    text(
+                        "SELECT count(*) FROM information_schema.columns "
+                        "WHERE table_name='stories' "
+                        "AND column_name IN ('text_revision', 'text_generation_claim_id')"
+                    )
+                ).scalar_one()
+                assert generation_columns == 0
+
+            command.upgrade(config, "004")
+            with engine.connect() as connection:
+                generation_columns = connection.execute(
+                    text(
+                        "SELECT count(*) FROM information_schema.columns "
+                        "WHERE table_name='stories' "
+                        "AND column_name IN ('text_revision', 'text_generation_claim_id')"
+                    )
+                ).scalar_one()
+                editor_column = connection.execute(
+                    text(
+                        "SELECT count(*) FROM information_schema.columns "
+                        "WHERE table_name='story_pages' "
+                        "AND column_name='khmer_validated_at'"
+                    )
+                ).scalar_one()
+                assert generation_columns == 2
+                assert editor_column == 1
+
+            command.downgrade(config, "003")
+            with engine.connect() as connection:
+                editor_column = connection.execute(
+                    text(
+                        "SELECT count(*) FROM information_schema.columns "
+                        "WHERE table_name='story_pages' "
+                        "AND column_name='khmer_validated_at'"
+                    )
+                ).scalar_one()
+                assert editor_column == 0
+        finally:
+            command.upgrade(config, "head")
+            engine.dispose()

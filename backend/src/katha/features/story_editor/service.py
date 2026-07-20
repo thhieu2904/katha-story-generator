@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Awaitable, Callable, TypeVar, cast
@@ -41,7 +40,6 @@ from katha.features.story_editor.schemas import (
     ChangeSummary,
     ConfirmTextRequest,
     EditRequest,
-    InstructionEdit,
     MutationResponse,
     ReorderPagesRequest,
     RetranslatePageRequest,
@@ -57,12 +55,6 @@ BANDS: dict[str, tuple[int, int]] = {
     "medium": (8, 10),
     "long": (12, 14),
 }
-_STRUCTURAL_PATTERN = re.compile(
-    r"(?:thêm\s+(?:một\s+)?trang|x[oó]a\s+(?:một\s+)?trang|bỏ\s+trang|"
-    r"đổi\s+thứ\s+tự|sắp\s+xếp\s+lại\s+(?:các\s+)?trang|"
-    r"add\s+(?:a\s+)?page|delete\s+(?:a\s+)?page|reorder\s+pages?)",
-    flags=re.IGNORECASE,
-)
 T = TypeVar("T")
 
 
@@ -346,7 +338,19 @@ async def retranslate_khmer(
     text_km = await _run_ai(operation)
     current_km = snapshot.title_km if page_snapshot is None else page_snapshot.text_km
     if text_km == current_km:
-        return await _no_change_response(session, snapshot)
+        if page_snapshot is None:
+            return await _no_change_response(session, snapshot)
+        await _lock_story(session, story_id, request.expected_revision)
+        pages = await _load_pages(session, story_id)
+        _ensure_page_snapshot(pages, snapshot)
+        page = next(page for page in pages if page.id == page_snapshot.id)
+        page.spellcheck_flags = validator.validate(text_km)  # type: ignore[assignment]
+        page.khmer_validated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        await session.commit()
+        return MutationResponse(
+            story=await generation_service.get_story_text(session, story_id),
+            changes=_empty_changes(len(snapshot.pages)),
+        )
     story = await _lock_story(session, story_id, request.expected_revision)
     pages = await _load_pages(session, story_id)
     _ensure_page_snapshot(pages, snapshot)
@@ -571,7 +575,7 @@ def _ensure_page_snapshot(pages: list[StoryPage], snapshot: EditorSnapshot) -> N
 
 
 def _validate_revised_story(
-    snapshot: EditorSnapshot, revised: RevisedStoryVi, request: EditRequest
+    snapshot: EditorSnapshot, revised: RevisedStoryVi, _request: EditRequest
 ) -> RevisedStoryVi:
     title = _clean(revised.title_vi, "title_vi", TITLE_MAX_CHARS)
     valid_ids = {page.id for page in snapshot.pages}
@@ -590,11 +594,10 @@ def _validate_revised_story(
     )
     current_ids = [page.id for page in snapshot.pages]
     output_ids = [page.source_page_id for page in normalized.pages]
-    structural_allowed = isinstance(request, InstructionEdit) and bool(
-        _STRUCTURAL_PATTERN.search(request.instruction_vi)
-    )
-    if not structural_allowed and output_ids != current_ids:
-        raise DomainOutputError("Edit operation changed page structure without permission")
+    if output_ids != current_ids:
+        raise DomainOutputError(
+            "Edit operations must preserve page IDs, count, and order; use page controls"
+        )
     minimum, maximum = _band(snapshot.length_pref)
     if not minimum <= len(normalized.pages) <= maximum:
         raise DomainOutputError("Edited page count is outside the selected length band")

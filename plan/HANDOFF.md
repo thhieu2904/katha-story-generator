@@ -56,7 +56,7 @@
 ### Edit flow
 - Quick actions: [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn]
 - Tất cả quick actions giữ nguyên page count/order
-- Custom instruction mặc định giữ cấu trúc; chỉ add/delete/reorder khi admin yêu cầu rõ
+- Custom instruction luôn giữ page IDs/count/order trong P0; add/delete/reorder chỉ qua control riêng
 - Add/delete/reorder dùng control riêng; archive `text_draft` deferred P1
 - Validate page Khmer cũ qua explicit `POST /validate-km`; retranslate title/page qua endpoint chung
 - KHÔNG có inline text edit trong MVP
@@ -130,8 +130,8 @@
 ✅ Phase 2:   Config APIs + Character Bank read-only — code-complete offline
 🔨 Phase 3:   Text generation / edit / confirm
     - 3A: ✅ Baseline commit `3048010`; code-complete offline — Docker/live verification pending
-    - 3B: ✅ Baseline commit `b99eb32`; code-complete offline — Docker/live AI smoke pending
-    - 3C: ✅ Core P0 code-complete offline — Docker/live/native Khmer review pending
+    - 3B: ✅ Corrective offline coverage complete — Docker/live AI smoke pending
+    - 3C: ✅ Corrective review blockers fixed; code-complete offline — Docker/live/native Khmer review pending
 ⬜ Phase 4:   Image generation
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
@@ -152,7 +152,7 @@
 - Alembic graph: single head `003`; migration thêm `generating_text`, `text_revision`, UUID claim và `story_pages.story_id NOT NULL`.
 - Backend: Responses API structured outputs, deterministic Vietnamese/Khmer validation, atomic claim/finalize/reset và canonical `GET /text`.
 - Frontend: save-before-generate, timeout 285 giây + reconcile status, list CTA/status và bilingual read-only preview.
-- Offline gates: Ruff pass, mypy pass, `73 passed, 19 deselected`; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
+- Offline gates: Ruff pass, mypy pass, `151 passed, 26 deselected`; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
 - Migration integration chưa chạy vì Docker Desktop không hoạt động (`dockerDesktopLinuxEngine` unavailable).
 - Live OpenAI smoke chưa chạy vì cần `OPENAI_API_KEY`; không dùng key thật trong automated suite.
 ### Phase 3C implementation evidence (2026-07-20)
@@ -160,8 +160,8 @@
 - Alembic graph: single head `004`; thêm nullable `story_pages.khmer_validated_at` và downgrade đối xứng.
 - Backend: 7 editor/validation/confirm routes; optimistic `text_revision`; final lock/check sau AI; atomic selective translation; server-side diff; baseline Khmer warning-only.
 - Frontend: full bilingual editor, quick actions, one-shot instruction, add/delete, dnd-kit pointer/touch/keyboard + up/down, retranslate, explicit validate bootstrap, conflict/timeout reconciliation và confirm read-only.
-- Offline gates: Ruff pass, mypy pass, `84 passed, 20 deselected`; OpenAPI đủ 7 route; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
-- Docker integration 20 test chưa chạy vì Docker Desktop pipe không tồn tại; live OpenAI và native Khmer review vẫn deferred.
+- Offline gates: Ruff pass, mypy pass, `151 passed, 26 deselected`; OpenAPI đủ 7 route; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
+- 26 integration tests được collect, gồm full Phase 3 generation/editor/concurrency/rollback/migration lifecycle; chưa chạy vì Docker Desktop pipe không tồn tại.
 - `text_draft` archive và advanced dictionary/segmentation adapter là P1, chưa triển khai.
 - Báo cáo chi tiết: `PHASE_3C_IMPLEMENTATION_REPORT.md` ở repo root.
 

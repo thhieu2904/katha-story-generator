@@ -6,7 +6,7 @@
 
 - Ngày lập: 2026-07-20.
 - Loại tài liệu: implementation plan / handoff cho dev.
-- Trạng thái: **CORE P0 CODE-COMPLETE OFFLINE** (2026-07-20); Docker/live/native Khmer review pending.
+- Trạng thái: **CORE P0 CODE-COMPLETE OFFLINE sau corrective review**; 151 offline pass, 26 integration collected/deferred, live/native Khmer pending.
 - Chính sách số trang sau edit đã được chốt ở Section 3.3; không còn product micro-gate.
 - Phase này chỉ chuyển `text_draft → text_confirmed`; không tự sinh ảnh.
 - Docker, OpenAI live smoke và native-speaker quality review là các gate tách riêng.
@@ -78,7 +78,7 @@ Không bắt đầu bằng cách copy prompt/provider code của 3B sang module 
 | P3C-A7 | Confirm chỉ đổi status; không gọi Phase 4 | G2/G4 chưa chốt, tránh coupling |
 | P3C-A8 | Mọi content mutation dùng optimistic concurrency qua `text_revision` | D28 cho nhiều admin cùng sửa; AI request kéo dài |
 | P3C-A9 | Một thời điểm UI chỉ chạy một operation | UX rõ và hạn chế double-spend |
-| P3C-A10 | Quick actions giữ nguyên page count/order; custom instruction chỉ đổi cấu trúc khi admin yêu cầu rõ | Add/delete/reorder đã có control riêng, tránh AI tự đổi cấu trúc ngoài ý muốn |
+| P3C-A10 | Quick actions giữ nguyên page count/order; custom instruction luôn giữ cấu trúc; add/delete/reorder chỉ qua control riêng | Add/delete/reorder đã có control riêng, tránh AI tự đổi cấu trúc ngoài ý muốn |
 
 ### 3.3 Chính sách số trang sau edit đã chốt
 
@@ -349,7 +349,7 @@ Validation:
 - chỉ status `text_draft`;
 - mọi quick action phải trả exact source ID set theo exact order hiện tại, không được add/delete/reorder;
 - `shorten` rút gọn từng page, `lengthen` viết chi tiết hơn trên page hiện tại; `more_dramatic` và `simplify` cũng giữ cấu trúc;
-- custom instruction mặc định giữ cấu trúc, chỉ được add/delete/reorder khi nội dung yêu cầu của admin nói rõ thay đổi đó.
+- custom instruction luôn giữ exact page IDs/count/order; add/delete/reorder chỉ qua control/API riêng.
 
 ### 9.2 Add page
 
@@ -536,7 +536,7 @@ AI nhận:
 - page-count policy và structural-change policy;
 - child-safety/content rules.
 
-Quick action prompts bắt buộc giữ exact page IDs/order/count. Custom instruction mặc định cũng giữ cấu trúc; chỉ cho phép structural output khi admin yêu cầu add/delete/reorder rõ ràng. Current story và instruction được delimit như user data; không thể override system constraints. Edit call dùng `EDIT_MAX_OUTPUT_TOKENS=8000`.
+Quick action prompts bắt buộc giữ exact page IDs/order/count. Custom instruction luôn giữ exact page IDs/order/count; add/delete/reorder chỉ qua control riêng. Current story và instruction được delimit như user data; không thể override system constraints. Edit call dùng `EDIT_MAX_OUTPUT_TOKENS=8000`.
 
 ### 10.2 Output
 
@@ -566,7 +566,7 @@ Semantics:
 - Title/page text trim; title tối đa 160 ký tự, page tối đa 1200 ký tự và không vượt hard word max theo target age.
 - Count đúng policy.
 - Quick action output phải có exact source ID sequence hiện tại; bất kỳ add/delete/reorder nào đều reject như malformed provider output.
-- Custom instruction chỉ được chấp nhận structural diff khi instruction của admin yêu cầu thay đổi cấu trúc rõ ràng.
+- Custom instruction không được chấp nhận structural diff trong P0; add/delete/reorder chỉ qua endpoint/control riêng.
 - Không page rỗng.
 - Không mutate setup/status/character IDs.
 - Không tin model-provided diff.
@@ -772,7 +772,7 @@ Quy tắc:
 ### 14.5 Custom instruction
 
 - Một textarea/input “Yêu cầu chỉnh sửa”.
-- Mặc định AI giữ page count/order; nếu admin yêu cầu rõ add/delete/reorder thì custom instruction mới được đổi cấu trúc.
+- AI luôn giữ page IDs/count/order cho custom instruction; yêu cầu add/delete/reorder trong text bị bỏ qua và backend reject structural output.
 - Không có persistent chat transcript.
 - Không clear input khi request fail/conflict.
 - Clear hoặc giữ recent command theo UX sau success; plan khuyến nghị clear và toast diff.
@@ -991,7 +991,7 @@ Không thêm state-management library nếu hook/local state hiện tại đủ.
 - Duplicate/foreign source IDs.
 - Quick action exact ID sequence giữ nguyên count/order; structural output bị reject.
 - Custom instruction không yêu cầu cấu trúc nhưng model omit/add/reorder page thì bị reject.
-- Custom instruction yêu cầu rõ add/delete/reorder được apply đúng.
+- Custom instruction kể cả có từ khóa hoặc câu phủ định add/delete/reorder vẫn không được đổi cấu trúc.
 - Count ngoài policy.
 - Title/page char caps và hard word max theo target age.
 - No-op không tăng revision/call translation.
@@ -1090,7 +1090,7 @@ Nếu chưa có frontend test runner, không bắt buộc mở thêm framework c
 - [x] Page policy được chốt/ghi rõ.
 - [x] Migration 004 + single head pass offline graph checks.
 - [x] Editor API contracts/auth/status guards pass.
-- [x] Quick actions giữ exact count/order; custom instruction structural guard pass với fake provider.
+- [x] Quick actions và mọi custom instruction giữ exact count/order; keyword/câu phủ định structural đều bị reject.
 - [x] Add/delete/reorder/retranslate title/page pass.
 - [x] Validate-km bootstrap cập nhật flags/timestamp mà không tăng revision.
 - [x] Revision conflicts không overwrite.
@@ -1134,7 +1134,7 @@ P1 chưa đạt không được giả là đã hoàn thành; baseline warning fl
 Phase 3C được gọi là **code-complete offline** khi:
 
 - Admin biên tập canonical story bằng quick action/one-shot instruction.
-- Quick actions giữ nguyên page count/order; structural custom edit chỉ xảy ra khi admin yêu cầu rõ.
+- Quick actions giữ nguyên page count/order; custom instruction không bao giờ đổi cấu trúc trong P0.
 - Admin add/delete/reorder, validate Khmer bootstrap và retranslate title/page được theo policy.
 - Không có inline edit hoặc history/undo bị thêm ngoài scope.
 - Mỗi successful content mutation auto-save atomically và tăng revision đúng; validate-only không tăng revision.
@@ -1158,7 +1158,7 @@ Phase 3C được gọi là **code-complete offline** khi:
   - Windows/Linux install outcome;
   - corpus/false-positive result;
   - quyết định pin hay baseline-only.
-- Tests chứng minh quick action không đổi page count/order và custom structural guard đúng.
+- Tests chứng minh quick action và custom instruction đều không đổi page IDs/count/order, kể cả câu lệnh chứa từ khóa hoặc phủ định structural action.
 - Tests chứng minh selective translation.
 - Tests chứng minh validate-only không tăng revision và không ghi stale metadata.
 - Tests chứng minh retranslate title/page tăng revision đúng một lần.
@@ -1182,7 +1182,7 @@ Reviewer reject Phase 3C nếu có một trong các lỗi:
 - Persist Vietnamese edit trước khi Khmer translation thành công.
 - Reorder làm mất cặp Việt–Khmer/flags hoặc va unique constraint.
 - Model được tin để tự khai diff/source IDs mà server không validate.
-- Quick action có thể add/delete/reorder hoặc custom instruction tự đổi cấu trúc khi admin không yêu cầu rõ.
+- Quick action có thể add/delete/reorder hoặc custom instruction có thể đổi cấu trúc dưới bất kỳ câu lệnh nào.
 - Validate-km tạo side effect trong GET, tăng revision hoặc ghi metadata từ snapshot stale.
 - Không có đường retranslate title Khmer.
 - Chat history/edit log/version table được thêm ngoài quyết định.

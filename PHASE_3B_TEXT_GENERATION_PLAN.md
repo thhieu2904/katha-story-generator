@@ -6,7 +6,7 @@
 
 - Ngày lập: 2026-07-20.
 - Loại tài liệu: implementation plan / handoff cho dev.
-- Trạng thái: **READY** — prerequisite Phase 3A đã được accept và commit tại baseline `3048010`.
+- Trạng thái: **CODE-COMPLETE OFFLINE sau corrective review**; Docker integration execution và live OpenAI vẫn pending.
 - Vai trò của tài liệu: source of truth cho phạm vi Phase 3B; không phải walkthrough.
 - Phase này chưa yêu cầu Docker hoặc credentials để đạt `code-complete offline`.
 - Live OpenAI smoke là gate riêng vì có credential và phát sinh chi phí.
@@ -728,22 +728,23 @@ Không bắt buộc mở một test framework mới chỉ cho Phase 3B nếu rep
 
 ### Code-complete offline
 
-- [ ] Phase 3A đã accept.
-- [ ] Migration graph offline pass và single head 003.
-- [ ] Provider được fake hoàn toàn trong offline tests.
-- [ ] Không cần `OPENAI_API_KEY` để import app/chạy offline suite.
-- [ ] Structured output + domain validation đủ failure cases và exact caps/word max.
-- [ ] Exact retry/output-token/270-285-300-600 timeout budgets được wiring và test ở layer phù hợp.
-- [ ] Atomic claim/reclaim/finalize/reset có test.
-- [ ] Claim ownership dùng UUID riêng; request cũ không ghi được sau reclaim.
-- [ ] Không có partial bilingual data ở mọi failure path đã test.
-- [ ] POST generate + GET text auth/status contracts pass.
-- [ ] Frontend CTA/list/preview hoàn chỉnh.
-- [ ] Backend Ruff/format/mypy/offline pytest pass.
-- [ ] Frontend lint/TypeScript/build pass.
-- [ ] Lockfile check pass.
-- [ ] Không có secret thật trong source/log/walkthrough.
-- [ ] Docs đồng bộ, không nói G2/G4 đã chốt.
+- [x] Phase 3A đã accept.
+- [x] Migration graph tại baseline 3B là single head 003; current repo sau 3C là single head 004.
+- [x] Provider được fake hoàn toàn trong offline tests.
+- [x] Không cần `OPENAI_API_KEY` để import app/chạy offline suite.
+- [x] Structured output + domain validation đủ failure cases và exact caps/word max.
+- [x] SDK 60s/1 retry, output-token caps, outer 270s, frontend 285s và stale 600s được wiring/test; stale > operation được validate.
+- [ ] Proxy read timeout 300s chưa có deploy config trong repo; giữ ở deployment gate, không giả là đã verify.
+- [x] Atomic claim/reclaim/finalize/reset có test.
+- [x] Claim ownership dùng UUID riêng; request cũ không ghi được sau reclaim.
+- [x] Không có partial bilingual data ở mọi failure path đã test.
+- [x] POST generate + GET text auth/status contracts pass.
+- [x] Frontend CTA/list/preview hoàn chỉnh.
+- [x] Backend Ruff/format/mypy/offline pytest pass.
+- [x] Frontend lint/TypeScript/build pass.
+- [x] Lockfile check pass.
+- [x] Không có secret thật trong source/log/walkthrough.
+- [x] Docs đồng bộ, không nói G2/G4 đã chốt.
 
 ### Docker-deferred
 

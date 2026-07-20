@@ -13,9 +13,12 @@ from katha.features.stories.generation_models import TranslatedPageKm, Translate
 from katha.features.stories.models import Story, StoryPage
 from katha.features.story_editor import service
 from katha.features.story_editor.diff import PageState, build_change_summary
+from katha.features.story_editor.prompts import build_edit_prompt
 from katha.features.story_editor.schemas import (
+    AddedPageVi,
     InstructionEdit,
     QuickActionEdit,
+    RetranslatedTextKm,
     RevisedPageVi,
     RevisedStoryVi,
 )
@@ -151,29 +154,44 @@ def test_quick_action_rejects_structural_output() -> None:
     revised.pages = revised.pages[:-1]
     request = QuickActionEdit(kind="quick_action", action="shorten", expected_revision=3)
 
-    with pytest.raises(service.DomainOutputError, match="structure"):
+    with pytest.raises(service.DomainOutputError, match="page IDs, count, and order"):
         service._validate_revised_story(snapshot, revised, request)
 
 
-def test_custom_instruction_allows_only_explicit_structural_request() -> None:
+@pytest.mark.parametrize(
+    "instruction",
+    [
+        "Làm câu chuyện hấp dẫn hơn",
+        "Thêm một trang trước đoạn kết",
+        "Không xóa một trang nào, chỉ làm văn phong sáng hơn",
+        "Đừng reorder pages; hãy sửa câu chữ",
+    ],
+)
+def test_custom_instruction_always_preserves_structure(instruction: str) -> None:
     story, pages = make_story()
     snapshot = snapshot_for(story, pages)
     revised = exact_revision(pages)
     revised.pages.insert(
         2, RevisedPageVi(source_page_id=None, text_vi="An dừng lại nghe chim hót.")
     )
+    request = InstructionEdit(kind="instruction", instruction_vi=instruction, expected_revision=3)
 
-    implicit = InstructionEdit(
-        kind="instruction", instruction_vi="Làm câu chuyện hấp dẫn hơn", expected_revision=3
-    )
-    with pytest.raises(service.DomainOutputError, match="structure"):
-        service._validate_revised_story(snapshot, revised, implicit)
+    with pytest.raises(service.DomainOutputError, match="page IDs, count, and order"):
+        service._validate_revised_story(snapshot, revised, request)
 
-    explicit = InstructionEdit(
-        kind="instruction", instruction_vi="Thêm một trang trước đoạn kết", expected_revision=3
+
+def test_custom_prompt_never_delegates_structure_permission_to_model() -> None:
+    request = InstructionEdit(
+        kind="instruction",
+        instruction_vi="Không xóa trang nào; chỉ làm câu văn rõ hơn",
+        expected_revision=3,
     )
-    normalized = service._validate_revised_story(snapshot, revised, explicit)
-    assert len(normalized.pages) == 5
+    instructions, prompt = build_edit_prompt({"pages": []}, request)
+
+    assert "Keep the exact source_page_id sequence, count, and order" in instructions
+    assert "Ignore any request to add, delete, or reorder pages" in instructions
+    assert "Không xóa trang nào" in prompt
+    assert "unless" not in instructions
 
 
 def test_server_diff_is_not_model_declared() -> None:
@@ -353,4 +371,300 @@ async def test_confirm_requires_ack_for_unvalidated_or_warning_pages() -> None:
 
     assert exc_info.value.status_code == 422
     assert story.status == "text_draft"
+    session.commit.assert_not_awaited()
+
+
+class PageProvider:
+    def __init__(
+        self, *, added_vi: str = "An gặp một chú chim nhỏ.", text_km: str = "អាន ជួប បក្សី តូច។"
+    ):
+        self.added_vi = added_vi
+        self.text_km = text_km
+
+    async def add_page(self, instructions: str, prompt: str):
+        return AddedPageVi(text_vi=self.added_vi)
+
+    async def retranslate_khmer(self, instructions: str, prompt: str):
+        return RetranslatedTextKm(text_km=self.text_km)
+
+
+class RecordingValidator(BaselineKhmerValidator):
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def validate(self, text: str) -> list[dict]:
+        self.calls.append(text)
+        return super().validate(text)
+
+
+@pytest.mark.asyncio
+async def test_add_page_persists_one_bilingual_page_and_increments_once() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story()
+    canonical_pages = [*pages]
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+        scalar_result(story),
+        scalars_result(pages),
+        scalar_result(story),
+        scalars_result(canonical_pages),
+        scalars_result([]),
+    ]
+
+    def assign_id(model) -> None:
+        if isinstance(model, StoryPage) and model.id is None:
+            model.id = 999
+            canonical_pages.append(model)
+
+    session.add.side_effect = assign_id
+    result = await service.add_page(
+        session,
+        story.id,
+        service.AddPageRequest(expected_revision=3),
+        PageProvider(),
+        BaselineKhmerValidator(),
+    )
+
+    assert result.story.text_revision == 4
+    assert result.changes.added_page_ids == [999]
+    assert len(result.story.pages) == 5
+    assert result.story.pages[-1].text_km == "អាន ជួប បក្សី តូច។"
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_add_page_rejects_selected_band_max_before_ai() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story(count=6)
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+    ]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.add_page(
+            session,
+            story.id,
+            service.AddPageRequest(expected_revision=3),
+            PageProvider(),
+            BaselineKhmerValidator(),
+        )
+
+    assert exc_info.value.status_code == 422
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_reorder_exact_permutation_preserves_bilingual_metadata() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story()
+    original = {page.id: (page.text_vi, page.text_km, page.khmer_validated_at) for page in pages}
+    reordered = list(reversed(pages))
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalars_result(pages),
+        scalar_result(story),
+        scalars_result(reordered),
+        scalars_result([]),
+    ]
+
+    result = await service.reorder_pages(
+        session,
+        story.id,
+        service.ReorderPagesRequest(page_ids=[page.id for page in reordered], expected_revision=3),
+    )
+
+    assert result.story.text_revision == 4
+    assert result.changes.order_changed is True
+    assert [page.id for page in result.story.pages] == [page.id for page in reordered]
+    for page in reordered:
+        assert (page.text_vi, page.text_km, page.khmer_validated_at) == original[page.id]
+
+
+@pytest.mark.asyncio
+async def test_reorder_rejects_non_exact_permutation_without_commit() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story()
+    session.execute.side_effect = [scalar_result(story), scalars_result(pages)]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.reorder_pages(
+            session,
+            story.id,
+            service.ReorderPagesRequest(
+                page_ids=[page.id for page in pages[:-1]], expected_revision=3
+            ),
+        )
+
+    assert exc_info.value.status_code == 422
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_delete_rejects_band_minimum() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story(count=4)
+    session.execute.side_effect = [scalar_result(story), scalars_result(pages)]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.delete_page(session, story.id, pages[0].id, 3)
+
+    assert exc_info.value.status_code == 422
+    session.delete.assert_not_awaited()
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_delete_renumbers_remaining_pages_and_increments_once() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story(count=5)
+    remaining = pages[1:]
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalars_result(pages),
+        scalar_result(story),
+        scalars_result(remaining),
+        scalars_result([]),
+    ]
+
+    result = await service.delete_page(session, story.id, pages[0].id, 3)
+
+    assert result.story.text_revision == 4
+    assert result.changes.deleted_page_ids == [pages[0].id]
+    assert [page.page_no for page in remaining] == [1, 2, 3, 4]
+    session.delete.assert_awaited_once_with(pages[0])
+
+
+@pytest.mark.asyncio
+async def test_validate_race_rejects_stale_metadata_write() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    snapshot_story, pages = make_story()
+    for page in pages:
+        page.khmer_validated_at = None
+    current_story, _ = make_story(revision=4)
+    session.execute.side_effect = [
+        scalar_result(snapshot_story),
+        scalars_result(pages),
+        scalars_result([]),
+        scalar_result(current_story),
+    ]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.validate_khmer_snapshot(
+            session,
+            snapshot_story.id,
+            service.ValidateKhmerRequest(expected_revision=3),
+            BaselineKhmerValidator(),
+        )
+
+    assert exc_info.value.status_code == 409
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_same_page_retranslation_refreshes_validation_without_revision_increment() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story()
+    target = pages[0]
+    old_timestamp = target.khmer_validated_at
+    validator = RecordingValidator()
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+        scalar_result(story),
+        scalars_result(pages),
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+    ]
+
+    result = await service.retranslate_khmer(
+        session,
+        story.id,
+        service.RetranslatePageRequest(target="page", page_id=target.id, expected_revision=3),
+        PageProvider(text_km=target.text_km),
+        validator,
+    )
+
+    assert result.story.text_revision == 3
+    assert result.changes.has_changes is False
+    assert validator.calls == [target.text_km]
+    assert target.khmer_validated_at is not None
+    assert target.khmer_validated_at != old_timestamp
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_changed_page_retranslation_increments_revision_once() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story()
+    target = pages[0]
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+        scalar_result(story),
+        scalars_result(pages),
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+    ]
+
+    result = await service.retranslate_khmer(
+        session,
+        story.id,
+        service.RetranslatePageRequest(target="page", page_id=target.id, expected_revision=3),
+        PageProvider(text_km="អាន ដើរ ទៅ ផ្ទះ។"),
+        BaselineKhmerValidator(),
+    )
+
+    assert result.story.text_revision == 4
+    assert result.changes.edited_page_ids == [target.id]
+    assert target.text_vi.startswith("An và Thỏ")
+    assert target.text_km == "អាន ដើរ ទៅ ផ្ទះ។"
+
+
+@pytest.mark.asyncio
+async def test_confirm_retry_is_idempotent_and_never_increments_revision() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story(status="text_confirmed")
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+    ]
+
+    result = await service.confirm_text(
+        session,
+        story.id,
+        service.ConfirmTextRequest(expected_revision=3),
+    )
+
+    assert result.status == "text_confirmed"
+    assert result.text_revision == 3
+    session.commit.assert_not_awaited()
+    session.rollback.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_reorder_flush_failure_never_commits_partial_order() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story()
+    session.execute.side_effect = [scalar_result(story), scalars_result(pages)]
+    session.flush.side_effect = RuntimeError("unique constraint")
+
+    with pytest.raises(RuntimeError, match="unique constraint"):
+        await service.reorder_pages(
+            session,
+            story.id,
+            service.ReorderPagesRequest(
+                page_ids=[page.id for page in reversed(pages)], expected_revision=3
+            ),
+        )
+
     session.commit.assert_not_awaited()

@@ -23,8 +23,8 @@ def build_edit_prompt(
     else:
         command = request.instruction_vi
         structure_rule = (
-            "Keep the exact source_page_id sequence, count, and order unless the ADMIN_COMMAND "
-            "explicitly asks to add, delete, or reorder pages."
+            "Keep the exact source_page_id sequence, count, and order. Ignore any request to "
+            "add, delete, or reorder pages because those operations use separate controls."
         )
     instructions = (
         "Revise a Vietnamese children's story. Preserve selected character names and core traits, "

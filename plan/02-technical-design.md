@@ -1,7 +1,7 @@
 # Katha — Thiết kế kỹ thuật
 
 > Ngày cập nhật: 2026-07-20
-> Trạng thái: Đồng bộ Phase 3C core code-complete offline; Docker/live/native Khmer verification pending
+> Trạng thái: Đồng bộ corrective review Phase 3B/3C; 151 offline tests pass, Docker/live/native Khmer pending
 
 ---
 
@@ -38,10 +38,10 @@
 │  │              │  │              │  │ │ └─ OpenAI impl   │   │    │
 │  │              │  │              │  │ ├──────────────────┤   │    │
 │  │              │  │              │  │ │ Translator       │   │    │
-│  │              │  │              │  │ │ (VN→EN, VN→KM)   │   │    │
+│  │              │  │              │  │ │ VN→KM (Phase 3)  │   │    │
 │  │              │  │              │  │ ├──────────────────┤   │    │
 │  │              │  │              │  │ │ KhmerValidator   │   │    │
-│  │              │  │              │  │ │ (khmercut+spell) │   │    │
+│  │              │  │              │  │ │ baseline warnings│   │    │
 │  │              │  │              │  │ └──────────────────┘   │    │
 │  └──────────────┘  └──────────────┘  └────────────────────────┘    │
 │                                                                     │
@@ -102,19 +102,19 @@ BƯỚC 1: Sinh toàn bộ text tiếng Việt + dịch Khmer (~30-60 giây)
 │                + backbone.prompt_template_en
 │                + genre.prompt_modifier_en
 │                + character descriptions (appearance_prompt_en)
-│                + user description (translated to EN)
+│                + user description (giữ nguyên tiếng Việt)
 │                + length preference
 │
 │  Output: TEXT ĐẦY ĐỦ cho từng trang (không phải tóm tắt)
 │  [
 │    {page_no: 1, text_vi: "Ngày xưa, ở một ngôi làng nhỏ bên bờ 
-│     sông Mekong, có một cô bé tên Srey...", characters: ["Srey"]},
+│     sông Mekong, có một cô bé tên Srey..."},
 │    {page_no: 2, text_vi: "Một buổi sáng, bạn Dara chạy tới rủ 
-│     Srey ra công viên chơi...", characters: ["Srey", "Dara"]},
+│     Srey ra công viên chơi..."},
 │    ...
 │  ]
 │
-│  Sau khi có text VN → auto dịch VN→KM cho TỪNG trang
+│  Sau khi có full Vietnamese snapshot → dịch title + toàn bộ pages VN→KM trong một structured call
 │  → Auto-save DB: story_pages.text_vi + story_pages.text_km
 │  → story.status = 'text_draft'
 │
@@ -134,9 +134,9 @@ BƯỚC 1: Sinh toàn bộ text tiếng Việt + dịch Khmer (~30-60 giây)
 BƯỚC 2: Admin edit (lặp nhiều lần — rẻ)
 │
 │  Quick actions: [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn]
-│  Chat: "Thêm nhân vật Dara vào trang 4", "Xóa trang 6"
+│  Custom instruction: "Làm trang 4 ấm áp hơn" (luôn giữ page IDs/count/order)
 │  Drag-drop: đổi thứ tự trang
-│  Thêm/xóa trang
+│  Thêm/xóa trang bằng control riêng
 │
 │  Mỗi edit:
 │    1. Gọi LLM sửa text VN (API call #1) → ~$0.003
@@ -255,7 +255,7 @@ LENGTH PREFERENCE: {length_pref}
 
 Create the Vietnamese title and full page-by-page story directly
 (no separate outline step per D25) for a children's story about:
-{description_vi_translated_to_en}
+{description_vi}
 
 Return:
 - title_vi
@@ -267,7 +267,9 @@ Return:
 
 Phase 3B phải chốt riêng mọi field phục vụ image pipeline, field đó transient hay persisted, và mapping vào schema/API nào. Round 3 không áp đặt characters-per-page, scene hint hoặc field image mới.
 
-### 3.3 Image Prompt — Cách giữ nhất quán nhân vật
+### 3.3 Image Prompt — hướng Phase 4, chưa phải contract hiện hành
+
+> Đoạn dưới chỉ là định hướng. Các placeholder trong code chưa tồn tại trong schema/API; Gate G2/G4 phải được chốt ở Phase 4.
 
 ```python
 # Prompt cho mỗi ảnh trang
@@ -277,14 +279,14 @@ image_prompt = f"""
 # "Soft watercolor illustration, gentle pastel colors, 
 #  hand-painted texture, children's storybook style"
 
-Scene: {page.scene_description_en}
+Scene: {image_scene_prompt}
 # "Srey sitting under a sugar palm tree, looking up at the sky 
 #  with wonder, butterflies around her"
 
 Characters in this scene:
 {chr(10).join([
     f"- {c.name}: {c.appearance_prompt_en}"
-    for c in page_characters
+    for c in characters_for_image  # Gate G2, chưa chốt mapping theo page
 ])}
 # Visual anchor — MÔ TẢ ĐẦY ĐỦ mỗi lần, không phụ thuộc memory
 

@@ -149,5 +149,5 @@ uv run python -m katha.features.config_data.seed
 - [x] Phase 1: Foundation — code-complete offline; Docker/Supabase/R2 live checks pending
 - [x] Phase 2: Auth + config APIs + Character Bank read-only — code-complete offline
 - [x] Phase 3A: Story setup/list — code-complete offline; Docker/live checks pending
-- [ ] Phase 3B–3C: Text generation, editor, confirmation
+- [x] Phase 3B–3C: Text generation, editor, confirmation — code-complete offline sau corrective review; Docker/live/native Khmer checks pending
 - [ ] Phase 4: Polish + deploy

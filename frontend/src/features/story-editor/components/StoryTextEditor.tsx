@@ -31,12 +31,26 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
     return <EditorMessage title="Không thể tải truyện" detail={editor.error || undefined} onRetry={() => void editor.refresh()} />;
   }
   if (editor.story.status === 'generating_text') {
-    return <EditorMessage title="Đang sinh nội dung song ngữ…" detail="Trang tự kiểm tra trạng thái sau mỗi 3 giây." />;
+    return (
+      <EditorMessage
+        title="Đang sinh nội dung song ngữ…"
+        detail={editor.error || 'Trang tự kiểm tra trạng thái sau mỗi 3 giây.'}
+      />
+    );
   }
+  if (editor.story.status === 'draft') return <EditorSkeleton />;
   if (editor.story.status === 'archived') {
     return <EditorMessage title="Truyện đã được lưu trữ" />;
   }
-  if (!editor.text) return <EditorSkeleton />;
+  if (!editor.text) {
+    return (
+      <EditorMessage
+        title="Không thể tải nội dung truyện"
+        detail={editor.error || undefined}
+        onRetry={() => void editor.refresh()}
+      />
+    );
+  }
 
   const text = editor.text;
   const editable = text.status === 'text_draft';
@@ -92,8 +106,14 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
       {editor.error && (
         <div className="mt-6 rounded-xl border border-katha-error/25 bg-katha-error/8 p-4 text-sm text-red-200">
           <p>{editor.error}</p>
-          {editor.blocked && (
-            <button type="button" onClick={() => void editor.refresh()} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-katha-surface">Kiểm tra lại trạng thái</button>
+          {(editor.blocked || editor.validationFailed) && (
+            <button
+              type="button"
+              onClick={editor.blocked ? () => void editor.refresh() : editor.retryKhmerValidation}
+              className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-katha-surface"
+            >
+              {editor.blocked ? 'Kiểm tra lại trạng thái' : 'Thử lại kiểm tra Khmer'}
+            </button>
           )}
         </div>
       )}

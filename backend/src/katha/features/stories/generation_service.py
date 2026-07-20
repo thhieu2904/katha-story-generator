@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import cast
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from katha.core.config import get_settings
@@ -86,7 +86,6 @@ async def generate_story_text(
 async def _claim_generation(
     session: AsyncSession, story_id: int
 ) -> tuple[UUID, GenerationSnapshot]:
-    now = datetime.now(timezone.utc)
     story_result = await session.execute(
         select(Story).where(Story.id == story_id).with_for_update()
     )
@@ -99,8 +98,12 @@ async def _claim_generation(
         updated_at = story.updated_at
         if updated_at is not None and updated_at.tzinfo is None:
             updated_at = updated_at.replace(tzinfo=timezone.utc)
-        stale_before = now - timedelta(seconds=get_settings().TEXT_GENERATION_STALE_SECONDS)
-        if updated_at is not None and updated_at >= stale_before:
+        clock_result = await session.execute(select(func.clock_timestamp()))
+        database_now = cast(datetime, clock_result.scalar_one())
+        if database_now.tzinfo is None:
+            database_now = database_now.replace(tzinfo=timezone.utc)
+        stale_before = database_now.timestamp() - get_settings().TEXT_GENERATION_STALE_SECONDS
+        if updated_at is not None and updated_at.timestamp() >= stale_before:
             await session.rollback()
             raise HTTPException(status_code=409, detail="Story text generation is already running")
     elif story.status != "draft":
@@ -109,9 +112,16 @@ async def _claim_generation(
 
     snapshot = await _load_snapshot(session, story)
     claim_id = uuid4()
+    if story.status == "generating_text":
+        claim_time = database_now
+    else:
+        clock_result = await session.execute(select(func.clock_timestamp()))
+        claim_time = cast(datetime, clock_result.scalar_one())
+        if claim_time.tzinfo is None:
+            claim_time = claim_time.replace(tzinfo=timezone.utc)
     story.status = "generating_text"  # type: ignore[assignment]
     story.text_generation_claim_id = claim_id  # type: ignore[assignment]
-    story.updated_at = now  # type: ignore[assignment]
+    story.updated_at = claim_time  # type: ignore[assignment]
     await session.commit()
     return claim_id, snapshot
 
@@ -214,13 +224,12 @@ async def _finalize_generation(
         session.add(model)
         pages.append(model)
 
-    now = datetime.now(timezone.utc)
     story.title_vi = vietnamese.title_vi  # type: ignore[assignment]
     story.title_km = khmer.title_km  # type: ignore[assignment]
     story.status = "text_draft"  # type: ignore[assignment]
     story.text_revision = 1  # type: ignore[assignment]
     story.text_generation_claim_id = None  # type: ignore[assignment]
-    story.updated_at = now  # type: ignore[assignment]
+    story.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
     await session.flush()
     character_ids = await _load_character_ids(session, story_id)
     response = _to_text_response(story, pages, character_ids)

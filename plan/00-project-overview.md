@@ -1,7 +1,7 @@
 # Katha Story Generator — Tổng quan dự án
 
 > Ngày cập nhật: 2026-07-20
-> Trạng thái: Phase 3A — Code-complete offline; Docker/live verification pending
+> Trạng thái: Phase 3B/3C — code-complete offline sau corrective review; 26 Docker integration tests chưa chạy, live/native review pending
 
 ---
 
@@ -45,7 +45,7 @@ Giáo viên dạy tiếng Khmer cần truyện tranh minh họa để hỗ trợ
 - ✅ Ngân hàng nhân vật read-only với 7 nhân vật seed
 - ✅ Tạo truyện (backbone + genre + AI sinh `title_vi` và full story pages trực tiếp theo D25)
 - ✅ Sinh ảnh minh họa (nhất quán nhân vật)
-- ✅ Dịch sang Khmer + spellcheck
+- ✅ Dịch sang Khmer + baseline technical warnings (không tuyên bố spellcheck/grammar proof)
 - ✅ Review workflow (admin duyệt)
 - ✅ Web reader (landscape, lật trang, song ngữ KM/VN)
 - ✅ Auth đơn giản (2-5 tài khoản tạo sẵn)

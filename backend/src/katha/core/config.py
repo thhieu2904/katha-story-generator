@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -32,6 +33,14 @@ class Settings(BaseSettings):
     OPENAI_MAX_RETRIES: int = 1
     TEXT_OPERATION_TIMEOUT_SECONDS: float = 270
     TEXT_GENERATION_STALE_SECONDS: int = 600
+
+    @model_validator(mode="after")
+    def validate_text_timeouts(self) -> "Settings":
+        if self.TEXT_GENERATION_STALE_SECONDS <= self.TEXT_OPERATION_TIMEOUT_SECONDS:
+            raise ValueError(
+                "TEXT_GENERATION_STALE_SECONDS must exceed TEXT_OPERATION_TIMEOUT_SECONDS"
+            )
+        return self
 
     model_config = {
         "env_file": ".env",

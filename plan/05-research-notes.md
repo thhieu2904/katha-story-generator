@@ -135,9 +135,9 @@
    - GitHub: https://github.com/seanghay/khmercut
    - Chức năng: tách chuỗi Khmer liền thành các từ riêng biệt
    
-2. **koompi/khmer-spellchecker** — kiểm tra chính tả
-   - GitHub: https://github.com/koompi
-   - Dựa trên từ điển Chuon Nath (từ điển chuẩn tiếng Khmer)
+2. **koompi/khmer-spellchecker** — dictionary/Hunspell assets để nghiên cứu
+   - GitHub: https://github.com/koompi/khmer-spellchecker
+   - Không phải Python package turnkey; runtime, license và corpus acceptance còn deferred P1
 
 3. **khmer-nltk** — bộ công cụ NLP cho tiếng Khmer
    - Bao gồm: tokenizer, POS tagger, và các tiện ích khác

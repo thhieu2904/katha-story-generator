@@ -82,8 +82,7 @@ backend/
     │   └── schemas.py           # UploadResult
     │
     └── khmer/                   ── Khmer NLP ─────────────────────
-        ├── validator.py         # Tích hợp khmercut (tách từ)
-        └── spellchecker.py      # Tích hợp khmer-spellchecker
+        └── validator.py         # Baseline Unicode/code-point warnings; advanced adapter deferred P1
 
 ```
 
@@ -111,7 +110,7 @@ alembic                 # DB migrations
 pydantic-settings       # Config from .env
 openai                  # OpenAI SDK
 boto3                   # S3-compatible (R2)
-khmercut                # Khmer word segmentation
+(không pin Khmer NLP package ở P0; baseline không có runtime dependency)
 python-jose[cryptography]  # JWT decode (Supabase tokens)
 httpx                   # Async HTTP client
 ```

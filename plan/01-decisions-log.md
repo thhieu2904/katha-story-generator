@@ -216,7 +216,7 @@
   - Phase 3B initial generation chỉ sinh số trang chẵn: short `{4,6}`, medium `{8,10}`, long `{12,14}`.
   - Sau edit cho phép mọi số trong band, gồm `5/9/13`; confirm không kiểm tra chẵn/lẻ.
   - Mọi quick action giữ nguyên page count/order. Label: `Rút gọn nội dung`, `Viết chi tiết hơn`, `Kịch tính hơn`, `Đơn giản hơn`.
-  - Add/delete/reorder dùng control riêng; custom instruction chỉ đổi cấu trúc khi admin yêu cầu rõ.
+  - Add/delete/reorder dùng control riêng; custom instruction luôn giữ cấu trúc; add/delete/reorder chỉ qua control riêng.
   - Archive `text_draft` deferred khỏi Phase 3C P0, chỉ là P1 nếu còn thời gian.
 - Lý do: Giữ UX rõ, tránh AI tự đổi cấu trúc và vẫn hỗ trợ add/delete một trang trong band.
 - Trạng thái: ✅ Chốt

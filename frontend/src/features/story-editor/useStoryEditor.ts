@@ -25,21 +25,22 @@ export function useStoryEditor(storyId: number) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingOperation | null>(null);
   const [blocked, setBlocked] = useState(false);
+  const [validationFailed, setValidationFailed] = useState(false);
+  const [validationRetryToken, setValidationRetryToken] = useState(0);
   const validationAttempts = useRef(new Set<number>());
 
   const refresh = useCallback(async () => {
     const currentStory = await fetchStory(storyId);
-    setStory(currentStory);
+    let canonical: StoryText | null = null;
     if (
       currentStory.status !== 'draft' &&
       currentStory.status !== 'generating_text' &&
       currentStory.status !== 'archived'
     ) {
-      const canonical = await fetchStoryText(storyId);
-      setText(canonical);
-    } else {
-      setText(null);
+      canonical = await fetchStoryText(storyId);
     }
+    setStory(currentStory);
+    setText(canonical);
     setBlocked(false);
     return currentStory;
   }, [storyId]);
@@ -66,23 +67,42 @@ export function useStoryEditor(storyId: number) {
 
   useEffect(() => {
     if (story?.status !== 'generating_text') return;
-    const timer = setTimeout(() => {
-      void refresh().catch((reason: unknown) => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const poll = async () => {
+      try {
+        const current = await refresh();
+        if (!active) return;
+        setError(null);
+        if (current.status === 'generating_text') {
+          timer = setTimeout(poll, 3000);
+        }
+      } catch (reason) {
+        if (!active) return;
         setError(reason instanceof Error ? reason.message : 'Không thể kiểm tra trạng thái.');
-      });
-    }, 3000);
-    return () => clearTimeout(timer);
+        timer = setTimeout(poll, 3000);
+      }
+    };
+
+    timer = setTimeout(poll, 3000);
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
   }, [story?.status, refresh]);
 
   useEffect(() => {
     if (!text || text.status !== 'text_draft' || pending || blocked) return;
     if (!text.pages.some((page) => page.khmer_validated_at === null)) return;
     if (validationAttempts.current.has(text.text_revision)) return;
-    validationAttempts.current.add(text.text_revision);
+    const attemptedRevision = text.text_revision;
+    validationAttempts.current.add(attemptedRevision);
     setPending('validate');
-    void validateKhmer(storyId, text.text_revision)
+    void validateKhmer(storyId, attemptedRevision)
       .then((canonical) => {
         setText(canonical);
+        setValidationFailed(false);
         setNotice('Đã chạy kiểm tra kỹ thuật Khmer cho bản hiện tại.');
       })
       .catch(async (reason: unknown) => {
@@ -90,10 +110,21 @@ export function useStoryEditor(storyId: number) {
           await refresh().catch(() => setBlocked(true));
           return;
         }
-        setError(reason instanceof Error ? reason.message : 'Không thể kiểm tra Khmer.');
+        if (reason instanceof ApiError && reason.status === 0) {
+          try {
+            await refresh();
+            setError(`${reason.message} Trạng thái mới nhất đã được tải lại.`);
+          } catch {
+            setBlocked(true);
+            setError('Chưa thể đối soát trạng thái sau lỗi kiểm tra Khmer.');
+          }
+        } else {
+          setError(reason instanceof Error ? reason.message : 'Không thể kiểm tra Khmer.');
+        }
+        setValidationFailed(true);
       })
       .finally(() => setPending(null));
-  }, [blocked, pending, refresh, storyId, text]);
+  }, [blocked, pending, refresh, storyId, text, validationRetryToken]);
 
   const recover = useCallback(async (reason: unknown) => {
     const message = reason instanceof Error ? reason.message : 'Thao tác thất bại.';
@@ -157,16 +188,20 @@ export function useStoryEditor(storyId: number) {
         : retranslatePage(storyId, pageId as number, revision),
     );
 
+  const retryKhmerValidation = () => {
+    if (!text || pending || blocked) return;
+    validationAttempts.current.delete(text.text_revision);
+    setValidationFailed(false);
+    setError(null);
+    setValidationRetryToken((value) => value + 1);
+  };
+
   const confirm = async (acknowledge: boolean) => {
     if (!text || pending || blocked) return false;
     setPending('confirm');
     setError(null);
     try {
-      const canonical = await confirmStoryText(
-        storyId,
-        text.text_revision,
-        acknowledge,
-      );
+      const canonical = await confirmStoryText(storyId, text.text_revision, acknowledge);
       setText(canonical);
       setNotice('Nội dung đã được xác nhận và khóa. Chưa có ảnh nào được sinh.');
       return true;
@@ -186,7 +221,9 @@ export function useStoryEditor(storyId: number) {
     notice,
     pending,
     blocked,
+    validationFailed,
     refresh,
+    retryKhmerValidation,
     runQuickAction,
     runInstruction,
     addPage,

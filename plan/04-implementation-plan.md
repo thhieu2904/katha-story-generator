@@ -153,7 +153,7 @@ Flow tạo truyện → sinh text Việt → dịch Khmer → biên tập/đổi
 - [x] `POST /api/stories/{id}/validate-km` không tăng revision.
 - [x] `POST /api/stories/{id}/retranslate-km` cho title/page và tăng revision khi có thay đổi.
 - [x] `POST /api/stories/{id}/confirm-text` chỉ chuyển `text_draft → text_confirmed`, không sinh ảnh.
-- [x] Quick actions giữ count/order; add/delete/reorder dùng control riêng; custom instruction chỉ đổi cấu trúc khi yêu cầu rõ.
+- [x] Quick actions giữ count/order; add/delete/reorder dùng control riêng; custom instruction luôn giữ cấu trúc.
 - [x] Editor song ngữ với dnd-kit, fallback lên/xuống, Khmer warnings, timeout/conflict reconcile và read-only sau confirm.
 - [x] Số trang sau edit có thể lẻ nhưng phải còn trong band 4–6 / 8–10 / 12–14.
 - [ ] Archive `text_draft` — deferred P1.
@@ -161,7 +161,7 @@ Flow tạo truyện → sinh text Việt → dịch Khmer → biên tập/đổi
 
 ### Evidence hiện tại
 
-- Backend offline: `84 passed, 20 deselected`, Ruff/mypy pass, Alembic head `004`.
+- Backend offline: `151 passed, 26 deselected`, Ruff/mypy pass, Alembic head `004`.
 - Frontend: ESLint pass (1 warning `<img>` tồn tại từ trước), TypeScript pass, production build pass.
 - Docker PostgreSQL integration, live OpenAI và native-speaker Khmer review còn deferred.
 
