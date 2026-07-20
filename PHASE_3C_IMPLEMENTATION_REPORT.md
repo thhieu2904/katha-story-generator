@@ -2,9 +2,10 @@
 
 > Ngày hoàn thành: 2026-07-20  
 > Phạm vi: Story Editor & Text Confirmation — Core P0  
-> Trạng thái: **CODE-COMPLETE OFFLINE**  
+> Trạng thái: **CODE-COMPLETE OFFLINE SAU CORRECTIVE REVIEW**
 > Baseline Phase 3B: `b99eb32`  
 > Implementation commit: `e6f320bb73226791c6e337e0f30f5887a456414f`
+> Corrective review commit: `b158b1f271c2ac2ec09aa792daa321800ee7d49f`
 
 ## 1. Kết quả bàn giao
 
@@ -13,7 +14,7 @@ Phase 3C core đã được triển khai end-to-end từ migration, backend doma
 Những invariant sản phẩm đã được enforce ở backend, không chỉ khóa nút frontend:
 
 - Quick action giữ nguyên chính xác page IDs, số trang và thứ tự.
-- Custom instruction chỉ được add/delete/reorder nếu câu lệnh yêu cầu cấu trúc rõ ràng.
+- Custom instruction luôn giữ page IDs/count/order; add/delete/reorder chỉ qua control riêng.
 - Sau edit cho phép số trang lẻ nhưng phải còn trong band `4–6`, `8–10`, `12–14`.
 - Mọi content mutation chỉ chạy ở `text_draft` và dùng `expected_revision`.
 - AI request không giữ database lock qua network call; backend lock/check lại revision và canonical pages trước commit.
@@ -190,7 +191,7 @@ Dependency thêm: `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`. Kh
 
 ```text
 uv run ruff format --check src tests
-64 files already formatted
+67 files already formatted
 
 uv run ruff check src tests
 All checks passed!
@@ -202,7 +203,7 @@ uv run alembic heads
 004 (head)
 
 PYTHONPATH=src uv run pytest -q -m "not integration"
-84 passed, 20 deselected, 2 warnings in 2.36s
+151 passed, 26 deselected, 2 warnings in 3.62s
 ```
 
 Hai warning backend không phải lỗi Phase 3C:
@@ -210,7 +211,7 @@ Hai warning backend không phải lỗi Phase 3C:
 - Starlette báo deprecation cho `httpx`/`TestClient`.
 - Alembic báo `path_separator` legacy config.
 
-Targeted Phase 3C suite có 11 test, gồm schema guards, exact quick-action structure, explicit custom structural permission, server diff, Khmer code-point offsets, selective translation, no partial save, stale final revision, validate-without-revision, odd-count confirm và acknowledgment guard.
+Corrective suite nâng tổng backend offline lên **151 passed**. Coverage mới gồm 35 API/auth contracts, 12 OpenAI adapter contracts, generation DB-clock/timeout/reset/rollback, editor add/reorder/delete/retranslate/idempotency/race và structural negation guards.
 
 ### Frontend
 
@@ -228,7 +229,7 @@ Compiled successfully
 
 ESLint warning duy nhất là `<img>` trong `StorySetupForm.tsx`, tồn tại từ trước Phase 3C.
 
-Build trong restricted sandbox có một lần fail vì không tải được Google Fonts; chạy lại có network access đã pass với cả Inter và Noto Sans Khmer.
+Production build hiện tại pass trong workspace; không dùng browser/live backend để suy diễn thành E2E pass.
 
 ### Repository safety
 
@@ -240,14 +241,14 @@ credential-shaped diff scan
 no credential-shaped values
 ```
 
-Lockfile được tạo bởi `npm install` và production build đọc thành công.
+`uv lock --check` pass; frontend lockfile không đổi trong corrective commit và production build đọc thành công.
 
 ## 8. Verification mapping
 
 | Contract quan trọng | Evidence |
 |---|---|
 | Quick action giữ count/order | Unit test structural output bị reject + source-ID exact sequence guard |
-| Custom structural edit phải explicit | Unit test implicit reject / explicit add accepted |
+| Custom instruction luôn non-structural | Unit test reject cả keyword, explicit request và câu phủ định |
 | Selective translation | Unit test chỉ changed page được dịch, unchanged Khmer giữ nguyên |
 | Không partial bilingual save | Provider translation failure test: no commit, Vietnamese unchanged |
 | Stale AI không overwrite | Final revision race test trả 409, no commit |
@@ -279,7 +280,7 @@ Chưa thực hiện browser walkthrough bằng chuột/touch thật vì không c
 
 ### Docker/PostgreSQL
 
-Full pytest đã thử chạy và dừng ở 20 integration setup errors vì Windows pipe `//./pipe/dockerDesktopLinuxEngine` không tồn tại. Kết quả phần không cần Docker vẫn là 84 pass; không có assertion failure của Phase 3C.
+Full Docker suite chưa chạy được; 26 integration tests đã được collect và sẽ dừng ở Testcontainers setup vì Windows pipe `//./pipe/dockerDesktopLinuxEngine` không tồn tại. Kết quả phần không cần Docker là 151 pass; không có assertion failure của Phase 3C.
 
 Cần chạy khi Docker Desktop hoạt động:
 
@@ -366,3 +367,26 @@ Phase 4 chỉ nên bắt đầu sau khi:
 4. Chốt Gate G4 (image job/retry/progress strategy).
 
 Canonical input cho Phase 4 là story `text_confirmed` với title/pages Việt–Khmer đã khóa. Phase 4 chịu trách nhiệm tạo English/image prompts và image pipeline; không đưa logic đó ngược vào Phase 3C.
+
+## 13. Corrective review closure
+
+Phản hồi REQUEST CHANGES sau commit ban đầu đã được xử lý:
+
+- Custom instruction luôn non-structural; regex keyword authorization đã bị xóa, gồm regression cho câu phủ định.
+- `generating_text` dùng recursive polling 3 giây cho đến khi status đổi hoặc component unmount.
+- Story metadata/text được load atomically; lỗi `GET /text` hiện error + retry thay vì skeleton vô hạn.
+- Khmer validation failure có nút retry cùng revision; network loss refetch canonical state trước retry.
+- Stale generation dùng PostgreSQL `clock_timestamp()` và Settings reject `stale <= operation timeout`.
+- Retranslate page trả cùng Khmer vẫn refresh flags/timestamp mà không tăng revision.
+- Thêm API/auth, provider, timeout/reset, add/reorder/delete/retranslate, idempotency/race/rollback tests.
+- Thêm 5 full Phase 3 PostgreSQL integration flows và migration 003/004 lifecycle test; execution còn Docker-deferred.
+
+Corrective commit: `b158b1f271c2ac2ec09aa792daa321800ee7d49f`.
+
+22 file trong corrective commit:
+
+- Runtime/config: `backend/src/katha/core/config.py`, generation service, editor prompt/service và 2 file frontend editor.
+- Tests: migration lifecycle, generation/editor service suites và 3 suite mới cho OpenAI adapter, API/auth contracts, PostgreSQL Phase 3 flows.
+- Docs: plan 3B/3C, README, overview, decisions, technical design, implementation plan, research notes, project structure và `plan/HANDOFF.md`.
+
+File báo cáo này được cập nhật sau commit corrective để lưu đúng hash và kết quả gate cuối.
