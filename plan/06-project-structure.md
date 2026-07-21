@@ -428,3 +428,14 @@ Backend dùng feature riêng `src/katha/features/story_editor/` gồm `router.py
 Frontend dùng `src/features/story-editor/` gồm API/types/constants/hook và các component editor. Route `app/admin/stories/[id]/edit/page.tsx` chỉ parse ID rồi render feature. Dnd-kit là dependency UI mới duy nhất.
 
 Migration 004 chỉ thêm `story_pages.khmer_validated_at`; không thêm bảng, edit log, history hay inline editor.
+---
+
+## 8. Phase 4 structure thực tế (2026-07-21)
+
+Phần này thay thế các placeholder `ai/`, `storage/` và ghi chú Gate G4 chưa chốt ở trên.
+
+- Backend: `src/katha/features/story_images/` chứa router, service, schemas, models, prompts, ports, dependencies và runner.
+- Integrations: `integrations/openai_story_images.py` và `integrations/r2_storage.py` là adapter cho plan/image và R2 safe reference/WebP output.
+- Frontend: `src/features/story-images/` và route `app/admin/stories/[id]/images/` hiển thị plan, mapping và polling progress.
+- Execution: `BackgroundTasks` chỉ schedule runner; runner lấy session riêng, chạy sequential và fencing bằng UUID claim/heartbeat.
+- Boundary: manual page regeneration là Phase 5; Docker/live provider smoke vẫn deferred.

@@ -325,3 +325,16 @@ Sau khi tạo bảng, insert seed data:
 - **Text bị KHÓA** sau `text_confirmed` — không sửa text ở image phase
 - **Review từng trang** — không approve/reject cả truyện 1 lúc
 - Tối đa **2-3 nhân vật / truyện** cho consistency ảnh tốt nhất
+
+---
+
+## Phase 4 migration extension — source of truth (005)
+
+Migration `005_story_image_generation` extends the existing seven-table schema; it creates no new table.
+
+- **stories**: `image_plan_revision`, `image_plan_locked_at`, `image_generation_claim_id`, and `image_generation_heartbeat_at`.
+- **story_pages**: `image_scene_en`, `image_character_ids integer[]`, `image_status`, `image_attempt_count`, and `image_error_code`; `image_url` remains the completed R2 URL.
+- **Constraints**: 0–3 character IDs per page, non-negative counters/revisions, completed image requires a nonblank URL, and claim/heartbeat exist together only while `status='generating_images'`.
+- **Lifecycle**: plan revision changes during planning/mapping; mapping locks once generation starts; page state is `pending | generating | completed | failed`.
+- **Legacy safety**: upgrade stops before schema mutation when any legacy `story_pages.image_url` is nonblank, or when a story is already `pending_review`, `approved`, or `published` without Phase 4 state. Preserve/import, clear, normalize, or archive those rows explicitly before migration.
+- **Phase boundary**: Phase 4 retries incomplete pages only. Human-requested single-page regeneration is Phase 5.

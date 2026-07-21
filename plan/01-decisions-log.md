@@ -251,3 +251,28 @@
   - Sau timeout/mất kết nối, frontend refetch status/revision trước khi resend.
 - Lý do: Ngăn request cũ finalize/reset sau stale reclaim và giữ synchronous MVP trong budget vận hành rõ ràng.
 - Trạng thái: ✅ Chốt
+
+---
+
+## Quyết định đã chốt — Phase 4 MVP (2026-07-21)
+
+### D34 — Image plan, per-page mapping và cost presentation
+- **Quyết định**:
+  - G2: AI đề xuất và admin được chỉnh 0–3 character của truyện cho từng page; persist full mapping trên `story_pages` và khóa từ lần generation đầu tiên.
+  - Image plan phải bao phủ đúng toàn bộ page hiện tại; prompt được rebuild deterministic từ scene, art style và selected characters.
+  - Không hiển thị/commit giá cố định cho một ảnh hoặc một truyện; số tiền phụ thuộc cấu hình image và pricing provider hiện hành.
+  - Phase 4 không manual regenerate một page; đây là action review của Phase 5.
+  - Migration 005 hard-fail trước DDL khi có legacy `story_pages.image_url` không rỗng hoặc story downstream `pending_review`/`approved`/`published` chưa có Phase 4 state; legacy `generating_images` không owner được normalize về `text_confirmed`.
+- **Lý do**: Giữ image plan đầy đủ, mapping có revision/lock rõ ràng và không hứa chi phí sai theo thời điểm.
+- **Trạng thái**: ✅ Chốt
+
+### D35 — In-process image job, retry và progress
+- **Quyết định**:
+  - G4: dùng FastAPI `BackgroundTasks` sequential trong một app instance, UUID claim + heartbeat, `GET /images` polling và retry/resume trang `pending`/`failed`.
+  - Claim phải commit trước khi schedule; trang `completed` là terminal trong Phase 4 và không bị sinh lại khi retry/resume.
+  - Runner dùng DB-clock stale detection và claim fencing; partial failure giữ URL đã hoàn tất, story quay về `text_confirmed`, toàn bộ hoàn tất chuyển `pending_review`.
+  - Task không bền qua restart/deploy; admin chủ động stale-resume. Durable queue, multi-instance orchestration và global cluster rate limit nằm ngoài MVP.
+  - Default page budget `330s`: reserve toàn bộ provider retry budget `150s × 2 = 300s`, giữ `5s` finalization margin và tối đa `25s` botocore transport cho hai runner upload attempts; custom config bị reject nếu transport budget dưới `1s`; botocore không hidden retry.
+  - Docker/PostgreSQL migration, browser matrix và live OpenAI/R2 smoke là verification gates deferred, không phải bằng chứng đã chạy.
+- **Lý do**: Đủ an toàn cho MVP một app instance mà không thêm queue infrastructure, đồng thời giữ recovery và progress canonical trong PostgreSQL.
+- **Trạng thái**: ✅ Chốt

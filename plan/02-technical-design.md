@@ -29,7 +29,7 @@
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐    │
 │  │ API Routes   │  │ Background   │  │ AI Service Layer       │    │
 │  │ - CRUD       │  │ Tasks        │  │ ┌──────────────────┐   │    │
-│  │ - Story gen  │  │ (Gate G4 —   │  │ │ ImageGenerator   │   │    │
+│  │ - Story gen  │  │ (sequential  │  │ │ ImageGenerator   │   │    │
 │  │ - Review     │  │  cách chạy   │  │ │ (ABC)            │   │    │
 │  │              │  │  chưa chốt,  │  │ │ └─ OpenAI impl   │   │    │
 │  │              │  │  xem 08)     │  │ ├──────────────────┤   │    │
@@ -397,3 +397,18 @@ TEXT_PROVIDER = os.getenv("TEXT_PROVIDER", "openai")
 - **Backup**: Kantumruy Pro
 - **Line-height**: 1.8 trở lên (chữ Khmer có dấu xếp chồng, line-height thường bị cắt)
 - **Font-size tối thiểu**: 20px cho body text (chữ Khmer nhỏ quá khó đọc)
+
+---
+
+## Phase 4 MVP — contract implemented (2026-07-21)
+
+Phần này thay thế các ghi chú Phase 4/G2/G4 và ước tính giá cũ ở trên.
+
+- **G2**: mapping 0–3 character đã chọn được persist cho từng page và validate đủ mapping trước khi chạy.
+- **G4**: FastAPI `BackgroundTasks` chạy sequential trong một app instance, UUID claim + heartbeat, `GET /images` polling, retry/resume page pending/failed.
+- **API**: create/update image plan; `POST /generate-images` trả `202` sau khi claim; không có WebSocket/SSE trong MVP.
+- **Storage**: download reference chỉ từ R2 public URL đã cấu hình, output WebP được validate rồi upload R2.
+- **Cost**: không hard-code chi phí; model, size, quality và pricing provider hiện hành quyết định số tiền thực tế.
+- **Scope**: Phase 4 không có manual per-page regenerate; chức năng đó thuộc review Phase 5.
+- **Migration**: `005_story_image_generation` hard-fail trước DDL nếu còn `story_pages.image_url` legacy không rỗng hoặc story ở `pending_review`/`approved`/`published` chưa có Phase 4 state.
+- **Remaining gates**: Docker/PostgreSQL migration và controlled OpenAI/R2 smoke còn deferred.

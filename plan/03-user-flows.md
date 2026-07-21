@@ -315,3 +315,18 @@ Tiêu đề hiển thị: KM (primary) + VN (subtitle)
             ← User thấy           ← Giữ data, ẩn khỏi Reader
 ```
 
+
+---
+
+## Phase 4 MVP flow — source of truth (2026-07-21)
+
+Phần này thay thế mô tả image-flow chưa chốt hoặc cost cố định ở trên.
+
+1. Sau `text_confirmed`, admin tạo image plan, kiểm tra text/scene English và mapping 0–3 character cho mọi page.
+2. Admin lưu mapping rồi gọi `POST /api/stories/{id}/generate-images`; server commit UUID claim trước khi trả `202`.
+3. UI poll `GET /api/stories/{id}/images` để hiển thị `pending`, `generating`, `completed`, `failed` và ảnh WebP xuất hiện dần.
+4. Khi toàn bộ target hoàn tất, story sang `pending_review`; retry/resume trong Phase 4 chỉ nhận page pending/failed của plan đã khóa.
+- **G2**: mapping character theo page là persisted full mapping, không chỉ prompt tạm.
+- **G4**: một in-process sequential runner với heartbeat; không dùng queue riêng hoặc WebSocket/SSE trong MVP.
+- **Cost**: CTA hiển thị số trang cần tạo/retry, không hiển thị mức giá cố định.
+- **Boundary**: nút manual “Tạo lại ảnh trang này” là action review Phase 5.

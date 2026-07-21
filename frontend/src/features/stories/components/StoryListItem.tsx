@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getStoryWorkflowHref, getStoryWorkflowLabel } from '../routes';
 import type { StoryListItem as StoryListItemType } from '../types';
 import { STATUS_LABELS, TARGET_AGE_LABELS, LENGTH_LABELS } from '../constants';
 import { ArchiveStoryDialog } from './ArchiveStoryDialog';
@@ -18,6 +19,8 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
   const ageLabel = story.target_age ? TARGET_AGE_LABELS[story.target_age] : 'Chưa rõ';
   const lengthLabel = story.length_pref ? LENGTH_LABELS[story.length_pref] : 'Chưa rõ';
   const statusLabel = STATUS_LABELS[story.status] || story.status;
+  const workflowHref = getStoryWorkflowHref(story.id, story.status);
+  const workflowLabel = getStoryWorkflowLabel(story.status);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,22 +90,18 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
                   Lưu trữ
                 </button>
                 <Link
-                  href={`/admin/stories/${story.id}/setup`}
+                  href={workflowHref}
                   className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-katha-primary-light"
                 >
-                  Tiếp tục thiết lập
+                  {workflowLabel}
                 </Link>
               </>
             ) : story.status !== 'archived' ? (
               <Link
-                href={`/admin/stories/${story.id}/edit`}
+                href={workflowHref}
                 className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-katha-primary-light"
               >
-                {story.status === 'generating_text'
-                  ? 'Xem trạng thái'
-                  : story.status === 'text_draft'
-                    ? 'Tiếp tục biên tập'
-                    : 'Xem nội dung'}
+                {workflowLabel}
               </Link>
             ) : (
               <span className="text-xs text-white/50">{statusLabel}</span>

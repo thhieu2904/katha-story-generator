@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { StoryTextPage } from '@/features/stories/types';
 import { LENGTH_LABELS, STATUS_LABELS } from '@/features/stories/constants';
+import { getStoryWorkflowHref } from '@/features/stories/routes';
 import { BAND_LIMITS } from '../constants';
 import { useStoryEditor } from '../useStoryEditor';
 import { AddPageButton } from './AddPageButton';
@@ -21,8 +22,15 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-    if (editor.story?.status === 'draft') {
-      router.replace(`/admin/stories/${storyId}/setup`);
+    const status = editor.story?.status;
+    if (
+      status === 'draft' ||
+      status === 'generating_images' ||
+      status === 'pending_review' ||
+      status === 'approved' ||
+      status === 'published'
+    ) {
+      router.replace(getStoryWorkflowHref(storyId, status));
     }
   }, [editor.story?.status, router, storyId]);
 
@@ -94,7 +102,15 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
 
       {!editable && (
         <div className="mt-6 rounded-xl border border-katha-success/25 bg-katha-success/10 p-4 text-sm text-emerald-200">
-          Nội dung đã được xác nhận và đang ở chế độ chỉ đọc. Phase này chưa sinh ảnh.
+          <p>Nội dung đã được xác nhận và đang ở chế độ chỉ đọc.</p>
+          {text.status === 'text_confirmed' && (
+            <Link
+              href={getStoryWorkflowHref(storyId, text.status)}
+              className="mt-3 inline-flex rounded-lg border border-emerald-200/25 px-3 py-2 text-xs font-semibold transition hover:bg-white/10"
+            >
+              Tiếp tục chuẩn bị minh họa
+            </Link>
+          )}
         </div>
       )}
       {editor.pending && (

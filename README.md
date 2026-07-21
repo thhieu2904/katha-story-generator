@@ -85,7 +85,14 @@ npm run dev                 # Start dev server
 | `R2_SECRET_ACCESS_KEY` | ✅ | R2 secret key |
 | `R2_BUCKET_NAME` | ✅ | R2 bucket name |
 | `R2_PUBLIC_URL` | ✅ | R2 public URL |
+| `OPENAI_API_KEY` | Phase 3+ | OpenAI API key |
+| `OPENAI_IMAGE_MODEL` | Phase 4 | Image model (default: `gpt-image-2`) |
+| `OPENAI_IMAGE_SIZE` | Phase 4 | Image size (default: `1536x864`) |
+| `OPENAI_IMAGE_QUALITY` | Phase 4 | Image quality (default: `high`) |
 | `CORS_ORIGINS` | ❌ | Allowed origins (default: localhost:3000) |
+
+See [`backend/README.md`](backend/README.md) and `backend/.env.example` for the full
+Phase 4 timeout, retry, concurrency, and output-validation settings.
 
 ### Frontend (`frontend/.env.local`)
 
@@ -101,8 +108,8 @@ npm run dev                 # Start dev server
 
 ```bash
 cd backend
-uv run ruff check src/ tests/ alembic/versions/002_target_age_groups.py
-uv run ruff format --check src/ tests/ alembic/versions/002_target_age_groups.py
+uv run ruff check src/ tests/ alembic/versions/
+uv run ruff format --check src/ tests/ alembic/versions/
 uv run mypy src/
 uv run pytest -m "not integration" tests/ -q  # Offline suite
 uv run pytest -m integration tests/ -q        # Requires Docker/Testcontainers
@@ -113,9 +120,10 @@ docker build -t katha-backend .               # Docker build smoke test
 
 ```bash
 cd frontend
-npx eslint .        # Lint
-npx tsc --noEmit    # Type check
-npm run build       # Build
+npm run test -- --run  # Vitest UI-state specs
+npx eslint .           # Lint
+npx tsc --noEmit       # Type check
+npm run build          # Build
 ```
 
 ## Health Check
@@ -133,6 +141,12 @@ curl http://localhost:8000/health
 **Core** (user data): `characters`, `stories`, `story_characters`, `story_pages`
 
 Schema: [`plan/07-database-schema.md`](plan/07-database-schema.md)
+Migration `005_story_image_generation` aborts before DDL if a populated database
+contains a non-empty legacy `story_pages.image_url` **or** a story already in
+`pending_review`, `approved`, or `published`. Choose an explicit preserve/import,
+clear, normalize, or archive path before upgrading; the migration never silently
+strands those states.
+
 
 ## Seed Data
 
@@ -150,4 +164,5 @@ uv run python -m katha.features.config_data.seed
 - [x] Phase 2: Auth + config APIs + Character Bank read-only — code-complete offline
 - [x] Phase 3A: Story setup/list — code-complete offline; Docker/live checks pending
 - [x] Phase 3B–3C: Text generation, editor, confirmation — code-complete offline sau corrective review; Docker/live/native Khmer checks pending
-- [ ] Phase 4: Polish + deploy
+- [x] Phase 4: Image plan + sequential page-image generation MVP — offline source/unit/frontend gates pass; Docker/PostgreSQL integration and controlled OpenAI/R2/browser verification remain pending (see `plan/PHASE_4_MANUAL_VERIFICATION.md`)
+- [ ] Phase 5: Review, publish, reader — includes manual per-page regeneration

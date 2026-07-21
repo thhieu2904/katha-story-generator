@@ -1,9 +1,9 @@
 # Katha — Kế hoạch triển khai
 
-> Ngày cập nhật: 2026-07-20
+> Ngày cập nhật: 2026-07-21
 > DB schema: xem `07-database-schema.md` (source of truth duy nhất)
 > Quyết định chưa chốt: xem `08-implementation-gates.md`
-> Các gate đã chốt: G1 (D22), G3 (D27), G5 (D23), G6 (D24).
+> Các gate đã chốt: G1 (D22), G2, G3 (D27), G4, G5 (D23), G6 (D24).
 
 ---
 
@@ -20,7 +20,7 @@
     - 3A: ✅ Code-complete offline — Docker/live verification pending
     - 3B: ✅ Text Generation — baseline `b99eb32`
     - 3C: ✅ Core P0 code-complete offline
-⬜ Phase 4:   Image generation cho các trang nội dung
+✅ Phase 4:   Image generation MVP — offline source/unit/frontend gates pass; Docker/live/manual verification pending
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
 ⬜ Phase 7:   NCKH evaluation
@@ -170,38 +170,41 @@ Flow tạo truyện → sinh text Việt → dịch Khmer → biên tập/đổi
 Canonical bilingual editor đã auto-save từng mutation thành công, chống stale overwrite bằng revision, giữ Việt/Khmer atomic, và khóa text khi admin bấm **Xác nhận nội dung**.
 
 ---
-## Phase 4 — Image Generation (3-4 ngày)
+## Phase 4 — Image Generation (3-4 ngày) — Offline source/unit/frontend gates pass
 
 ### Mục tiêu
 Sinh ảnh minh họa cho từng trang (text đã khóa ở Phase 3).
 
-> ⚠️ **OPEN — Gate G2**: Character nào trên từng trang?
-> ⚠️ **OPEN — Gate G4**: Cách chạy/retry/progress sinh ảnh?
+> ✅ **G2**: Persist mapping 0–3 character đã chọn cho từng trang, rồi khóa khi bắt đầu job.
+> ✅ **G4**: `BackgroundTasks` tuần tự, UUID claim + heartbeat, `GET /images` polling và retry/resume trang retryable.
 
 ### Việc cần làm
 
-- [ ] **4.1** Image prompt generator
+- [x] **4.1** Image prompt generator
   - Input: text_en (dịch từ text_vi) + character descriptions + art style
   - Output: prompt EN cho gpt-image-2
   - Luôn chứa visual anchor (appearance_prompt_en đầy đủ)
 
-- [ ] **4.2** Image generation service
+- [x] **4.2** Image generation service
   - Gọi gpt-image-2 với prompt + ref images
   - Aspect ratio: 16:9 (landscape)
-  - Chi phí: ~$0.13/ảnh
+  - Không hard-code chi phí: phụ thuộc model, size, quality và giá provider hiện hành
   - Upload kết quả lên R2
-  - Retry/progress → **Gate G4**
+  - Job tuần tự trong một app instance; retry/resume chỉ xử lý trang pending/failed theo plan đã khóa
 
-- [ ] **4.3** Không sinh ảnh bìa; code-template cover được làm cùng Reader/Story Card ở Phase 5 (D27)
+- [x] **4.3** Không sinh ảnh bìa; code-template cover được làm cùng Reader/Story Card ở Phase 5 (D27)
 
-- [ ] **4.4** UI progress
+- [x] **4.4** UI progress
   - Progress bar: "🎨 Đang vẽ trang 3/8..."
   - Preview ảnh hiện dần khi gen xong
 
 ### Deliverable
 - Các trang nội dung có ảnh nhất quán; bìa là code template riêng và không tính là image API call
-- Progress tracking hoạt động
+- Progress polling hoạt động; tạo lại thủ công một trang thuộc Phase 5, không phải Phase 4
 
+> Migration `005` hard-fail trước DDL nếu DB đích còn `story_pages.image_url` legacy không rỗng **hoặc** story ở `pending_review`/`approved`/`published`; phải chọn preserve/import, clear, normalize hoặc archive trước khi upgrade.
+>
+> Docker/PostgreSQL migration, controlled OpenAI/R2 smoke và browser matrix tại `PHASE_4_MANUAL_VERIFICATION.md` vẫn pending.
 ---
 
 ## Phase 5 — Review, Publish, Reader (4-5 ngày)

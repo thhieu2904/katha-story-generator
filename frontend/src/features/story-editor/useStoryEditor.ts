@@ -31,6 +31,7 @@ export function useStoryEditor(storyId: number) {
 
   const refresh = useCallback(async () => {
     const currentStory = await fetchStory(storyId);
+    setStory(currentStory);
     let canonical: StoryText | null = null;
     if (
       currentStory.status !== 'draft' &&
@@ -39,7 +40,6 @@ export function useStoryEditor(storyId: number) {
     ) {
       canonical = await fetchStoryText(storyId);
     }
-    setStory(currentStory);
     setText(canonical);
     setBlocked(false);
     return currentStory;
@@ -203,6 +203,9 @@ export function useStoryEditor(storyId: number) {
     try {
       const canonical = await confirmStoryText(storyId, text.text_revision, acknowledge);
       setText(canonical);
+      setStory((current) => current
+        ? { ...current, status: canonical.status, text_revision: canonical.text_revision }
+        : current);
       setNotice('Nội dung đã được xác nhận và khóa. Chưa có ảnh nào được sinh.');
       return true;
     } catch (reason) {

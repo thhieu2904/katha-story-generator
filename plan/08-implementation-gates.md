@@ -34,9 +34,9 @@
 | Gate | Trạng thái | Ngày chốt | Ghi chú |
 |------|-----------|-----------|----------|
 | G1 | ✅ CHỐT | 2026-07-17 | Reader đọc truyện public; toàn bộ `/admin/*` và API phục vụ admin yêu cầu tài khoản có role `admin`. Backend là lớp enforcement cuối cùng. |
-| G2 | ⬜ OPEN | — | — |
+| G2 | ✅ CHỐT | 2026-07-21 | Mapping character theo từng trang được persist ở `story_pages.image_character_ids`; full mapping chỉ dùng 0–3 nhân vật đã chọn của truyện và bị khóa khi bắt đầu sinh ảnh. |
 | G3 | ✅ CHỐT | 2026-07-19 | Bìa dùng code template (React/Tailwind/SVG), không sinh bằng AI. Cover không nằm trong story_pages. cover_image_url nullable, reserved cho future export. |
-| G4 | ⬜ OPEN | — | — |
+| G4 | ✅ CHỐT | 2026-07-21 | FastAPI `BackgroundTasks` chạy tuần tự trong một app instance, claim UUID + heartbeat, polling `GET /images`, retry/resume trang retryable; không dùng WS/SSE trong MVP. |
 | G5 | ✅ CHỐT | 2026-07-17 | Character Bank MVP chỉ đọc 7 nhân vật seed; không CRUD, upload hay sinh reference mới trong Phase 2. |
 | G6 | ✅ CHỐT | 2026-07-19 | target_age dùng text enum group: preschool, early_primary, late_primary. Migration 002 chuyển từ integer. |
 | G7 | ⬜ OPEN | — | — |

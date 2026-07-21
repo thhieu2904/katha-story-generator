@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useStories } from '@/features/stories/useStories';
 import { StoryListItem } from '@/features/stories/components/StoryListItem';
 
@@ -24,6 +25,8 @@ function StorySkeleton() {
 
 export default function StoriesPage() {
   const { stories, error, loading, retry } = useStories();
+  const searchParams = useSearchParams();
+  const archivedNotice = searchParams.get('notice') === 'archived';
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
@@ -53,6 +56,12 @@ export default function StoriesPage() {
           </Link>
         </div>
       </div>
+
+      {archivedNotice && (
+        <section className="mb-7 rounded-xl border border-katha-warning/25 bg-katha-warning/10 p-4 text-sm text-amber-100">
+          Truyện này đã được lưu trữ nên không thể mở không gian minh họa.
+        </section>
+      )}
 
       {loading && (
         <div

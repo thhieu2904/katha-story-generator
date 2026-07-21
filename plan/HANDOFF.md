@@ -34,6 +34,7 @@
 - Budget $19.6 → tối đa ~18 truyện
 - Batch API đã nghiên cứu → KHÔNG dùng (UX kém)
 
+- Phase 4 không hard-code giá ảnh/truyện; các ước tính lịch sử không phải runtime contract.
 ### Kiến trúc core
 - **2-phase pipeline**: Text Phase (rẻ, iterate thoải mái) → Image Phase (đắt, chạy 1 lần)
 - Text KHÓA sau khi admin confirm → không sửa text ở image phase
@@ -72,7 +73,7 @@
 - **Source of truth**: `07-database-schema.md`; migration 003 đã thêm status/revision/generation claim UUID; migration 004 đã thêm Khmer validation timestamp
 - KHÔNG có `story_outlines`, `story_edit_logs`, `usage_logs`, `vocabulary` trong MVP
 - Generation ownership dùng `text_generation_claim_id`; `updated_at` chỉ xác định stale
-- Chỉ G2 và G4 còn mở; G1/G3/G5/G6 đã chốt
+- G2 đã chốt ở D34 và G4 đã chốt ở D35 cho Phase 4; G1/G3/G5/G6 cũng đã chốt
 
 ### Tất cả decisions chi tiết: xem `01-decisions-log.md`
 
@@ -132,7 +133,7 @@
     - 3A: ✅ Baseline commit `3048010`; code-complete offline — Docker/live verification pending
     - 3B: ✅ Corrective offline coverage complete — Docker/live AI smoke pending
     - 3C: ✅ Corrective review blockers fixed; code-complete offline — Docker/live/native Khmer review pending
-⬜ Phase 4:   Image generation
+⚠️ Phase 4:   Image generation MVP — code-complete offline; PostgreSQL/live/browser acceptance còn pending
 ⬜ Phase 5:   Review, publish, reader
 ⬜ Phase 6:   QA, deploy
 ⬜ Phase 7:   NCKH evaluation
@@ -140,10 +141,10 @@
 
 ### Bước tiếp theo
 
-1. Bật Docker Desktop và chạy migration/integration suite 001 → 004 trên PostgreSQL thật.
-2. Chạy live smoke có kiểm soát cho generation/edit/add/retranslate với `OPENAI_API_KEY` ngoài test suite.
+1. Bật Docker Desktop và chạy 37 integration tests (11 test Phase 4) cho migration/race/fencing trên PostgreSQL thật.
+2. Chạy live smoke có kiểm soát cho Phase 3 và Phase 4 với `OPENAI_API_KEY` ngoài test suite.
 3. Nhờ người đọc Khmer review sample; archive `text_draft` tiếp tục deferred P1.
-4. Chỉ mở Phase 4 sau khi chốt Gate G2 và G4.
+4. Với Phase 4, kiểm tra legacy image URL + downstream-status migration guards, custom-size/multi-reference edit, R2 WebP upload và stale-job resume.
 
 ---
 
@@ -211,3 +212,21 @@
 8. Khi bàn về D11 (model) hoặc giá → đã chốt, xem Section 9-10 trong `05-research-notes.md`
 9. **DB schema**: dùng `07-database-schema.md` làm source of truth duy nhất. KHÔNG tự thêm bảng.
 10. **Quyết định chưa chốt**: xem `08-implementation-gates.md`. Không tự ý quyết thay.
+
+---
+
+## Phase 4 implementation evidence (cập nhật 2026-07-22)
+
+Phần này thay thế các ghi chú cũ nói G2/G4 còn mở, Phase 4 có manual regeneration, hoặc có giá ảnh cố định.
+
+- **Status**: implementation/code-complete offline; full acceptance còn pending PostgreSQL integration, live provider/storage và browser matrix. Alembic head `005`.
+- **D34/G2**: mapping 0–3 character theo từng page được persist/revision/lock; prompt deterministic và manual per-page regenerate thuộc Phase 5.
+- **D35/G4**: one-app-instance `BackgroundTasks` runner chạy sequential với UUID claim + heartbeat, `GET /images` polling và retry/resume `pending`/`failed`; task không bền qua restart/deploy nên dùng explicit stale-resume.
+- **API**: admin tạo/sửa plan, rồi `POST /generate-images` nhận `202` sau durable claim; retry/resume chỉ áp dụng page pending/failed.
+- **Data/R2**: scene/prompt/mapping + page status/attempt/error được persist; output WebP validate và upload R2, reference chỉ đọc qua configured public URL.
+- **Cost**: không có giá cố định trong UI/API/docs vận hành; tính theo cấu hình image và provider pricing tại thời điểm chạy.
+- **Phase boundary**: manual per-page regenerate là Phase 5 review, không thuộc Phase 4.
+- **Migration safety**: `005_story_image_generation` hard-fail trước mọi DDL nếu có legacy `story_pages.image_url` không rỗng hoặc story downstream `pending_review`/`approved`/`published`; legacy `generating_images` không owner được normalize về `text_confirmed`.
+- **Offline evidence**: backend `245 passed, 37 deselected`; riêng Phase 4 offline `94 passed`; Ruff/mypy pass; frontend Vitest `21 passed`, TypeScript và production build pass.
+- **Timeout budget**: defaults dành `300s` cho tối đa hai OpenAI attempts (`150s × 2`), giữ `5s` finalization margin và tối đa `25s` botocore transport cho hai R2 upload attempts; custom config yêu cầu tối thiểu `1s` transport budget; botocore không có hidden retry.
+- **Deferred**: `37` integration tests collect (`11` Phase 4) nhưng chưa execute; controlled live OpenAI/R2 custom-size/multi-reference và browser/manual matrix cũng chưa chạy.

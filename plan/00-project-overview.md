@@ -1,7 +1,7 @@
 # Katha Story Generator — Tổng quan dự án
 
-> Ngày cập nhật: 2026-07-20
-> Trạng thái: Phase 3B/3C — code-complete offline sau corrective review; 26 Docker integration tests chưa chạy, live/native review pending
+> Ngày cập nhật: 2026-07-21
+> Trạng thái: Phase 4 image-generation MVP code-complete offline; Docker/PostgreSQL migration và controlled OpenAI/R2 smoke pending
 
 ---
 
