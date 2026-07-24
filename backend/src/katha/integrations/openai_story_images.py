@@ -91,7 +91,6 @@ class OpenAIStoryImagesAI:
                     output_compression=self._output_compression,
                     background="opaque",
                     n=1,
-                    moderation="auto",
                 )
             else:
                 response = await images_api.generate(

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import base64
+import inspect
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
 from openai import APIConnectionError, APIStatusError
+from openai.resources.images import AsyncImages
 
 from katha.core.config import Settings
 from katha.features.story_images.models import PlannedImagePage, StoryImagePlanOutput
@@ -35,6 +37,15 @@ def image_plan() -> StoryImagePlanOutput:
             )
         ]
     )
+
+
+def _assert_valid_sdk_kwargs(method, kwargs: dict) -> None:
+    """Bind kwargs against the real SDK method signature; raises TypeError on mismatch."""
+    sig = inspect.signature(method)
+    # Skip 'self' — we're validating only the keyword arguments.
+    params = {k: v for k, v in sig.parameters.items() if k != "self"}
+    bound_sig = sig.replace(parameters=list(params.values()))
+    bound_sig.bind(**kwargs)
 
 
 def adapter_with(*, parse_result=None, image_result=None, side_effect=None):
@@ -104,6 +115,7 @@ async def test_generate_without_references_uses_native_wide_webp_contract() -> N
         "n": 1,
         "moderation": "auto",
     }
+    _assert_valid_sdk_kwargs(AsyncImages.generate, kwargs)
     assert "input_fidelity" not in kwargs
 
 
@@ -130,8 +142,9 @@ async def test_references_use_images_edit_in_exact_canonical_order() -> None:
     assert kwargs["output_compression"] == 90
     assert kwargs["background"] == "opaque"
     assert kwargs["n"] == 1
-    assert kwargs["moderation"] == "auto"
+    assert "moderation" not in kwargs
     assert "input_fidelity" not in kwargs
+    _assert_valid_sdk_kwargs(AsyncImages.edit, kwargs)
 
 
 @pytest.mark.parametrize("status", ["incomplete", "failed"])
@@ -253,3 +266,25 @@ def test_image_adapter_wires_sdk_timeout_and_single_retry_budget(
     OpenAIStoryImagesAI(settings)
 
     constructor.assert_called_once_with(api_key="test-only-key", timeout=150, max_retries=1)
+
+
+def test_regression_moderation_kwarg_on_edit_raises_type_error() -> None:
+    """Guard against re-introducing moderation='auto' on images.edit().
+
+    Binding against the real SDK signature ensures that unsupported kwargs
+    raise TypeError — the same failure that surfaced in production.
+    """
+    edit_kwargs = {
+        "model": "gpt-image-2",
+        "image": [],
+        "prompt": "test",
+        "size": "1536x864",
+        "quality": "high",
+        "output_format": "webp",
+        "output_compression": 90,
+        "background": "opaque",
+        "n": 1,
+        "moderation": "auto",  # not accepted by edit()
+    }
+    with pytest.raises(TypeError):
+        _assert_valid_sdk_kwargs(AsyncImages.edit, edit_kwargs)
