@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
  * are disabled on Mobile Compact viewports per system design spec §10.
  */
 export function useIsMobileCompact(): boolean {
-  const [isMobileCompact, setIsMobileCompact] = useState(false);
+  const [isMobileCompact, setIsMobileCompact] = useState(true);
 
   useEffect(() => {
     const check = () => {

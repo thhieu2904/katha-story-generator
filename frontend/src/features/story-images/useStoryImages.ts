@@ -64,10 +64,23 @@ function needsCanonicalReconcile(reason: unknown): boolean {
   return reason instanceof ApiError && (reason.status === 0 || reason.status === 409);
 }
 
+export type RefreshResult =
+  | { ok: true; state: StoryImagesState }
+  | { ok: false; error: string };
+
+/**
+ * mapping_locked semantics:
+ * - mapping_locked = true: cấm sửa mapping (updatePageCharacters) và initial start.
+ * - mapping_locked = true + can_retry/can_resume: cho phép recovery POST.
+ * - generating_images chưa stale: chỉ poll progress, không POST.
+ * - can_retry/can_resume = true: hiển thị recovery CTA, chỉ POST khi user xác nhận.
+ * - mapping_locked && !can_retry && !can_resume: downstream terminal — không POST.
+ */
 export function useStoryImages(storyId: number) {
   const [imageState, setImageState] = useState<StoryImagesState | null>(null);
   const [draftMappings, setDraftMappings] = useState<MappingDraft>({});
   const [mappingDirty, setMappingDirty] = useState(false);
+  const [mappingConflict, setMappingConflict] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
@@ -76,17 +89,22 @@ export function useStoryImages(storyId: number) {
   const [blocked, setBlocked] = useState(false);
   const [redirectHref, setRedirectHref] = useState<string | null>(null);
   const draftMappingsRef = useRef<MappingDraft>({});
+  const lastRevisionRef = useRef<number>(0);
+  const epochRef = useRef(0);
 
   const installCanonicalState = useCallback((next: StoryImagesState) => {
+    epochRef.current += 1;
     const mappings = mappingsFromState(next);
     draftMappingsRef.current = mappings;
+    lastRevisionRef.current = next.image_plan_revision;
     setImageState(next);
     setDraftMappings(mappings);
     setMappingDirty(false);
+    setMappingConflict(false);
     setRedirectHref(null);
   }, []);
 
-  const loadWorkspace = useCallback(async (): Promise<StoryImagesState | null> => {
+  const loadWorkspace = useCallback(async (epochSnapshot?: number): Promise<StoryImagesState | null> => {
     const story = await fetchStory(storyId);
     const presentation = getWorkflowPresentation(storyId, story.status);
     const routeMode = getWorkflowRouteMode(
@@ -104,6 +122,11 @@ export function useStoryImages(storyId: number) {
 
     try {
       const canonical = await fetchStoryImages(storyId);
+      // Epoch guard: discard if a mutation (installSaveResponse, etc.)
+      // bumped the epoch while this read was in-flight.
+      if (epochSnapshot !== undefined && epochRef.current !== epochSnapshot) {
+        return canonical;
+      }
       installCanonicalState(canonical);
       return canonical;
     } catch (reason) {
@@ -126,15 +149,44 @@ export function useStoryImages(storyId: number) {
     }
   }, [installCanonicalState, storyId]);
 
-  const refresh = useCallback(async () => {
+  // B5: Dirty-safe foreground install — only used when mapping is NOT dirty.
+  const installCanonicalStateSafe = useCallback((next: StoryImagesState) => {
+    epochRef.current += 1;
+    // If mapping is dirty or pending, don't overwrite local draft
+    if (draftMappingsRef.current && Object.keys(draftMappingsRef.current).length > 0) {
+      const prevRevision = lastRevisionRef.current;
+      if (prevRevision > 0 && next.image_plan_revision !== prevRevision) {
+        // Remote revision changed while we have a dirty local draft → conflict
+        setMappingConflict(true);
+      }
+      // Update state but keep local draft mappings
+      lastRevisionRef.current = next.image_plan_revision;
+      setImageState(next);
+      setRedirectHref(null);
+    } else {
+      installCanonicalState(next);
+    }
+  }, [installCanonicalState]);
+
+  // B4: refresh returns typed result. Blocked only cleared after success.
+  const refresh = useCallback(async (): Promise<RefreshResult> => {
+    const snap = epochRef.current;
     setLoading(true);
     setError(null);
     setPollError(null);
     try {
-      await loadWorkspace();
-      setBlocked(false);
+      const state = await loadWorkspace(snap);
+      if (state) {
+        setBlocked(false);
+        return { ok: true, state };
+      }
+      // loadWorkspace returned null → redirect set
+      return { ok: false, error: 'Đang chuyển hướng…' };
     } catch (reason) {
-      setError(messageFromReason(reason, 'Không thể tải không gian minh họa.'));
+      const msg = messageFromReason(reason, 'Không thể tải không gian minh họa.');
+      setError(msg);
+      // B4: Do NOT clear blocked on failure
+      return { ok: false, error: msg };
     } finally {
       setLoading(false);
     }
@@ -147,18 +199,29 @@ export function useStoryImages(storyId: number) {
     return () => clearTimeout(timer);
   }, [refresh]);
 
-  // Foreground tab return refresh
+  // B5: Foreground tab return — dirty-safe with epoch guard
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void loadWorkspace().catch(() => {});
+      if (document.visibilityState !== 'visible') return;
+      const snap = epochRef.current;
+      // B5: If mapping dirty or pending, use safe install (no overwrite)
+      if (mappingDirty || pending) {
+        void fetchStoryImages(storyId)
+          .then((canonical) => {
+            // Discard stale response if epoch was bumped (e.g. by installSaveResponse)
+            if (epochRef.current !== snap) return;
+            installCanonicalStateSafe(canonical);
+          })
+          .catch(() => {});
+      } else {
+        void loadWorkspace(snap).catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loadWorkspace]);
+  }, [installCanonicalStateSafe, loadWorkspace, mappingDirty, pending, storyId]);
 
   const reconcileAfterUncertainMutation = useCallback(
     async (
@@ -199,10 +262,20 @@ export function useStoryImages(storyId: number) {
     };
 
     const poll = async () => {
+      const pollEpoch = epochRef.current;
       controller = new AbortController();
       try {
         const canonical = await fetchStoryImages(storyId, controller.signal);
         if (!active) return;
+        // Epoch guard: if canonical state was installed by another path
+        // (e.g. foreground refresh, mutation reconcile) while this poll was
+        // in-flight, discard the now-stale response.
+        if (epochRef.current !== pollEpoch) {
+          // State was updated while we were fetching — schedule next poll
+          // but do NOT install this response.
+          scheduleNextPoll();
+          return;
+        }
         installCanonicalState(canonical);
         setPollError(null);
         if (canonical.status === 'generating_images' && !canonical.job_stale) {
@@ -210,6 +283,10 @@ export function useStoryImages(storyId: number) {
         }
       } catch (reason) {
         if (!active) return;
+        if (epochRef.current !== pollEpoch) {
+          scheduleNextPoll();
+          return;
+        }
         if (reason instanceof ApiError && reason.status === 409) {
           try {
             const canonical = await loadWorkspace();
@@ -245,7 +322,7 @@ export function useStoryImages(storyId: number) {
 
   const updatePageCharacters = useCallback(
     (pageId: number, characterIds: number[]) => {
-      if (!imageState || imageState.mapping_locked || pending || blocked) return;
+      if (!imageState || imageState.mapping_locked || pending || blocked || mappingConflict) return;
       const allowedIds = new Set(
         imageState.available_characters.map((character) => character.id)
       );
@@ -257,8 +334,16 @@ export function useStoryImages(storyId: number) {
       setDraftMappings(next);
       setMappingDirty(!mappingsMatch(imageState, next));
     },
-    [blocked, imageState, pending]
+    [blocked, imageState, mappingConflict, pending]
   );
+
+  // B5: Discard local draft and load canonical
+  const discardAndReload = useCallback(async () => {
+    setMappingConflict(false);
+    setMappingDirty(false);
+    draftMappingsRef.current = {};
+    await refresh();
+  }, [refresh]);
 
   const preparePlan = useCallback(async (): Promise<boolean> => {
     if (
@@ -337,13 +422,22 @@ export function useStoryImages(storyId: number) {
 
   const startGeneration = useCallback(
     async (overrideRevision?: number): Promise<boolean> => {
-      if (
-        !imageState ||
-        pending ||
-        blocked ||
-        mappingDirty ||
-        !(imageState.can_start || imageState.can_retry || imageState.can_resume)
-      ) {
+      if (!imageState || pending || blocked || mappingDirty) {
+        return false;
+      }
+
+      // Guard: generating_images and job is NOT stale -> do NOT POST
+      if (imageState.status === 'generating_images' && !imageState.job_stale) {
+        return false;
+      }
+
+      // Execution guards:
+      // Initial start: !mapping_locked && can_start
+      // Recovery start: can_retry || can_resume
+      const isInitialStart = !imageState.mapping_locked && imageState.can_start;
+      const isRecoveryStart = imageState.can_retry || imageState.can_resume;
+
+      if (!isInitialStart && !isRecoveryStart) {
         return false;
       }
 
@@ -386,6 +480,16 @@ export function useStoryImages(storyId: number) {
     [blocked, imageState, installCanonicalState, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]
   );
 
+  /** Install a save response (from orchestration) into canonical state immediately.
+   *  This ensures the UI reflects the saved mapping/revision even if a subsequent
+   *  refresh fails, preventing stale CTA from reopening. */
+  const installSaveResponse = useCallback(
+    (state: StoryImagesState) => {
+      installCanonicalState(state);
+    },
+    [installCanonicalState]
+  );
+
   const activePage =
     imageState?.pages?.find((p) => p.image_status === 'generating') || null;
 
@@ -406,6 +510,7 @@ export function useStoryImages(storyId: number) {
     imageState,
     draftMappings,
     mappingDirty,
+    mappingConflict,
     loading,
     error,
     pollError,
@@ -417,9 +522,11 @@ export function useStoryImages(storyId: number) {
     canPreparePlan,
     canEditMapping,
     refresh,
+    discardAndReload,
     updatePageCharacters,
     preparePlan,
     saveMapping,
     startGeneration,
+    installSaveResponse,
   };
 }

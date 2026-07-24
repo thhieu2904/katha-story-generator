@@ -7,6 +7,7 @@ import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWo
 import { StorySetupForm } from '@/features/stories/components/StorySetupForm';
 import { createStory } from '@/features/stories/api';
 import { orchestrateCreateAndGenerate } from '@/features/story-workflow/orchestration';
+import { isUncertainError } from '@/features/story-workflow/mutation-helpers';
 import type { StoryCreate } from '@/features/stories/types';
 
 export default function NewStoryPage() {
@@ -31,7 +32,14 @@ export default function NewStoryPage() {
       const newStory = await createStory(formData);
       router.push(`/admin/stories/${newStory.id}/setup?success=created`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi tạo bản nháp.');
+      if (isUncertainError(err)) {
+        setIsBlocked(true);
+        setError(
+          'Bản nháp có thể đã được tạo do sự cố kết nối. Vui lòng kiểm tra danh sách truyện trước khi tạo lại.',
+        );
+      } else {
+        setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi tạo bản nháp.');
+      }
       setIsSubmitting(false);
     }
   };

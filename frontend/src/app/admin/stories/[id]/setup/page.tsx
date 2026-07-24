@@ -17,12 +17,34 @@ import {
   fetchArtStyles,
 } from '@/features/stories/api';
 import { fetchCharacters } from '@/features/characters/api';
+import { isUncertainError } from '@/features/story-workflow/mutation-helpers';
 import {
   getCanonicalHref,
   getWorkflowPresentation,
   getWorkflowRouteMode,
 } from '@/features/story-workflow/workflow';
-import type { StoryCreate } from '@/features/stories/types';
+import type { Story, StoryCreate } from '@/features/stories/types';
+
+export function areStorySetupFieldsEqual(story: Story, data: StoryCreate): boolean {
+  const normA = (story.description_vi || '').trim();
+  const normB = (data.description_vi || '').trim();
+  if (normA !== normB) return false;
+
+  if (story.target_age !== data.target_age) return false;
+  if (story.length_pref !== data.length_pref) return false;
+  if (story.backbone_id !== data.backbone_id) return false;
+  if (story.genre_id !== data.genre_id) return false;
+  if (story.art_style_id !== data.art_style_id) return false;
+
+  const charsA = Array.from(new Set(story.character_ids || [])).sort((x: number, y: number) => x - y);
+  const charsB = Array.from(new Set(data.character_ids || [])).sort((x: number, y: number) => x - y);
+  if (charsA.length !== charsB.length) return false;
+  for (let i = 0; i < charsA.length; i++) {
+    if (charsA[i] !== charsB[i]) return false;
+  }
+
+  return true;
+}
 
 export default function EditStoryPage() {
   const params = useParams<{ id: string }>();
@@ -134,6 +156,18 @@ function EditStoryInner({ storyId }: { storyId: number }) {
       setSuccessMessage('Cập nhật thiết lập thành công!');
       retry();
     } catch (err) {
+      if (isUncertainError(err)) {
+        try {
+          const current = await fetchStory(storyId);
+          if (areStorySetupFieldsEqual(current, formData)) {
+            setSuccessMessage('Cập nhật thiết lập thành công!');
+            retry();
+            return;
+          }
+        } catch {
+          // Reconcile reread also failed
+        }
+      }
       setSubmitError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi cập nhật');
     } finally {
       setIsSubmitting(false);

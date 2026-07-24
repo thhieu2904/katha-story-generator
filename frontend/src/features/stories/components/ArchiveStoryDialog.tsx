@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { archiveStory } from '../api';
+import { archiveStory, fetchStory } from '../api';
+import { isUncertainError } from '@/features/story-workflow/mutation-helpers';
 
 interface ArchiveStoryDialogProps {
   storyId: number;
@@ -21,6 +22,17 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
       await archiveStory(storyId);
       onSuccess();
     } catch (err) {
+      if (isUncertainError(err)) {
+        try {
+          const current = await fetchStory(storyId);
+          if (current.status === 'archived') {
+            onSuccess();
+            return;
+          }
+        } catch {
+          // Re-read also failed
+        }
+      }
       setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra');
       setIsSubmitting(false);
     }

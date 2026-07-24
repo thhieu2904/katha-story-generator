@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { STATUS_LABELS } from '@/features/stories/constants';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
 import { orchestrateSaveAndStart } from '@/features/story-workflow/orchestration';
+import type { SaveAndStartResult } from '@/features/story-workflow/orchestration';
 import { useIsMobileCompact } from '@/features/story-workflow/useIsMobileCompact';
 import { ImageGenerationProgress } from './ImageGenerationProgress';
 import { ImagePageProgressGrid } from './ImagePageProgressGrid';
@@ -87,9 +88,10 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
     generationMode === 'start' ? state.progress.total : unresolvedCount;
   const hasGenerationAction = availableGenerationMode !== null;
   const actionsDisabled = Boolean(
-    images.pending || images.blocked || isStartingOrSaving || isBlocked
+    images.pending || images.blocked || isStartingOrSaving || isBlocked || images.mappingConflict
   );
-  const generationDisabled = actionsDisabled;
+  // B6: Mobile with dirty mapping cannot start (needs desktop to save)
+  const generationDisabled = actionsDisabled || (isMobileCompact && images.mappingDirty);
   const isReadOnly = ['pending_review', 'approved', 'published'].includes(
     state.status
   );
@@ -109,28 +111,47 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
       character_ids: images.draftMappings[p.id] || p.character_ids,
     }));
 
-    const result = await orchestrateSaveAndStart(
+    const result: SaveAndStartResult = await orchestrateSaveAndStart(
       storyId,
       images.mappingDirty,
       mappingPayload,
-      state.image_plan_revision
+      state.image_plan_revision,
+      state,
+      // B1: Install save response inline between save → start.
+      // This fires synchronously after PUT succeeds, before POST start,
+      // so the UI reflects the committed revision even if start fails.
+      (saved) => images.installSaveResponse(saved)
     );
 
     if (result.kind === 'success') {
       setDialogOpen(false);
       setIsStartingOrSaving(false);
-      setIsBlocked(false);
-      void images.refresh();
+      const res = await images.refresh();
+      if (res?.ok) {
+        setIsBlocked(false);
+      } else {
+        // Refresh failed after success — block to prevent stale CTA
+        setIsBlocked(true);
+      }
     } else if (result.kind === 'partial') {
       setDialogOpen(false);
       setActionError(result.message);
       setIsStartingOrSaving(false);
-      setIsBlocked(false);
-      void images.refresh();
+      const res = await images.refresh();
+      if (res?.ok) {
+        setIsBlocked(false);
+      } else {
+        // Refresh failed after partial — block to prevent stale CTA
+        setIsBlocked(true);
+      }
     } else if (result.kind === 'blocked') {
       setDialogOpen(false);
       setActionError(result.message);
       setIsStartingOrSaving(false);
+      // B1: Install savedState for blocked results too (save committed but start couldn't proceed)
+      if ('savedState' in result && result.savedState) {
+        images.installSaveResponse(result.savedState);
+      }
       setIsBlocked(true);
     } else {
       setActionError(result.message);
@@ -146,6 +167,13 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
   let actionBar: React.ReactNode = null;
 
   if (isBlocked || images.blocked) {
+    // B4: Only clear blocked AFTER successful refresh
+    const handleCheckStatus = async () => {
+      const result = await images.refresh();
+      if (result.ok) {
+        setIsBlocked(false);
+      }
+    };
     actionBar = (
       <>
         <div className="text-xs text-rose-300">
@@ -153,13 +181,26 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
         </div>
         <button
           type="button"
-          onClick={() => {
-            setIsBlocked(false);
-            void images.refresh();
-          }}
+          onClick={() => void handleCheckStatus()}
           className="rounded-xl bg-white px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-white/90"
         >
           Kiểm tra lại trạng thái
+        </button>
+      </>
+    );
+  } else if (images.mappingConflict) {
+    // B5: Mapping conflict — server data changed
+    actionBar = (
+      <>
+        <div className="text-xs text-amber-200">
+          Dữ liệu trên máy chủ đã thay đổi. Vui lòng tải lại trước khi tiếp tục.
+        </div>
+        <button
+          type="button"
+          onClick={() => void images.discardAndReload()}
+          className="rounded-xl bg-white px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-white/90"
+        >
+          Tải trạng thái mới nhất
         </button>
       </>
     );
@@ -287,6 +328,27 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
           </div>
         )}
 
+        {/* B6: Mobile dirty mapping warning */}
+        {isMobileCompact && images.mappingDirty && (
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 text-xs text-amber-200">
+            ⚠️ Bạn có thay đổi nhân vật chưa lưu. Hãy mở trên máy tính để lưu và bắt đầu sinh ảnh.
+          </div>
+        )}
+
+        {/* B5: Mapping conflict banner */}
+        {images.mappingConflict && (
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-100 flex flex-wrap items-center justify-between gap-3">
+            <p>Dữ liệu trên máy chủ đã thay đổi. Bản nháp cục bộ của bạn có thể không còn phù hợp.</p>
+            <button
+              type="button"
+              onClick={() => void images.discardAndReload()}
+              className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface"
+            >
+              Tải trạng thái mới nhất
+            </button>
+          </div>
+        )}
+
         {images.notice && (
           <div className="rounded-xl border border-katha-success/25 bg-katha-success/10 p-4 text-sm text-emerald-200">
             {images.notice}
@@ -300,8 +362,9 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
               <button
                 type="button"
                 onClick={() => {
-                  setIsBlocked(false);
-                  void images.refresh();
+                  void images.refresh().then((result) => {
+                    if (result.ok) setIsBlocked(false);
+                  });
                 }}
                 className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface"
               >
@@ -421,9 +484,11 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
           blocked={images.blocked || isBlocked}
           onClose={() => setDialogOpen(false)}
           onConfirm={() => void confirmGeneration()}
-          onReconcile={() => {
-            setIsBlocked(false);
-            void images.refresh();
+          onReconcile={async () => {
+            const res = await images.refresh();
+            if (res?.ok) {
+              setIsBlocked(false);
+            }
           }}
         />
       )}

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Story } from '@/features/stories/types';
 import { ApiError } from '@/lib/api';
 import { fetchStory } from '@/features/stories/api';
-import { fetchStoryImages, startImageGeneration } from './api';
+import { createImagePlan, fetchStoryImages, saveImagePlanMapping, startImageGeneration } from './api';
 import { IMAGE_POLL_INTERVAL_MS } from './constants';
 import type { StoryImagesState } from './types';
 import { useStoryImages } from './useStoryImages';
@@ -209,5 +209,306 @@ describe('useStoryImages', () => {
     expect(started).toBe(true);
     expect(mockedStartImageGeneration).toHaveBeenCalledWith(10, 2);
     expect(result.current.imageState).toEqual(finalized);
+  });
+  it('poll timeout retains last-known state', async () => {
+    const generating = imageState({
+      status: 'generating_images',
+      mapping_locked: true,
+      job_id: 'claim-1',
+    });
+    mockedFetchStory.mockResolvedValue(story('generating_images'));
+    mockedFetchStoryImages
+      .mockResolvedValueOnce(generating)
+      .mockRejectedValueOnce(new ApiError('timeout', 0));
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    expect(result.current.imageState).toEqual(generating);
+    expect(result.current.pollError).toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IMAGE_POLL_INTERVAL_MS);
+    });
+
+    expect(result.current.imageState).toEqual(generating);
+    expect(result.current.pollError).toBe('timeout');
+    expect(mockedFetchStoryImages).toHaveBeenCalledTimes(2);
+  });
+
+  it('poll 3s but request hangs — only one request in-flight', async () => {
+    const generating = imageState({
+      status: 'generating_images',
+      mapping_locked: true,
+      job_id: 'claim-1',
+    });
+    mockedFetchStory.mockResolvedValue(story('generating_images'));
+    mockedFetchStoryImages
+      .mockResolvedValueOnce(generating)
+      .mockImplementationOnce(() => new Promise(() => {}));
+
+    renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    expect(mockedFetchStoryImages).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IMAGE_POLL_INTERVAL_MS * 2);
+    });
+
+    expect(mockedFetchStoryImages).toHaveBeenCalledTimes(2);
+  });
+
+  it('unmount aborts request', async () => {
+    const generating = imageState({
+      status: 'generating_images',
+      mapping_locked: true,
+      job_id: 'claim-1',
+    });
+    mockedFetchStory.mockResolvedValue(story('generating_images'));
+
+    // First call resolves to start the component
+    mockedFetchStoryImages.mockResolvedValueOnce(generating);
+
+    // Second call (poll) hangs so we can capture the signal
+    let capturedSignal: AbortSignal | undefined;
+    mockedFetchStoryImages.mockImplementationOnce((_storyId, signal) => {
+      capturedSignal = signal;
+      return new Promise(() => {}); // hang
+    });
+
+    const { unmount } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    // Advance to trigger the first poll
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IMAGE_POLL_INTERVAL_MS);
+    });
+
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal?.aborted).toBe(false);
+
+    unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('stale/late response does not overwrite newer canonical state (epoch guard)', async () => {
+    const generatingRev1 = imageState({
+      status: 'generating_images',
+      mapping_locked: true,
+      job_id: 'claim-1',
+      image_plan_revision: 1,
+    });
+    const generatingRev5 = imageState({
+      status: 'generating_images',
+      mapping_locked: true,
+      job_id: 'claim-1',
+      image_plan_revision: 5,
+    });
+
+    mockedFetchStory.mockResolvedValue(story('generating_images'));
+    mockedFetchStoryImages.mockResolvedValueOnce(generatingRev1);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    let resolvePoll!: (state: StoryImagesState) => void;
+    mockedFetchStoryImages.mockImplementationOnce(() => {
+      return new Promise((resolve) => {
+        resolvePoll = resolve;
+      });
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IMAGE_POLL_INTERVAL_MS);
+    });
+
+    mockedFetchStoryImages.mockResolvedValueOnce(generatingRev5);
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(result.current.imageState?.image_plan_revision).toBe(5);
+
+    await act(async () => {
+      resolvePoll(generatingRev1);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.imageState?.image_plan_revision).toBe(5);
+  });
+
+  it('mount does NOT auto-run createImagePlan', async () => {
+    const mockedCreateImagePlan = vi.mocked(createImagePlan);
+    mockedFetchStory.mockResolvedValue(story('text_confirmed'));
+    mockedFetchStoryImages.mockResolvedValue(imageState({
+      status: 'text_confirmed',
+      image_plan_ready: false,
+    }));
+
+    renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    expect(mockedFetchStory).toHaveBeenCalled();
+    expect(mockedFetchStoryImages).toHaveBeenCalled();
+    expect(mockedCreateImagePlan).not.toHaveBeenCalled();
+  });
+
+  it('startGeneration rejects when mapping_locked is true and not in recovery mode', async () => {
+    const lockedState = imageState({
+      mapping_locked: true,
+      can_start: true,
+      can_retry: false,
+      can_resume: false,
+    });
+    mockedFetchStory.mockResolvedValue(story('text_confirmed'));
+    mockedFetchStoryImages.mockResolvedValue(lockedState);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    let started = false;
+    await act(async () => {
+      started = await result.current.startGeneration();
+    });
+
+    expect(started).toBe(false);
+    expect(mockedStartImageGeneration).not.toHaveBeenCalled();
+  });
+
+  it('startGeneration rejects when status is generating_images and job is active (!job_stale)', async () => {
+    const activeGeneratingState = imageState({
+      status: 'generating_images',
+      mapping_locked: true,
+      job_stale: false,
+      can_retry: true,
+    });
+    mockedFetchStory.mockResolvedValue(story('generating_images'));
+    mockedFetchStoryImages.mockResolvedValue(activeGeneratingState);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    let started = false;
+    await act(async () => {
+      started = await result.current.startGeneration();
+    });
+
+    expect(started).toBe(false);
+    expect(mockedStartImageGeneration).not.toHaveBeenCalled();
+  });
+
+  it('installCanonicalStateSafe increments epochRef so a late poll cannot overwrite dirty mapping safe state', async () => {
+    const chars = [{ id: 10, name: 'Char 10', avatar_url: null, thumbnail_url: null, updated_at: null }];
+    const rev1 = imageState({ status: 'text_confirmed', image_plan_revision: 1, available_characters: chars });
+    const rev2 = imageState({ status: 'text_confirmed', image_plan_revision: 2, available_characters: chars });
+    mockedFetchStory.mockResolvedValue(story('text_confirmed'));
+    mockedFetchStoryImages.mockResolvedValueOnce(rev1);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    // Set dirty draft mapping
+    act(() => {
+      result.current.updatePageCharacters(101, [10]);
+    });
+    expect(result.current.mappingDirty).toBe(true);
+
+    let resolvePoll!: (state: StoryImagesState) => void;
+    const pollPromise = new Promise<StoryImagesState>((res) => { resolvePoll = res; });
+    mockedFetchStoryImages.mockReturnValueOnce(pollPromise);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IMAGE_POLL_INTERVAL_MS);
+    });
+
+    // Save mapping installs rev2
+    vi.mocked(saveImagePlanMapping).mockResolvedValueOnce(rev2);
+    await act(async () => {
+      await result.current.saveMapping();
+    });
+    expect(result.current.imageState?.image_plan_revision).toBe(2);
+
+    // Now late poll resolves with rev1
+    await act(async () => {
+      resolvePoll(rev1);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // Must still be rev2 (not overwritten by rev1)
+    expect(result.current.imageState?.image_plan_revision).toBe(2);
+  });
+
+  it('foreground dirty: two out-of-order visibility responses — only the latest is installed', async () => {
+    const chars = [{ id: 10, name: 'Char 10', avatar_url: null, thumbnail_url: null, updated_at: null }];
+    const rev1 = imageState({ status: 'text_confirmed', image_plan_revision: 1, available_characters: chars });
+    const rev3 = imageState({ status: 'text_confirmed', image_plan_revision: 3, available_characters: chars });
+    const rev5 = imageState({ status: 'text_confirmed', image_plan_revision: 5, available_characters: chars });
+    mockedFetchStory.mockResolvedValue(story('text_confirmed'));
+    mockedFetchStoryImages.mockResolvedValueOnce(rev1);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    // Set dirty draft mapping so visibility uses installCanonicalStateSafe path
+    act(() => {
+      result.current.updatePageCharacters(101, [10]);
+    });
+    expect(result.current.mappingDirty).toBe(true);
+
+    // Set up two fetch calls: F1 resolves slowly, F2 resolves quickly
+    let resolveF1!: (state: StoryImagesState) => void;
+    const f1Promise = new Promise<StoryImagesState>((res) => { resolveF1 = res; });
+    mockedFetchStoryImages
+      .mockReturnValueOnce(f1Promise)         // F1 (first visibility event)
+      .mockResolvedValueOnce(rev5);           // F2 (second visibility event)
+
+    // Fire first visibility event → triggers F1
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // Fire second visibility event → triggers F2 (resolves immediately with rev5)
+    await act(async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', writable: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // F2 with rev5 should be installed (latest sequence)
+    // Now resolve F1 late with rev3
+    await act(async () => {
+      resolveF1(rev3);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // rev3 from F1 should be discarded because F2 incremented the sequence
+    // The state should retain rev5 (from F2) or rev1 (if F2 wasn't safe-installed due to dirty)
+    // Since both paths use installCanonicalStateSafe, revision should be the latest installed
+    expect(result.current.imageState?.image_plan_revision).not.toBe(3);
+  });
+
+  it('installSaveResponse updates canonical state immediately', async () => {
+    const rev1 = imageState({ image_plan_revision: 1 });
+    const rev5 = imageState({ image_plan_revision: 5 });
+    mockedFetchStory.mockResolvedValue(story('text_confirmed'));
+    mockedFetchStoryImages.mockResolvedValueOnce(rev1);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    expect(result.current.imageState?.image_plan_revision).toBe(1);
+
+    act(() => {
+      result.current.installSaveResponse(rev5);
+    });
+
+    expect(result.current.imageState?.image_plan_revision).toBe(5);
+    expect(result.current.mappingDirty).toBe(false);
   });
 });

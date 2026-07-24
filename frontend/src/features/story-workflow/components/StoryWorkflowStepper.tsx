@@ -12,6 +12,7 @@ export function StoryWorkflowStepper({
   storyId,
 }: StoryWorkflowStepperProps) {
   const { currentStep, stepStates, allowedReadOnlyHrefs } = presentation;
+  const allCompleted = WORKFLOW_STEPS.every((s) => stepStates[s.key] === 'completed');
 
   const currentStepObj = WORKFLOW_STEPS.find((s) => s.number === currentStep);
 
@@ -94,7 +95,7 @@ export function StoryWorkflowStepper({
           return (
             <li
               key={step.key}
-              aria-current={isCurrent ? 'step' : undefined}
+              aria-current={isCurrent && !allCompleted ? 'step' : undefined}
               className="flex-1 flex items-center relative"
             >
               {index > 0 && (

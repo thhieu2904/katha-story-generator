@@ -306,8 +306,12 @@ describe('orchestration logic', () => {
 
     it('saves mapping if dirty, then starts generation', async () => {
       vi.mocked(imagesApi.saveImagePlanMapping).mockResolvedValue({
-        image_plan_revision: 2,
-      } as StoryImagesState);
+        story_id: 42, title_vi: 'Test', status: 'text_confirmed', text_revision: 1,
+        image_plan_revision: 2, image_plan_ready: true, mapping_locked: false,
+        job_id: null, job_stale: false, can_start: true, can_retry: false, can_resume: false,
+        progress: { total: 5, pending: 5, generating: 0, completed: 0, failed: 0 },
+        available_characters: [], pages: [],
+      });
       vi.mocked(imagesApi.startImageGeneration).mockResolvedValue({
         job_id: 'job-123',
         already_running: false,
@@ -339,6 +343,412 @@ describe('orchestration logic', () => {
       expect(result.kind).toBe('blocked');
       if (result.kind === 'blocked') {
         expect(result.message).toContain('Không thể kiểm tra lại trạng thái tạo ảnh');
+      }
+    });
+
+    // B1 corrective tests
+    it('save definite 422 does not reread or start', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(imagesApi.saveImagePlanMapping).mockRejectedValue(
+        new ApiError('Validation failed', 422)
+      );
+
+      const result = await orchestrateSaveAndStart(42, true, [], 1);
+      expect(result.kind).toBe('failed');
+      expect(imagesApi.fetchStoryImages).not.toHaveBeenCalled();
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+    });
+
+    it('save uncertain 500 + exact mapping + can_start starts canonical revision', async () => {
+      const { ApiError } = await import('@/lib/api');
+      const reconciledState: StoryImagesState = {
+        ...mockStateGenerating,
+        status: 'text_confirmed',
+        mapping_locked: false,
+        can_start: true,
+        image_plan_revision: 5,
+        pages: [
+          {
+            id: 1, page_no: 1, text_vi: '', text_km: '', text_en: null,
+            image_scene_en: null, image_prompt_en: null,
+            character_ids: [10, 20],
+            image_status: 'pending', image_url: null,
+            image_attempt_count: 0, image_error_code: null, updated_at: null,
+          },
+        ],
+      };
+      vi.mocked(imagesApi.saveImagePlanMapping).mockRejectedValue(
+        new ApiError('Internal error', 500)
+      );
+      vi.mocked(imagesApi.fetchStoryImages).mockResolvedValue(reconciledState);
+      vi.mocked(imagesApi.startImageGeneration).mockResolvedValue({
+        job_id: 'job-new',
+        already_running: false,
+        status: 'generating_images',
+        progress: { total: 1, pending: 1, generating: 0, completed: 0, failed: 0 },
+      });
+
+      const payload = [{ page_id: 1, character_ids: [10, 20] }];
+      const result = await orchestrateSaveAndStart(42, true, payload, 1);
+      expect(result.kind).toBe('success');
+      expect(imagesApi.startImageGeneration).toHaveBeenCalledWith(42, 5);
+    });
+
+    it('save uncertain 500 + mapping mismatch does not start', async () => {
+      const { ApiError } = await import('@/lib/api');
+      const reconciledState: StoryImagesState = {
+        ...mockStateGenerating,
+        status: 'text_confirmed',
+        mapping_locked: false,
+        can_start: true,
+        pages: [
+          {
+            id: 1, page_no: 1, text_vi: '', text_km: '', text_en: null,
+            image_scene_en: null, image_prompt_en: null,
+            character_ids: [10, 30], // mismatch!
+            image_status: 'pending', image_url: null,
+            image_attempt_count: 0, image_error_code: null, updated_at: null,
+          },
+        ],
+      };
+      vi.mocked(imagesApi.saveImagePlanMapping).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(imagesApi.fetchStoryImages).mockResolvedValue(reconciledState);
+
+      const payload = [{ page_id: 1, character_ids: [10, 20] }];
+      const result = await orchestrateSaveAndStart(42, true, payload, 1);
+      expect(result.kind).toBe('failed');
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+    });
+
+    it('save uncertain timeout + reread fail returns blocked', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(imagesApi.saveImagePlanMapping).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(imagesApi.fetchStoryImages).mockRejectedValue(new Error('Network'));
+
+      const result = await orchestrateSaveAndStart(42, true, [], 1);
+      expect(result.kind).toBe('blocked');
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+    });
+
+    it('save success + start fail + reread fail still keeps save response (blocked message)', async () => {
+      vi.mocked(imagesApi.saveImagePlanMapping).mockResolvedValue({
+        story_id: 42, title_vi: 'Test', status: 'text_confirmed', text_revision: 1,
+        image_plan_revision: 3, image_plan_ready: true, mapping_locked: false,
+        job_id: null, job_stale: false, can_start: true, can_retry: false, can_resume: false,
+        progress: { total: 1, pending: 1, generating: 0, completed: 0, failed: 0 },
+        available_characters: [], pages: [],
+      });
+      vi.mocked(imagesApi.startImageGeneration).mockRejectedValue(new Error('Start fail'));
+      vi.mocked(imagesApi.fetchStoryImages).mockRejectedValue(new Error('Reread fail'));
+
+      const result = await orchestrateSaveAndStart(42, true, [], 1);
+      expect(result.kind).toBe('blocked');
+      if (result.kind === 'blocked') {
+        expect(result.message).toContain('Lựa chọn nhân vật đã lưu');
+      }
+    });
+  });
+
+  // B3 corrective tests
+  describe('orchestrateConfirmAndPrepare (B3 uncertain confirm)', () => {
+    it('confirm uncertain + status text_confirmed redirects to images', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(editorApi.confirmStoryText).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(storiesApi.fetchStory).mockResolvedValue({
+        id: 42, title_vi: 'Test', title_km: null, description_vi: '',
+        backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
+        length_pref: 'short', status: 'text_confirmed', text_revision: 1,
+        cover_image_url: null, created_by: 'u', character_ids: [1],
+        created_at: null, updated_at: null,
+      });
+      const mockImagesState: StoryImagesState = {
+        story_id: 42, title_vi: 'Test', status: 'text_confirmed',
+        text_revision: 1, image_plan_revision: 0, image_plan_ready: false,
+        mapping_locked: false, job_id: null, job_stale: false,
+        can_start: false, can_retry: false, can_resume: false,
+        progress: { total: 0, pending: 0, generating: 0, completed: 0, failed: 0 },
+        available_characters: [], pages: [],
+      };
+      vi.mocked(imagesApi.fetchStoryImages).mockResolvedValue(mockImagesState);
+      vi.mocked(imagesApi.createImagePlan).mockRejectedValue(new Error('Plan fail'));
+
+      const result = await orchestrateConfirmAndPrepare(42, 1, false);
+      // Should still redirect to images because confirm was committed
+      expect(['success', 'partial']).toContain(result.kind);
+      if (result.kind === 'partial' || result.kind === 'success') {
+        expect(result.nextHref).toBe('/admin/stories/42/images');
+      }
+    });
+
+    it('confirm uncertain + still text_draft same revision allows retry (failed)', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(editorApi.confirmStoryText).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(storiesApi.fetchStory).mockResolvedValue({
+        id: 42, title_vi: 'Test', title_km: null, description_vi: '',
+        backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
+        length_pref: 'short', status: 'text_draft', text_revision: 1,
+        cover_image_url: null, created_by: 'u', character_ids: [1],
+        created_at: null, updated_at: null,
+      });
+
+      const result = await orchestrateConfirmAndPrepare(42, 1, false);
+      expect(result.kind).toBe('failed');
+      if (result.kind === 'failed') {
+        expect(result.message).toContain('thử lại');
+      }
+    });
+
+    it('confirm uncertain + archived returns blocked', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(editorApi.confirmStoryText).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(storiesApi.fetchStory).mockResolvedValue({
+        id: 42, title_vi: 'Test', title_km: null, description_vi: '',
+        backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
+        length_pref: 'short', status: 'archived', text_revision: 1,
+        cover_image_url: null, created_by: 'u', character_ids: [1],
+        created_at: null, updated_at: null,
+      });
+
+      const result = await orchestrateConfirmAndPrepare(42, 1, false);
+      expect(result.kind).toBe('blocked');
+    });
+
+    it('confirm definite 422 returns failed without reread', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(editorApi.confirmStoryText).mockRejectedValue(
+        new ApiError('Validation error', 422)
+      );
+
+      const result = await orchestrateConfirmAndPrepare(42, 1, false);
+      expect(result.kind).toBe('failed');
+      expect(storiesApi.fetchStory).not.toHaveBeenCalled();
+    });
+
+    it('confirm uncertain + reread fail returns blocked', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(editorApi.confirmStoryText).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(storiesApi.fetchStory).mockRejectedValue(new Error('Network'));
+
+      const result = await orchestrateConfirmAndPrepare(42, 1, false);
+      expect(result.kind).toBe('blocked');
+    });
+  });
+
+  describe('orchestrateCreateAndGenerate timeout handling', () => {
+    it('createStory timeout (ApiError status 0) returns blocked with duplicate warning', async () => {
+      const { ApiError } = await import('@/lib/api');
+      vi.mocked(storiesApi.createStory).mockRejectedValue(
+        new ApiError('Yêu cầu đã hết thời gian chờ.', 0)
+      );
+
+      const result = await orchestrateCreateAndGenerate({
+        description_vi: 'Test',
+        backbone_id: 1,
+        genre_id: 1,
+        art_style_id: 1,
+        target_age: 'age_3_5',
+        length_pref: 'short',
+        character_ids: [1],
+      });
+
+      expect(result.kind).toBe('blocked');
+      if (result.kind === 'blocked') {
+        expect(result.message).toContain('có thể đã được tạo');
+      }
+      // Should NOT have attempted to generate
+      expect(storiesApi.generateStoryText).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('orchestrateSaveAndStart production guards', () => {
+    const baseImagesState: StoryImagesState = {
+      story_id: 42,
+      title_vi: 'Test',
+      status: 'text_confirmed',
+      text_revision: 1,
+      image_plan_revision: 1,
+      image_plan_ready: true,
+      mapping_locked: false,
+      job_id: null,
+      job_stale: false,
+      can_start: true,
+      can_retry: false,
+      can_resume: false,
+      progress: { total: 1, pending: 1, generating: 0, completed: 0, failed: 0 },
+      available_characters: [],
+      pages: [{ id: 1, page_no: 1, text_vi: 'P1', text_km: 'P1', text_en: null, image_scene_en: null, image_prompt_en: null, character_ids: [], image_status: 'pending', image_url: null, image_attempt_count: 0, image_error_code: null, updated_at: null }],
+    };
+
+    it('returns blocked when status is generating_images and job is active (!job_stale)', async () => {
+      const activeState = {
+        ...baseImagesState,
+        status: 'generating_images',
+        mapping_locked: true,
+        job_stale: false,
+      };
+      const result = await orchestrateSaveAndStart(42, false, [], 1, activeState);
+      expect(result.kind).toBe('blocked');
+      expect(imagesApi.saveImagePlanMapping).not.toHaveBeenCalled();
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+    });
+
+    it('skips PUT saveImagePlanMapping when mapping_locked is true during recovery start', async () => {
+      const lockedRecoveryState = {
+        ...baseImagesState,
+        mapping_locked: true,
+        can_retry: true,
+      };
+      vi.mocked(imagesApi.startImageGeneration).mockResolvedValue({
+        job_id: 'job-retry',
+        already_running: false,
+        status: 'generating_images',
+        progress: baseImagesState.progress,
+      });
+      vi.mocked(imagesApi.fetchStoryImages).mockResolvedValue({
+        ...baseImagesState,
+        status: 'generating_images',
+      });
+
+      const result = await orchestrateSaveAndStart(42, true, [{ page_id: 1, character_ids: [1] }], 1, lockedRecoveryState);
+      expect(imagesApi.saveImagePlanMapping).not.toHaveBeenCalled();
+      expect(imagesApi.startImageGeneration).toHaveBeenCalledWith(42, 1);
+      expect(result.kind).toBe('success');
+    });
+
+    it('returns blocked when mapping is locked and capability is neither initial nor recovery start', async () => {
+      const lockedNoCapState = {
+        ...baseImagesState,
+        mapping_locked: true,
+        can_start: false,
+        can_retry: false,
+        can_resume: false,
+      };
+      const result = await orchestrateSaveAndStart(42, false, [], 1, lockedNoCapState);
+      expect(result.kind).toBe('blocked');
+      expect(imagesApi.saveImagePlanMapping).not.toHaveBeenCalled();
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('orchestrateSaveAndStart uncertain branch guards', () => {
+    const baseImagesState: StoryImagesState = {
+      story_id: 42,
+      title_vi: 'Test',
+      status: 'text_confirmed',
+      text_revision: 1,
+      image_plan_revision: 1,
+      image_plan_ready: true,
+      mapping_locked: false,
+      job_id: null,
+      job_stale: false,
+      can_start: true,
+      can_retry: false,
+      can_resume: false,
+      progress: { total: 1, pending: 1, generating: 0, completed: 0, failed: 0 },
+      available_characters: [],
+      pages: [{ id: 1, page_no: 1, text_vi: 'P1', text_km: 'P1', text_en: null, image_scene_en: null, image_prompt_en: null, character_ids: [10, 20], image_status: 'pending', image_url: null, image_attempt_count: 0, image_error_code: null, updated_at: null }],
+    };
+
+    it('save uncertain + reread status pending_review (not text_confirmed) + exact match does NOT start', async () => {
+      const { ApiError } = await import('@/lib/api');
+      const reconciledState: StoryImagesState = {
+        ...baseImagesState,
+        status: 'pending_review',
+        mapping_locked: true,
+        can_start: true,
+      };
+      vi.mocked(imagesApi.saveImagePlanMapping).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(imagesApi.fetchStoryImages).mockResolvedValue(reconciledState);
+
+      const payload = [{ page_id: 1, character_ids: [10, 20] }];
+      const result = await orchestrateSaveAndStart(42, true, payload, 1);
+      // Should NOT proceed to start because status is not text_confirmed
+      expect(result.kind).not.toBe('success');
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+    });
+
+    it('save uncertain + reread mapping_locked + exact match + can_start does NOT start', async () => {
+      const { ApiError } = await import('@/lib/api');
+      const reconciledState: StoryImagesState = {
+        ...baseImagesState,
+        mapping_locked: true,
+        can_start: true,
+      };
+      vi.mocked(imagesApi.saveImagePlanMapping).mockRejectedValue(
+        new ApiError('Timeout', 0)
+      );
+      vi.mocked(imagesApi.fetchStoryImages).mockResolvedValue(reconciledState);
+
+      const payload = [{ page_id: 1, character_ids: [10, 20] }];
+      const result = await orchestrateSaveAndStart(42, true, payload, 1);
+      // Should NOT start because mapping_locked is true
+      expect(result.kind).not.toBe('success');
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+    });
+
+    it('capability re-check blocks start when savedState.can_start is false after save', async () => {
+      vi.mocked(imagesApi.saveImagePlanMapping).mockResolvedValue({
+        ...baseImagesState,
+        can_start: false,
+        can_retry: false,
+        can_resume: false,
+      });
+
+      const result = await orchestrateSaveAndStart(42, true, [], 1);
+      expect(result.kind).toBe('blocked');
+      expect(imagesApi.startImageGeneration).not.toHaveBeenCalled();
+      // savedState should be attached
+      if ('savedState' in result) {
+        expect(result.savedState).toBeDefined();
+      }
+    });
+
+    it('attaches savedState to success result when save was performed', async () => {
+      const savedResponse: StoryImagesState = {
+        ...baseImagesState,
+        image_plan_revision: 5,
+      };
+      vi.mocked(imagesApi.saveImagePlanMapping).mockResolvedValue(savedResponse);
+      vi.mocked(imagesApi.startImageGeneration).mockResolvedValue({
+        job_id: 'job-new',
+        already_running: false,
+        status: 'generating_images',
+        progress: { total: 1, pending: 1, generating: 0, completed: 0, failed: 0 },
+      });
+
+      const result = await orchestrateSaveAndStart(42, true, [], 1);
+      expect(result.kind).toBe('success');
+      if ('savedState' in result) {
+        expect(result.savedState).toEqual(savedResponse);
+      }
+    });
+
+    it('does not attach savedState when mapping was not dirty (no save performed)', async () => {
+      vi.mocked(imagesApi.startImageGeneration).mockResolvedValue({
+        job_id: 'job-clean',
+        already_running: false,
+        status: 'generating_images',
+        progress: { total: 1, pending: 1, generating: 0, completed: 0, failed: 0 },
+      });
+
+      const result = await orchestrateSaveAndStart(42, false, [], 1, baseImagesState);
+      expect(result.kind).toBe('success');
+      if ('savedState' in result) {
+        expect(result.savedState).toBeUndefined();
       }
     });
   });

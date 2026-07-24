@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { ImageGenerationDialogMode } from '../types';
 
 interface StartImageGenerationDialogProps {
@@ -51,12 +52,55 @@ export function StartImageGenerationDialog({
   const isFinalizationOnly = mode === 'resume' && finalizationOnly;
   const copy = dialogCopy(mode, isFinalizationOnly);
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedElement = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previouslyFocusedElement.current = document.activeElement as HTMLElement;
+    return () => {
+      previouslyFocusedElement.current?.focus();
+    };
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && !pending) {
+      onClose();
+      return;
+    }
+    if (e.key === 'Tab') {
+      if (!dialogRef.current) return;
+      const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length === 0) return;
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          e.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="start-image-generation-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !pending) onClose();
+      }}
+      onKeyDown={handleKeyDown}
+      ref={dialogRef}
     >
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-katha-surface p-6 shadow-2xl space-y-4">
         <h2 id="start-image-generation-title" className="text-xl font-semibold text-white">
@@ -90,15 +134,16 @@ export function StartImageGenerationDialog({
             type="button"
             disabled={pending}
             onClick={onClose}
-            className="px-4 py-2 text-sm text-white/60 hover:text-white disabled:opacity-50 transition"
+            className="min-h-[44px] px-4 py-2 text-sm text-white/60 hover:text-white disabled:opacity-50 transition"
           >
             Hủy
           </button>
           <button
+            autoFocus
             type="button"
             disabled={pending || (!blocked && !isFinalizationOnly && pageCount <= 0)}
             onClick={blocked ? onReconcile : onConfirm}
-            className="rounded-xl bg-katha-primary px-4 py-2 text-sm font-semibold text-white shadow-lg disabled:opacity-40 hover:bg-katha-primary-light transition"
+            className="min-h-[44px] rounded-xl bg-katha-primary px-4 py-2 text-sm font-semibold text-white shadow-lg disabled:opacity-40 hover:bg-katha-primary-light transition"
           >
             {pending ? 'Đang gửi yêu cầu…' : blocked ? 'Kiểm tra lại trạng thái' : copy.action}
           </button>
