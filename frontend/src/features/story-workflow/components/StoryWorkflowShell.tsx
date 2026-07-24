@@ -1,11 +1,12 @@
 import React from 'react';
+import type { StoryRouteKey } from '@/features/stories/types';
 import { getWorkflowPresentation } from '../workflow';
 import { StoryWorkflowStepper } from './StoryWorkflowStepper';
 import { WorkflowActionBar } from './WorkflowActionBar';
 import { WorkflowHeader } from './WorkflowHeader';
 
 interface StoryWorkflowShellProps {
-  storyId?: number;
+  storyKey?: StoryRouteKey;
   storyTitle?: string;
   status?: string;
   children: React.ReactNode;
@@ -13,14 +14,14 @@ interface StoryWorkflowShellProps {
 }
 
 export function StoryWorkflowShell({
-  storyId,
+  storyKey,
   storyTitle,
   status,
   children,
   actionBar,
 }: StoryWorkflowShellProps) {
-  // If storyId/status is absent (e.g. /new), default to Step 1 'draft' presentation for /new page
-  const presentation = getWorkflowPresentation(storyId || 0, status || 'draft');
+  // Default to Step 1 'draft' presentation if no key/status provided
+  const presentation = getWorkflowPresentation((storyKey || 's1_UkLWZg9D') as StoryRouteKey, status || 'draft');
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 pb-28 pt-8 sm:px-8 sm:pt-12">
@@ -29,7 +30,7 @@ export function StoryWorkflowShell({
       {presentation && presentation.showStepper && (
         <StoryWorkflowStepper
           presentation={presentation}
-          storyId={storyId}
+          storyKey={storyKey}
         />
       )}
 

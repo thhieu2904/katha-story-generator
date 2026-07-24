@@ -15,6 +15,9 @@ import { StartImageGenerationDialog } from './StartImageGenerationDialog';
 import { useStoryImages } from '../useStoryImages';
 import type { ImageGenerationDialogMode, StoryImagesState } from '../types';
 
+import type { StoryRouteKey } from '@/features/stories/types';
+import { useStoryByRouteKey } from '@/features/stories/useStory';
+
 const STATUS_STYLES: Record<string, string> = {
   text_confirmed: 'border-blue-500/25 bg-blue-500/10 text-blue-200',
   generating_images: 'border-katha-primary/25 bg-katha-primary/10 text-katha-primary-light',
@@ -32,7 +35,39 @@ function getGenerationDialogMode(
   return null;
 }
 
-export function StoryImageWorkspace({ storyId }: { storyId: number }) {
+export function StoryImageWorkspace({ storyKey }: { storyKey: StoryRouteKey }) {
+  const { story, loading: storyLoading, error: fetchError, retry } = useStoryByRouteKey(storyKey);
+
+  if (storyLoading) {
+    return (
+      <StoryWorkflowShell storyKey={storyKey}>
+        <WorkspaceSkeleton />
+      </StoryWorkflowShell>
+    );
+  }
+
+  if (fetchError || !story || !story.id) {
+    return (
+      <StoryWorkflowShell storyKey={storyKey}>
+        <WorkspaceMessage
+          title="Không thể tải không gian minh họa"
+          detail={fetchError || undefined}
+          onRetry={retry}
+        />
+      </StoryWorkflowShell>
+    );
+  }
+
+  return <StoryImageWorkspaceInner storyId={story.id} storyKey={storyKey} />;
+}
+
+function StoryImageWorkspaceInner({
+  storyId,
+  storyKey,
+}: {
+  storyId: number;
+  storyKey: StoryRouteKey;
+}) {
   const router = useRouter();
   const images = useStoryImages(storyId);
   const isMobileCompact = useIsMobileCompact();
@@ -48,7 +83,7 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
 
   if (images.redirectHref) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <WorkspaceMessage title="Đang chuyển đến bước phù hợp…" />
       </StoryWorkflowShell>
     );
@@ -56,7 +91,7 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
 
   if (images.loading) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <WorkspaceSkeleton />
       </StoryWorkflowShell>
     );
@@ -64,7 +99,7 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
 
   if (!images.imageState) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <WorkspaceMessage
           title="Không thể tải không gian minh họa"
           detail={images.error || undefined}
@@ -118,9 +153,8 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
       state.image_plan_revision,
       state,
       // B1: Install save response inline between save → start.
-      // This fires synchronously after PUT succeeds, before POST start,
-      // so the UI reflects the committed revision even if start fails.
-      (saved) => images.installSaveResponse(saved)
+      (saved) => images.installSaveResponse(saved),
+      storyKey
     );
 
     if (result.kind === 'success') {
@@ -297,7 +331,7 @@ export function StoryImageWorkspace({ storyId }: { storyId: number }) {
 
   return (
     <StoryWorkflowShell
-      storyId={storyId}
+      storyKey={storyKey}
       storyTitle={state.title_vi || 'Truyện chưa đặt tên'}
       status={state.status}
       actionBar={actionBar}

@@ -19,7 +19,7 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
   const ageLabel = story.target_age ? TARGET_AGE_LABELS[story.target_age] : 'Chưa rõ';
   const lengthLabel = story.length_pref ? LENGTH_LABELS[story.length_pref] : 'Chưa rõ';
   const statusLabel = STATUS_LABELS[story.status] || story.status;
-  const workflowHref = getStoryWorkflowHref(story.id, story.status);
+  const workflowHref = getStoryWorkflowHref(story.route_key, story.status);
   const workflowLabel = getStoryWorkflowLabel(story.status);
 
   const getStatusColor = (status: string) => {

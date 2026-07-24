@@ -293,15 +293,16 @@ Kết quả phải rỗng đối với browser URL builders.
 
 Chốt clean cut:
 
-- `/admin/stories/1/setup` -> `404`;
-- `/admin/stories/1/edit` -> `404`;
-- `/admin/stories/1/images` -> `404`;
+- `/admin/stories/1/setup` -> Not-Found UI (App Router streamed UI response, Backend API 404);
+- `/admin/stories/1/edit` -> Not-Found UI (App Router streamed UI response, Backend API 404);
+- `/admin/stories/1/images` -> Not-Found UI (App Router streamed UI response, Backend API 404);
+- Server Component regex guard (`/^s1_[A-Za-z0-9]{8,32}$/`) gọi `notFound()` chặn hiển thị client workspace;
 - không authenticated redirect;
 - không resolver fallback từ numeric string;
 - không numeric public route;
 - business API numeric nội bộ vẫn giữ nguyên.
 
-Lý do: dự án chưa production, không cần mang compatibility branch và enumeration surface sang Phase 5.
+Lý do: Next.js App Router streaming trả UI Not-Found cho admin route mà không cần proxy can thiệp status header, trong khi Backend API thực sự bảo vệ với HTTP status 404.
 
 ## 8. Public-reader separation
 
@@ -358,7 +359,7 @@ Files dự kiến:
 
 - Move cả dynamic folder trong một changeset.
 - Update tất cả browser links.
-- Numeric browser URL 404.
+- Numeric browser URL: Not-Found UI (App Router streamed UI response, Backend API 404).
 - Deep-link/refresh không cần prior client state.
 
 ### WP-5 — Phase 5 alignment
@@ -400,7 +401,7 @@ Không đổi share entropy, no-TTL, revoke/re-share/archive contract.
 - List/create navigation dùng `route_key`.
 - Setup/edit/images deep-link resolve đúng.
 - Refresh/copy-paste tab mới hoạt động.
-- Numeric browser key 404.
+- Numeric browser key: Not-Found UI (App Router streamed UI response, Backend API 404).
 - Malformed key fail-safe.
 - Workflow/historical CTA giữ cùng key.
 - Không double fetch/mutation trong resolve.
@@ -445,7 +446,7 @@ git diff --check
 - list -> setup -> edit -> images đều encoded;
 - refresh từng deep route;
 - copy/paste route sang tab mới;
-- numeric browser routes 404;
+- numeric browser routes: Not-Found UI (App Router streamed UI response, Backend API 404);
 - không xuất hiện `/admin/stories/1/...` sau navigation;
 - public share route vẫn hoạt động độc lập.
 
@@ -464,7 +465,7 @@ Không squash vào Phase 4.5. Không đưa Phase 5 implementation vào commit n�
 ## 13. Definition of Done
 
 - Browser admin URL không còn numeric story locator.
-- Numeric legacy browser URL 404.
+- Numeric legacy browser URL: Not-Found UI (App Router streamed UI response, Backend API 404).
 - Không migration/cột DB.
 - Integer PK/FK và existing services giữ nguyên.
 - Frozen S1 constants/golden vectors có tests.

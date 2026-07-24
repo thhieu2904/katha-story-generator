@@ -2,7 +2,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+
+from katha.features.stories.route_keys import encode_story_route_key
 
 TargetAge = Literal["preschool", "early_primary", "late_primary"]
 LengthPref = Literal["short", "medium", "long"]
@@ -110,6 +112,11 @@ class StoryResponse(BaseModel):
     def default_text_revision(cls, value: int | None) -> int:
         return 0 if value is None else value
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def route_key(self) -> str:
+        return encode_story_route_key(self.id)
+
 
 class StoryListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -129,6 +136,11 @@ class StoryListItem(BaseModel):
     @classmethod
     def default_text_revision(cls, value: int | None) -> int:
         return 0 if value is None else value
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def route_key(self) -> str:
+        return encode_story_route_key(self.id)
 
 
 class StoryPageTextResponse(BaseModel):

@@ -11,6 +11,7 @@ from katha.features.auth.schemas import TokenUser
 from katha.features.stories import generation_service, service
 from katha.features.stories.generation_dependencies import get_story_text_ai
 from katha.features.stories.models import Story
+from katha.features.stories.route_keys import decode_story_route_key
 from katha.features.stories.schemas import (
     StoryCreate,
     StoryListItem,
@@ -41,6 +42,22 @@ async def list_stories(
 ) -> list[Story]:
     """List all stories. Archived stories excluded by default."""
     return await service.list_stories(session, include_archived)
+
+
+@router.get("/stories/by-route-key/{route_key}", response_model=StoryResponse)
+async def get_story_by_route_key(
+    route_key: str,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[TokenUser, Depends(get_admin_user)],
+) -> Story:
+    """Resolve an opaque route key into internal story_id and return story detail."""
+    story_id = decode_story_route_key(route_key)
+    if story_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+    story = await service.get_story(session, story_id)
+    if not story:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+    return story
 
 
 @router.get("/stories/{story_id}", response_model=StoryResponse)

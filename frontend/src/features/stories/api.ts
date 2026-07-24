@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api';
 import type {
   Story,
+  StoryRouteKey,
   StoryListItem,
   StoryCreate,
   StoryUpdate,
@@ -16,6 +17,10 @@ export function fetchStories() {
 
 export function fetchStory(id: number) {
   return apiFetch<Story>(`/api/stories/${id}`);
+}
+
+export function fetchStoryByRouteKey(routeKey: StoryRouteKey) {
+  return apiFetch<Story>(`/api/stories/by-route-key/${routeKey}`);
 }
 
 export function createStory(data: StoryCreate) {

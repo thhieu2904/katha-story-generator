@@ -285,7 +285,7 @@ frontend/src/features/
 Routes:
 
 ```text
-/admin/stories/[id]/review   # admin human review
+/admin/stories/[storyKey]/review   # admin human review
 /                            # giữ admin entry/landing hiện hành; không fetch catalogue
 /stories/[shareToken]        # unlisted public reader, không login
 /login                       # admin login giữ nguyên
@@ -1342,7 +1342,7 @@ Admin:
 
 ### 5B — Admin review UI (1–1.5 ngày)
 
-- `/admin/stories/[id]/review`.
+- `/admin/stories/[storyKey]/review`.
 - Route map/direct guards.
 - Review cards, progress, Khmer edit, validator flags.
 - Approve/reject/complete-review dialogs và reconcile.
@@ -1423,7 +1423,7 @@ backend/
 frontend/src/
 ├── app/page.tsx
 ├── app/stories/[shareToken]/page.tsx
-├── app/admin/stories/[id]/review/page.tsx
+├── app/admin/stories/[storyKey]/review/page.tsx
 ├── lib/public-api.ts
 ├── features/stories/routes.ts
 ├── features/stories/routes.test.ts

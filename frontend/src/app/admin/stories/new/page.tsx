@@ -30,7 +30,7 @@ export default function NewStoryPage() {
     setError(null);
     try {
       const newStory = await createStory(formData);
-      router.push(`/admin/stories/${newStory.id}/setup?success=created`);
+      router.push(`/admin/stories/${newStory.route_key}/setup?success=created`);
     } catch (err) {
       if (isUncertainError(err)) {
         setIsBlocked(true);

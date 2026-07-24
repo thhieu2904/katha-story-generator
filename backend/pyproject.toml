@@ -14,6 +14,7 @@ dependencies = [
     "pyjwt[crypto]",
     "openai>=2.46.0",
     "pillow>=12.3.0",
+    "sqids>=0.5.0",
 ]
 
 [build-system]

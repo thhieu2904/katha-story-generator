@@ -1,23 +1,26 @@
 import { describe, expect, it } from 'vitest';
+import type { StoryRouteKey } from './types';
 import {
   getStoryWorkflowHref,
   getStoryWorkflowLabel,
   isImageWorkflowStatus,
 } from './routes';
 
+const TEST_KEY = 's1_UkLWZg9D' as StoryRouteKey;
+
 describe('story workflow routes', () => {
   it.each([
-    ['draft', '/admin/stories/42/setup', 'Tiếp tục thiết lập'],
-    ['generating_text', '/admin/stories/42/edit', 'Xem tiến độ nội dung'],
-    ['text_draft', '/admin/stories/42/edit', 'Tiếp tục biên tập'],
-    ['text_confirmed', '/admin/stories/42/images', 'Chuẩn bị minh họa'],
-    ['generating_images', '/admin/stories/42/images', 'Xem tiến độ ảnh'],
-    ['pending_review', '/admin/stories/42/images', 'Sẵn sàng duyệt'],
-    ['approved', '/admin/stories/42/images', 'Đã duyệt'],
-    ['published', '/admin/stories/42/images', 'Quản lý chia sẻ'],
+    ['draft', `/admin/stories/${TEST_KEY}/setup`, 'Tiếp tục thiết lập'],
+    ['generating_text', `/admin/stories/${TEST_KEY}/edit`, 'Xem tiến độ nội dung'],
+    ['text_draft', `/admin/stories/${TEST_KEY}/edit`, 'Tiếp tục biên tập'],
+    ['text_confirmed', `/admin/stories/${TEST_KEY}/images`, 'Chuẩn bị minh họa'],
+    ['generating_images', `/admin/stories/${TEST_KEY}/images`, 'Xem tiến độ ảnh'],
+    ['pending_review', `/admin/stories/${TEST_KEY}/images`, 'Sẵn sàng duyệt'],
+    ['approved', `/admin/stories/${TEST_KEY}/images`, 'Đã duyệt'],
+    ['published', `/admin/stories/${TEST_KEY}/images`, 'Quản lý chia sẻ'],
     ['archived', '/admin/stories', 'Xem truyện'],
   ])('routes %s to its canonical workspace', (status, href, label) => {
-    expect(getStoryWorkflowHref(42, status)).toBe(href);
+    expect(getStoryWorkflowHref(TEST_KEY, status)).toBe(href);
     expect(getStoryWorkflowLabel(status)).toBe(label);
   });
 

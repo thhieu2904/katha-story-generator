@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Story } from '@/features/stories/types';
+import type { Story, StoryRouteKey } from '@/features/stories/types';
 import { ApiError } from '@/lib/api';
 import { fetchStory } from '@/features/stories/api';
 import { createImagePlan, fetchStoryImages, saveImagePlanMapping, startImageGeneration } from './api';
@@ -26,6 +26,7 @@ const mockedStartImageGeneration = vi.mocked(startImageGeneration);
 function story(status: string): Story {
   return {
     id: 10,
+    route_key: 's1_UkLWZg9D' as StoryRouteKey,
     title_vi: 'Truyện kiểm thử',
     title_km: null,
     description_vi: 'Một truyện dùng để kiểm thử workspace minh họa.',
@@ -487,10 +488,9 @@ describe('useStoryImages', () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    // rev3 from F1 should be discarded because F2 incremented the sequence
-    // The state should retain rev5 (from F2) or rev1 (if F2 wasn't safe-installed due to dirty)
-    // Since both paths use installCanonicalStateSafe, revision should be the latest installed
-    expect(result.current.imageState?.image_plan_revision).not.toBe(3);
+    // rev3 from F1 should be discarded because F2 incremented the request sequence
+    // The state MUST strictly retain rev5 (from F2)
+    expect(result.current.imageState?.image_plan_revision).toBe(5);
   });
 
   it('installSaveResponse updates canonical state immediately', async () => {
@@ -510,5 +510,86 @@ describe('useStoryImages', () => {
 
     expect(result.current.imageState?.image_plan_revision).toBe(5);
     expect(result.current.mappingDirty).toBe(false);
+  });
+
+  it('preparePlan synchronously bumps sequence counter at start, invalidating in-flight GET', async () => {
+    const rev1 = imageState({ status: 'text_confirmed', image_plan_ready: false });
+    const rev3 = imageState({ status: 'text_confirmed', image_plan_ready: true, image_plan_revision: 3 });
+    mockedFetchStory.mockResolvedValue(story('text_confirmed'));
+    mockedFetchStoryImages.mockResolvedValueOnce(rev1);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    let resolveGET!: (state: StoryImagesState) => void;
+    const inFlightPromise = new Promise<StoryImagesState>((res) => { resolveGET = res; });
+    mockedFetchStoryImages.mockReturnValueOnce(inFlightPromise);
+
+    // Trigger background read
+    void result.current.refresh();
+
+    // Start preparePlan mutation -> bumps sequence synchronously at start
+    vi.mocked(createImagePlan).mockResolvedValueOnce(rev3);
+    let prepared = false;
+    await act(async () => {
+      prepared = await result.current.preparePlan();
+    });
+
+    expect(prepared).toBe(true);
+    expect(result.current.imageState?.image_plan_revision).toBe(3);
+
+    // Resolve late background GET with rev1
+    await act(async () => {
+      resolveGET(rev1);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // The late GET response must be dropped, state retains rev3
+    expect(result.current.imageState?.image_plan_revision).toBe(3);
+  });
+
+  it('reconcileAfterUncertainMutation discards state update if sequence bumped during reconcile load', async () => {
+    const rev1 = imageState({ image_plan_revision: 1 });
+    const rev3 = imageState({ image_plan_revision: 3 });
+    mockedFetchStory.mockResolvedValue(story('text_confirmed'));
+    mockedFetchStoryImages.mockResolvedValueOnce(rev1);
+
+    const { result } = renderHook(() => useStoryImages(10));
+    await flushInitialLoad();
+
+    // Cause preparePlan to fail with status 409
+    vi.mocked(createImagePlan).mockRejectedValueOnce(new ApiError('Conflict', 409));
+
+    let resolveReconcile!: (state: StoryImagesState) => void;
+    const reconcilePromise = new Promise<StoryImagesState>((res) => { resolveReconcile = res; });
+    mockedFetchStoryImages.mockReturnValueOnce(reconcilePromise);
+
+    // Trigger preparePlan -> enters reconcileAfterUncertainMutation
+    let preparePromise!: Promise<boolean>;
+    act(() => {
+      preparePromise = result.current.preparePlan();
+    });
+
+    // Flush microtasks so fetchStory resolves and loadWorkspace reaches fetchStoryImages
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // While reconcile is pending, install newer save response (bumps sequence)
+    act(() => {
+      result.current.installSaveResponse(imageState({ image_plan_revision: 99 }));
+    });
+    expect(result.current.imageState?.image_plan_revision).toBe(99);
+
+    // Resolve reconcile load with rev3
+    await act(async () => {
+      resolveReconcile(rev3);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    await preparePromise;
+
+    // Stale reconcile response rev3 must be dropped, state stays 99
+    expect(result.current.imageState?.image_plan_revision).toBe(99);
   });
 });

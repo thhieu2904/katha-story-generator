@@ -1,3 +1,4 @@
+import type { StoryRouteKey } from '@/features/stories/types';
 import type { WorkflowPresentation, WorkflowRouteMode } from './types';
 
 const IMAGE_WORKFLOW_STATUSES = new Set([
@@ -12,17 +13,17 @@ export function isImageWorkflowStatus(status: string): boolean {
   return IMAGE_WORKFLOW_STATUSES.has(status);
 }
 
-export function getCanonicalHref(storyId: number, status: string): string {
+export function getCanonicalHref(storyKey: StoryRouteKey, status: string): string {
   if (status === 'draft') {
-    return `/admin/stories/${storyId}/setup`;
+    return `/admin/stories/${storyKey}/setup`;
   }
 
   if (status === 'generating_text' || status === 'text_draft') {
-    return `/admin/stories/${storyId}/edit`;
+    return `/admin/stories/${storyKey}/edit`;
   }
 
   if (isImageWorkflowStatus(status)) {
-    return `/admin/stories/${storyId}/images`;
+    return `/admin/stories/${storyKey}/images`;
   }
 
   return '/admin/stories';
@@ -52,10 +53,10 @@ export function getResumeLabel(status: string): string {
 }
 
 export function getWorkflowPresentation(
-  storyId: number,
+  storyKey: StoryRouteKey,
   status: string
 ): WorkflowPresentation {
-  const canonicalHref = getCanonicalHref(storyId, status);
+  const canonicalHref = getCanonicalHref(storyKey, status);
   const resumeLabel = getResumeLabel(status);
 
   if (status === 'archived') {
@@ -75,8 +76,8 @@ export function getWorkflowPresentation(
     };
   }
 
-  const setupPath = `/admin/stories/${storyId}/setup`;
-  const editPath = `/admin/stories/${storyId}/edit`;
+  const setupPath = `/admin/stories/${storyKey}/setup`;
+  const editPath = `/admin/stories/${storyKey}/edit`;
 
   switch (status) {
     case 'draft':

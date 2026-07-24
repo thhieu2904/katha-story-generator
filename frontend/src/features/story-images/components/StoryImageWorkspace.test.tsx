@@ -4,6 +4,7 @@ import type { StoryImagesState } from '../types';
 import { useStoryImages } from '../useStoryImages';
 import { StoryImageWorkspace } from './StoryImageWorkspace';
 
+import type { StoryRouteKey } from '@/features/stories/types';
 import { orchestrateSaveAndStart } from '@/features/story-workflow/orchestration';
 
 const routerMocks = vi.hoisted(() => ({
@@ -12,6 +13,15 @@ const routerMocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: routerMocks.replace }),
+}));
+
+vi.mock('@/features/stories/useStory', () => ({
+  useStory: vi.fn(),
+  useStoryByRouteKey: vi.fn().mockReturnValue({
+    story: { id: 10, route_key: 's1_UkLWZg9D', status: 'text_confirmed' },
+    loading: false,
+    error: null,
+  }),
 }));
 
 vi.mock('../useStoryImages', () => ({
@@ -84,7 +94,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
     'closes the stale modal after reconciliation installs %s',
     async (status) => {
       mockedUseStoryImages.mockReturnValue(hookState());
-      const { rerender } = render(<StoryImageWorkspace storyId={10} />);
+      const { rerender } = render(<StoryImageWorkspace storyKey={'s1_UkLWZg9D' as StoryRouteKey} />);
 
       fireEvent.click(screen.getByRole('button', { name: /Bắt đầu sinh/i }));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -97,7 +107,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
           refresh,
         })
       );
-      rerender(<StoryImageWorkspace storyId={10} />);
+      rerender(<StoryImageWorkspace storyKey={'s1_UkLWZg9D' as StoryRouteKey} />);
       fireEvent.click(
         within(screen.getByRole('dialog')).getByRole('button', {
           name: 'Kiểm tra lại trạng thái',
@@ -118,7 +128,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
           }),
         })
       );
-      rerender(<StoryImageWorkspace storyId={10} />);
+      rerender(<StoryImageWorkspace storyKey={'s1_UkLWZg9D' as StoryRouteKey} />);
 
       await waitFor(() => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -128,7 +138,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
 
   it('updates an open dialog to the canonical retry action', async () => {
     mockedUseStoryImages.mockReturnValue(hookState());
-    const { rerender } = render(<StoryImageWorkspace storyId={10} />);
+    const { rerender } = render(<StoryImageWorkspace storyKey={'s1_UkLWZg9D' as StoryRouteKey} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Bắt đầu sinh/i }));
 
@@ -142,7 +152,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
         }),
       })
     );
-    rerender(<StoryImageWorkspace storyId={10} />);
+    rerender(<StoryImageWorkspace storyKey={'s1_UkLWZg9D' as StoryRouteKey} />);
 
     expect(
       await screen.findByRole('heading', { name: 'Thử lại các trang còn thiếu' })
@@ -157,7 +167,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
       message: 'Blocked state',
     });
 
-    render(<StoryImageWorkspace storyId={10} />);
+    render(<StoryImageWorkspace storyKey={'s1_UkLWZg9D' as StoryRouteKey} />);
 
     // Open dialog and trigger confirm that results in blocked state
     fireEvent.click(screen.getByRole('button', { name: /Bắt đầu sinh/i }));
@@ -204,7 +214,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
       }
     );
 
-    render(<StoryImageWorkspace storyId={10} />);
+    render(<StoryImageWorkspace storyKey={'s1_UkLWZg9D' as StoryRouteKey} />);
 
     // Open dialog and confirm
     fireEvent.click(screen.getByRole('button', { name: /Bắt đầu sinh/i }));

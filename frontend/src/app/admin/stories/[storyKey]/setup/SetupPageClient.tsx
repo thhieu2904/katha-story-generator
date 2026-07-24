@@ -1,13 +1,13 @@
 'use client';
 
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
 import { StorySetupSummary } from '@/features/story-workflow/components/StorySetupSummary';
 import { StorySetupForm } from '@/features/stories/components/StorySetupForm';
 import { ArchiveStoryDialog } from '@/features/stories/components/ArchiveStoryDialog';
-import { useStory } from '@/features/stories/useStory';
+import { useStoryByRouteKey } from '@/features/stories/useStory';
 import {
   fetchStory,
   generateStoryText,
@@ -23,7 +23,7 @@ import {
   getWorkflowPresentation,
   getWorkflowRouteMode,
 } from '@/features/story-workflow/workflow';
-import type { Story, StoryCreate } from '@/features/stories/types';
+import type { Story, StoryCreate, StoryRouteKey } from '@/features/stories/types';
 
 export function areStorySetupFieldsEqual(story: Story, data: StoryCreate): boolean {
   const normA = (story.description_vi || '').trim();
@@ -46,33 +46,11 @@ export function areStorySetupFieldsEqual(story: Story, data: StoryCreate): boole
   return true;
 }
 
-export default function EditStoryPage() {
-  const params = useParams<{ id: string }>();
-  const storyId = Number(params.id);
-
-  if (!Number.isInteger(storyId) || storyId <= 0) {
-    return (
-      <StoryWorkflowShell>
-        <section className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
-          <h2 className="font-semibold text-red-100">ID truyện không hợp lệ</h2>
-          <Link
-            href="/admin/stories"
-            className="mt-5 inline-block rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-white/90"
-          >
-            Quay lại danh sách
-          </Link>
-        </section>
-      </StoryWorkflowShell>
-    );
-  }
-
-  return <EditStoryInner storyId={storyId} />;
-}
-
-function EditStoryInner({ storyId }: { storyId: number }) {
+export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { story, error: fetchError, loading, retry } = useStory(storyId);
+  const { story, error: fetchError, loading, retry } = useStoryByRouteKey(storyKey);
+  const storyId = story?.id;
 
   const [formData, setFormData] = useState<StoryCreate | null>(null);
   const [isValid, setIsValid] = useState(false);
@@ -92,19 +70,18 @@ function EditStoryInner({ storyId }: { storyId: number }) {
     characterMap: Map<number, { id: number; name: string; avatar_url?: string | null }>;
   } | null>(null);
 
-  // Runtime Route Guard using getWorkflowRouteMode
   useEffect(() => {
     if (!story) return;
-    const presentation = getWorkflowPresentation(storyId, story.status);
+    const presentation = getWorkflowPresentation(story.route_key, story.status);
     const routeMode = getWorkflowRouteMode(
       presentation,
-      `/admin/stories/${storyId}/setup`
+      `/admin/stories/${story.route_key}/setup`
     );
 
     if (routeMode === 'redirect') {
       router.replace(presentation.canonicalHref);
     }
-  }, [story, router, storyId]);
+  }, [story, router]);
 
   useEffect(() => {
     if (!story || story.status === 'draft') return;
@@ -147,7 +124,7 @@ function EditStoryInner({ storyId }: { storyId: number }) {
   };
 
   const handleSaveOnly = async () => {
-    if (!formData || !isValid || isSubmitting || isGenerating) return;
+    if (!formData || !isValid || isSubmitting || isGenerating || !storyId) return;
     setIsSubmitting(true);
     setSubmitError(null);
     setSuccessMessage(null);
@@ -165,7 +142,6 @@ function EditStoryInner({ storyId }: { storyId: number }) {
             return;
           }
         } catch {
-          // Reconcile reread also failed
         }
       }
       setSubmitError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi cập nhật');
@@ -175,19 +151,19 @@ function EditStoryInner({ storyId }: { storyId: number }) {
   };
 
   const handleSaveAndGenerate = async () => {
-    if (!formData || !isValid || isSubmitting || isGenerating) return;
+    if (!formData || !isValid || isSubmitting || isGenerating || !story || !storyId) return;
     setIsGenerating(true);
     setSubmitError(null);
     setSuccessMessage(null);
     try {
       await updateStory(storyId, formData);
       await generateStoryText(storyId);
-      router.replace(`/admin/stories/${storyId}/edit`);
+      router.replace(`/admin/stories/${story.route_key}/edit`);
     } catch (err) {
       try {
         const current = await fetchStory(storyId);
         if (current.status === 'text_draft' || current.status === 'generating_text') {
-          router.replace(`/admin/stories/${storyId}/edit`);
+          router.replace(`/admin/stories/${current.route_key}/edit`);
           return;
         }
       } catch {
@@ -207,6 +183,7 @@ function EditStoryInner({ storyId }: { storyId: number }) {
   };
 
   const handleReconcile = async () => {
+    if (!storyId) return;
     setIsGenerating(true);
     setSubmitError(null);
     try {
@@ -216,7 +193,7 @@ function EditStoryInner({ storyId }: { storyId: number }) {
         retry();
         return;
       }
-      router.replace(`/admin/stories/${storyId}/edit`);
+      router.replace(`/admin/stories/${current.route_key}/edit`);
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'Chưa thể kiểm tra trạng thái truyện'
@@ -228,7 +205,7 @@ function EditStoryInner({ storyId }: { storyId: number }) {
 
   if (loading) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <div className="space-y-6 animate-pulse">
           <div className="h-8 w-1/4 bg-white/[0.055] rounded mb-8" />
           <div className="h-96 w-full bg-white/[0.055] rounded-2xl" />
@@ -239,7 +216,7 @@ function EditStoryInner({ storyId }: { storyId: number }) {
 
   if (fetchError || !story) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <section className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
           <h2 className="font-semibold text-red-100">Không thể tải thông tin truyện</h2>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/50">{fetchError}</p>
@@ -257,7 +234,7 @@ function EditStoryInner({ storyId }: { storyId: number }) {
 
   const isDraft = story.status === 'draft';
   const isBusy = isSubmitting || isGenerating || needsReconcile;
-  const canonicalHref = getCanonicalHref(story.id, story.status);
+  const canonicalHref = getCanonicalHref(story.route_key, story.status);
 
   const actionBar = isDraft ? (
     <>
@@ -313,7 +290,7 @@ function EditStoryInner({ storyId }: { storyId: number }) {
 
   return (
     <StoryWorkflowShell
-      storyId={storyId}
+      storyKey={story.route_key}
       storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
       status={story.status}
       actionBar={actionBar}

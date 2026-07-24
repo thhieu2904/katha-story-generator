@@ -7,7 +7,7 @@ import {
 import * as storiesApi from '@/features/stories/api';
 import * as editorApi from '@/features/story-editor/api';
 import * as imagesApi from '@/features/story-images/api';
-import type { Story, StoryText } from '@/features/stories/types';
+import type { Story, StoryText, StoryRouteKey } from '@/features/stories/types';
 import type { StoryImagesState } from '@/features/story-images/types';
 
 vi.mock('@/features/stories/api');
@@ -17,6 +17,25 @@ vi.mock('@/features/story-images/api');
 describe('orchestration logic', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(storiesApi.fetchStory).mockResolvedValue({
+      id: 42,
+      route_key: 's1_UkLWZg9D' as StoryRouteKey,
+      title_vi: 'Test',
+      title_km: null,
+      description_vi: 'A test story',
+      backbone_id: 1,
+      genre_id: 1,
+      art_style_id: 1,
+      target_age: 'age_3_5',
+      length_pref: 'short',
+      status: 'text_confirmed',
+      text_revision: 1,
+      cover_image_url: null,
+      created_by: 'user1',
+      character_ids: [1],
+      created_at: null,
+      updated_at: null,
+    });
   });
 
   describe('orchestrateCreateAndGenerate', () => {
@@ -32,6 +51,7 @@ describe('orchestration logic', () => {
 
     const mockStory: Story = {
       id: 42,
+      route_key: 's1_UkLWZg9D' as StoryRouteKey,
       title_vi: 'Test',
       title_km: null,
       description_vi: 'A test story',
@@ -93,7 +113,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateCreateAndGenerate(dummyInput);
       expect(result.kind).toBe('success');
       if (result.kind === 'success') {
-        expect(result.nextHref).toBe('/admin/stories/42/edit');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/edit');
       }
     });
 
@@ -105,7 +125,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateCreateAndGenerate(dummyInput);
       expect(result.kind).toBe('partial');
       if (result.kind === 'partial') {
-        expect(result.nextHref).toBe('/admin/stories/42/setup');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/setup');
       }
     });
 
@@ -117,7 +137,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateCreateAndGenerate(dummyInput);
       expect(result.kind).toBe('success');
       if (result.kind === 'success') {
-        expect(result.nextHref).toBe('/admin/stories/42/edit');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/edit');
       }
     });
 
@@ -182,7 +202,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateConfirmAndPrepare(42, 1, false);
       expect(result.kind).toBe('partial');
       if (result.kind === 'partial') {
-        expect(result.nextHref).toBe('/admin/stories/42/images');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/images');
       }
     });
 
@@ -197,7 +217,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateConfirmAndPrepare(42, 1, false);
       expect(result.kind).toBe('success');
       if (result.kind === 'success') {
-        expect(result.nextHref).toBe('/admin/stories/42/images');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/images');
       }
     });
 
@@ -231,7 +251,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateConfirmAndPrepare(42, 1, false);
       expect(result.kind).toBe('success');
       if (result.kind === 'success') {
-        expect(result.nextHref).toBe('/admin/stories/42/images');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/images');
       }
     });
 
@@ -243,7 +263,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateConfirmAndPrepare(42, 1, false);
       expect(result.kind).toBe('partial');
       if (result.kind === 'partial') {
-        expect(result.nextHref).toBe('/admin/stories/42/images');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/images');
       }
     });
 
@@ -257,7 +277,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateConfirmAndPrepare(42, 1, false);
       expect(result.kind).toBe('partial');
       if (result.kind === 'partial') {
-        expect(result.nextHref).toBe('/admin/stories/42/images');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/images');
       }
     });
   });
@@ -331,7 +351,7 @@ describe('orchestration logic', () => {
       const result = await orchestrateSaveAndStart(42, false, [], 1);
       expect(result.kind).toBe('success');
       if (result.kind === 'success') {
-        expect(result.nextHref).toBe('/admin/stories/42/images');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/images');
       }
     });
 
@@ -461,7 +481,7 @@ describe('orchestration logic', () => {
         new ApiError('Timeout', 0)
       );
       vi.mocked(storiesApi.fetchStory).mockResolvedValue({
-        id: 42, title_vi: 'Test', title_km: null, description_vi: '',
+        id: 42, route_key: 's1_UkLWZg9D' as StoryRouteKey, title_vi: 'Test', title_km: null, description_vi: '',
         backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
         length_pref: 'short', status: 'text_confirmed', text_revision: 1,
         cover_image_url: null, created_by: 'u', character_ids: [1],
@@ -482,7 +502,7 @@ describe('orchestration logic', () => {
       // Should still redirect to images because confirm was committed
       expect(['success', 'partial']).toContain(result.kind);
       if (result.kind === 'partial' || result.kind === 'success') {
-        expect(result.nextHref).toBe('/admin/stories/42/images');
+        expect(result.nextHref).toBe('/admin/stories/s1_UkLWZg9D/images');
       }
     });
 
@@ -492,7 +512,7 @@ describe('orchestration logic', () => {
         new ApiError('Timeout', 0)
       );
       vi.mocked(storiesApi.fetchStory).mockResolvedValue({
-        id: 42, title_vi: 'Test', title_km: null, description_vi: '',
+        id: 42, route_key: 's1_UkLWZg9D' as StoryRouteKey, title_vi: 'Test', title_km: null, description_vi: '',
         backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
         length_pref: 'short', status: 'text_draft', text_revision: 1,
         cover_image_url: null, created_by: 'u', character_ids: [1],
@@ -512,7 +532,7 @@ describe('orchestration logic', () => {
         new ApiError('Timeout', 0)
       );
       vi.mocked(storiesApi.fetchStory).mockResolvedValue({
-        id: 42, title_vi: 'Test', title_km: null, description_vi: '',
+        id: 42, route_key: 's1_UkLWZg9D' as StoryRouteKey, title_vi: 'Test', title_km: null, description_vi: '',
         backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
         length_pref: 'short', status: 'archived', text_revision: 1,
         cover_image_url: null, created_by: 'u', character_ids: [1],

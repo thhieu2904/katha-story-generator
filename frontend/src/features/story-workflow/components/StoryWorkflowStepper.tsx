@@ -1,15 +1,16 @@
 import Link from 'next/link';
+import type { StoryRouteKey } from '@/features/stories/types';
 import type { WorkflowPresentation } from '../types';
 import { WORKFLOW_STEPS } from '../types';
 
 interface StoryWorkflowStepperProps {
   presentation: WorkflowPresentation;
-  storyId?: number;
+  storyKey?: StoryRouteKey;
 }
 
 export function StoryWorkflowStepper({
   presentation,
-  storyId,
+  storyKey,
 }: StoryWorkflowStepperProps) {
   const { currentStep, stepStates, allowedReadOnlyHrefs } = presentation;
   const allCompleted = WORKFLOW_STEPS.every((s) => stepStates[s.key] === 'completed');
@@ -17,16 +18,16 @@ export function StoryWorkflowStepper({
   const currentStepObj = WORKFLOW_STEPS.find((s) => s.number === currentStep);
 
   const getStepHref = (stepKey: string, stepNumber: number) => {
-    if (!storyId) return undefined;
+    if (!storyKey) return undefined;
     if (stepNumber === currentStep) return presentation.canonicalHref;
     if (stepStates[stepKey as keyof typeof stepStates] === 'completed') {
       const candidateHref =
         stepKey === 'setup'
-          ? `/admin/stories/${storyId}/setup`
+          ? `/admin/stories/${storyKey}/setup`
           : stepKey === 'text'
-            ? `/admin/stories/${storyId}/edit`
+            ? `/admin/stories/${storyKey}/edit`
             : stepKey === 'images'
-              ? `/admin/stories/${storyId}/images`
+              ? `/admin/stories/${storyKey}/images`
               : undefined;
 
       if (candidateHref && allowedReadOnlyHrefs.includes(candidateHref)) {

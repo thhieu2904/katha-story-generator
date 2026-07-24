@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { areStorySetupFieldsEqual } from './page';
-import type { Story, StoryCreate } from '@/features/stories/types';
+import { areStorySetupFieldsEqual } from './SetupPageClient';
+import type { Story, StoryCreate, StoryRouteKey } from '@/features/stories/types';
 
 function makeStory(overrides: Partial<Story> = {}): Story {
   return {
     id: 1,
+    route_key: 's1_UkLWZg9D' as StoryRouteKey,
     title_vi: 'Truyện test',
     title_km: null,
     description_vi: ' Mô tả truyện test ',

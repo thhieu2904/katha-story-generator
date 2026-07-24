@@ -88,12 +88,25 @@ export function useStoryImages(storyId: number) {
   const [pending, setPending] = useState<StoryImagePendingOperation>(null);
   const [blocked, setBlocked] = useState(false);
   const [redirectHref, setRedirectHref] = useState<string | null>(null);
+
   const draftMappingsRef = useRef<MappingDraft>({});
   const lastRevisionRef = useRef<number>(0);
-  const epochRef = useRef(0);
+  const requestSeqRef = useRef(0);
+
+  const bumpSequence = useCallback(() => {
+    requestSeqRef.current += 1;
+  }, []);
+
+  const beginCanonicalRead = useCallback(() => {
+    requestSeqRef.current += 1;
+    return requestSeqRef.current;
+  }, []);
+
+  const isCurrentRequest = useCallback((seq: number) => {
+    return seq === requestSeqRef.current;
+  }, []);
 
   const installCanonicalState = useCallback((next: StoryImagesState) => {
-    epochRef.current += 1;
     const mappings = mappingsFromState(next);
     draftMappingsRef.current = mappings;
     lastRevisionRef.current = next.image_plan_revision;
@@ -104,15 +117,22 @@ export function useStoryImages(storyId: number) {
     setRedirectHref(null);
   }, []);
 
-  const loadWorkspace = useCallback(async (epochSnapshot?: number): Promise<StoryImagesState | null> => {
+  const loadWorkspace = useCallback(async (reqSeq?: number): Promise<StoryImagesState | null> => {
     const story = await fetchStory(storyId);
-    const presentation = getWorkflowPresentation(storyId, story.status);
+    if (reqSeq !== undefined && !isCurrentRequest(reqSeq)) {
+      return null;
+    }
+
+    const presentation = getWorkflowPresentation(story.route_key, story.status);
     const routeMode = getWorkflowRouteMode(
       presentation,
-      `/admin/stories/${storyId}/images`
+      `/admin/stories/${story.route_key}/images`
     );
 
     if (routeMode === 'redirect') {
+      if (reqSeq !== undefined && !isCurrentRequest(reqSeq)) {
+        return null;
+      }
       const workflowHref = presentation.canonicalHref;
       setRedirectHref(
         story.status === 'archived' ? `${workflowHref}?notice=archived` : workflowHref
@@ -122,22 +142,31 @@ export function useStoryImages(storyId: number) {
 
     try {
       const canonical = await fetchStoryImages(storyId);
-      // Epoch guard: discard if a mutation (installSaveResponse, etc.)
-      // bumped the epoch while this read was in-flight.
-      if (epochSnapshot !== undefined && epochRef.current !== epochSnapshot) {
-        return canonical;
+      // Sequence guard: discard if a mutation or newer request
+      // bumped requestSeqRef while this read was in-flight.
+      if (reqSeq !== undefined && !isCurrentRequest(reqSeq)) {
+        return null;
       }
       installCanonicalState(canonical);
       return canonical;
     } catch (reason) {
+      if (reqSeq !== undefined && !isCurrentRequest(reqSeq)) {
+        return null;
+      }
       if (reason instanceof ApiError && reason.status === 409) {
         const latestStory = await fetchStory(storyId);
-        const latestPres = getWorkflowPresentation(storyId, latestStory.status);
+        if (reqSeq !== undefined && !isCurrentRequest(reqSeq)) {
+          return null;
+        }
+        const latestPres = getWorkflowPresentation(latestStory.route_key, latestStory.status);
         const latestRouteMode = getWorkflowRouteMode(
           latestPres,
-          `/admin/stories/${storyId}/images`
+          `/admin/stories/${latestStory.route_key}/images`
         );
         if (latestRouteMode === 'redirect') {
+          if (reqSeq !== undefined && !isCurrentRequest(reqSeq)) {
+            return null;
+          }
           const workflowHref = latestPres.canonicalHref;
           setRedirectHref(
             latestStory.status === 'archived' ? `${workflowHref}?notice=archived` : workflowHref
@@ -147,11 +176,11 @@ export function useStoryImages(storyId: number) {
       }
       throw reason;
     }
-  }, [installCanonicalState, storyId]);
+  }, [installCanonicalState, isCurrentRequest, storyId]);
 
-  // B5: Dirty-safe foreground install — only used when mapping is NOT dirty.
+  // Dirty-safe foreground install — only used when mapping is NOT dirty.
   const installCanonicalStateSafe = useCallback((next: StoryImagesState) => {
-    epochRef.current += 1;
+    bumpSequence();
     // If mapping is dirty or pending, don't overwrite local draft
     if (draftMappingsRef.current && Object.keys(draftMappingsRef.current).length > 0) {
       const prevRevision = lastRevisionRef.current;
@@ -166,31 +195,37 @@ export function useStoryImages(storyId: number) {
     } else {
       installCanonicalState(next);
     }
-  }, [installCanonicalState]);
+  }, [bumpSequence, installCanonicalState]);
 
-  // B4: refresh returns typed result. Blocked only cleared after success.
+  // refresh returns typed result. Blocked only cleared after success.
   const refresh = useCallback(async (): Promise<RefreshResult> => {
-    const snap = epochRef.current;
+    const seq = beginCanonicalRead();
     setLoading(true);
     setError(null);
     setPollError(null);
     try {
-      const state = await loadWorkspace(snap);
+      const state = await loadWorkspace(seq);
+      if (!isCurrentRequest(seq)) {
+        return { ok: false, error: 'Thao tác đã bị hủy do có yêu cầu mới hơn.' };
+      }
       if (state) {
         setBlocked(false);
         return { ok: true, state };
       }
-      // loadWorkspace returned null → redirect set
       return { ok: false, error: 'Đang chuyển hướng…' };
     } catch (reason) {
+      if (!isCurrentRequest(seq)) {
+        return { ok: false, error: 'Thao tác đã bị hủy do có yêu cầu mới hơn.' };
+      }
       const msg = messageFromReason(reason, 'Không thể tải không gian minh họa.');
       setError(msg);
-      // B4: Do NOT clear blocked on failure
       return { ok: false, error: msg };
     } finally {
-      setLoading(false);
+      if (isCurrentRequest(seq)) {
+        setLoading(false);
+      }
     }
-  }, [loadWorkspace]);
+  }, [beginCanonicalRead, isCurrentRequest, loadWorkspace]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -199,37 +234,37 @@ export function useStoryImages(storyId: number) {
     return () => clearTimeout(timer);
   }, [refresh]);
 
-  // B5: Foreground tab return — dirty-safe with epoch guard
+  // Foreground tab return — dirty-safe with request sequence guard
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
-      const snap = epochRef.current;
-      // B5: If mapping dirty or pending, use safe install (no overwrite)
+      const seq = beginCanonicalRead();
       if (mappingDirty || pending) {
         void fetchStoryImages(storyId)
           .then((canonical) => {
-            // Discard stale response if epoch was bumped (e.g. by installSaveResponse)
-            if (epochRef.current !== snap) return;
+            if (!isCurrentRequest(seq)) return;
             installCanonicalStateSafe(canonical);
           })
           .catch(() => {});
       } else {
-        void loadWorkspace(snap).catch(() => {});
+        void loadWorkspace(seq).catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [installCanonicalStateSafe, loadWorkspace, mappingDirty, pending, storyId]);
+  }, [beginCanonicalRead, installCanonicalStateSafe, isCurrentRequest, loadWorkspace, mappingDirty, pending, storyId]);
 
   const reconcileAfterUncertainMutation = useCallback(
     async (
       reason: unknown,
       fallback: string
     ): Promise<StoryImagesState | null> => {
+      const seq = beginCanonicalRead();
       try {
-        const canonical = await loadWorkspace();
+        const canonical = await loadWorkspace(seq);
+        if (!isCurrentRequest(seq)) return null;
         setBlocked(false);
         setError(
           reason instanceof ApiError && reason.status === 409
@@ -238,6 +273,7 @@ export function useStoryImages(storyId: number) {
         );
         return canonical;
       } catch {
+        if (!isCurrentRequest(seq)) return null;
         setBlocked(true);
         setError(
           'Chưa thể đối soát trạng thái mới nhất. Hãy kiểm tra lại trước khi gửi thao tác khác.'
@@ -245,7 +281,7 @@ export function useStoryImages(storyId: number) {
         return null;
       }
     },
-    [loadWorkspace]
+    [beginCanonicalRead, isCurrentRequest, loadWorkspace]
   );
 
   useEffect(() => {
@@ -262,39 +298,30 @@ export function useStoryImages(storyId: number) {
     };
 
     const poll = async () => {
-      const pollEpoch = epochRef.current;
+      const pollSeq = beginCanonicalRead();
       controller = new AbortController();
       try {
         const canonical = await fetchStoryImages(storyId, controller.signal);
-        if (!active) return;
-        // Epoch guard: if canonical state was installed by another path
-        // (e.g. foreground refresh, mutation reconcile) while this poll was
-        // in-flight, discard the now-stale response.
-        if (epochRef.current !== pollEpoch) {
-          // State was updated while we were fetching — schedule next poll
-          // but do NOT install this response.
-          scheduleNextPoll();
-          return;
-        }
+        if (!active || !isCurrentRequest(pollSeq)) return;
         installCanonicalState(canonical);
         setPollError(null);
         if (canonical.status === 'generating_images' && !canonical.job_stale) {
           scheduleNextPoll();
         }
       } catch (reason) {
-        if (!active) return;
-        if (epochRef.current !== pollEpoch) {
-          scheduleNextPoll();
-          return;
-        }
+        if (!active || !isCurrentRequest(pollSeq)) return;
+        if (reason instanceof Error && reason.name === 'AbortError') return;
+
         if (reason instanceof ApiError && reason.status === 409) {
           try {
-            const canonical = await loadWorkspace();
+            const canonical = await loadWorkspace(pollSeq);
+            if (!active || !isCurrentRequest(pollSeq)) return;
             setPollError(null);
             if (canonical?.status === 'generating_images' && !canonical.job_stale) {
               scheduleNextPoll();
             }
           } catch (reconcileReason) {
+            if (!active || !isCurrentRequest(pollSeq)) return;
             setPollError(
               messageFromReason(reconcileReason, 'Không thể kiểm tra tiến độ ảnh.')
             );
@@ -318,7 +345,7 @@ export function useStoryImages(storyId: number) {
       if (timer) clearTimeout(timer);
       controller?.abort();
     };
-  }, [imageState?.job_stale, imageState?.status, installCanonicalState, loadWorkspace, storyId]);
+  }, [beginCanonicalRead, imageState?.job_stale, imageState?.status, installCanonicalState, isCurrentRequest, loadWorkspace, storyId]);
 
   const updatePageCharacters = useCallback(
     (pageId: number, characterIds: number[]) => {
@@ -337,15 +364,16 @@ export function useStoryImages(storyId: number) {
     [blocked, imageState, mappingConflict, pending]
   );
 
-  // B5: Discard local draft and load canonical
   const discardAndReload = useCallback(async () => {
+    bumpSequence();
     setMappingConflict(false);
     setMappingDirty(false);
     draftMappingsRef.current = {};
     await refresh();
-  }, [refresh]);
+  }, [bumpSequence, refresh]);
 
   const preparePlan = useCallback(async (): Promise<boolean> => {
+    bumpSequence();
     if (
       !imageState ||
       pending ||
@@ -381,9 +409,10 @@ export function useStoryImages(storyId: number) {
     } finally {
       setPending(null);
     }
-  }, [blocked, imageState, installCanonicalState, pending, reconcileAfterUncertainMutation, storyId]);
+  }, [blocked, bumpSequence, imageState, installCanonicalState, pending, reconcileAfterUncertainMutation, storyId]);
 
   const saveMapping = useCallback(async (): Promise<StoryImagesState | null> => {
+    bumpSequence();
     if (
       !imageState ||
       pending ||
@@ -418,22 +447,19 @@ export function useStoryImages(storyId: number) {
     } finally {
       setPending(null);
     }
-  }, [blocked, imageState, installCanonicalState, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]);
+  }, [blocked, bumpSequence, imageState, installCanonicalState, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]);
 
   const startGeneration = useCallback(
     async (overrideRevision?: number): Promise<boolean> => {
+      bumpSequence();
       if (!imageState || pending || blocked || mappingDirty) {
         return false;
       }
 
-      // Guard: generating_images and job is NOT stale -> do NOT POST
       if (imageState.status === 'generating_images' && !imageState.job_stale) {
         return false;
       }
 
-      // Execution guards:
-      // Initial start: !mapping_locked && can_start
-      // Recovery start: can_retry || can_resume
       const isInitialStart = !imageState.mapping_locked && imageState.can_start;
       const isRecoveryStart = imageState.can_retry || imageState.can_resume;
 
@@ -447,9 +473,12 @@ export function useStoryImages(storyId: number) {
       setNotice(null);
       try {
         const result = await startImageGeneration(storyId, revision);
+        const readSeq = beginCanonicalRead();
         try {
-          const canonical = await fetchStoryImages(storyId);
-          installCanonicalState(canonical);
+          const canonical = await loadWorkspace(readSeq);
+          if (canonical && isCurrentRequest(readSeq)) {
+            installCanonicalState(canonical);
+          }
         } catch (reason) {
           const canonical = await reconcileAfterUncertainMutation(
             reason,
@@ -477,7 +506,7 @@ export function useStoryImages(storyId: number) {
         setPending(null);
       }
     },
-    [blocked, imageState, installCanonicalState, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]
+    [beginCanonicalRead, blocked, bumpSequence, imageState, installCanonicalState, isCurrentRequest, loadWorkspace, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]
   );
 
   /** Install a save response (from orchestration) into canonical state immediately.
@@ -485,9 +514,10 @@ export function useStoryImages(storyId: number) {
    *  refresh fails, preventing stale CTA from reopening. */
   const installSaveResponse = useCallback(
     (state: StoryImagesState) => {
+      bumpSequence();
       installCanonicalState(state);
     },
-    [installCanonicalState]
+    [bumpSequence, installCanonicalState]
   );
 
   const activePage =

@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import type { StoryTextPage } from '@/features/stories/types';
+import type { StoryTextPage, StoryRouteKey } from '@/features/stories/types';
+import { useStoryByRouteKey } from '@/features/stories/useStory';
 import { LENGTH_LABELS, STATUS_LABELS } from '@/features/stories/constants';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
 import { orchestrateConfirmAndPrepare } from '@/features/story-workflow/orchestration';
@@ -20,7 +21,42 @@ import { InstructionBox } from './InstructionBox';
 import { QuickActions } from './QuickActions';
 import { SortablePageList } from './SortablePageList';
 
-export function StoryTextEditor({ storyId }: { storyId: number }) {
+export function StoryTextEditor({ storyKey }: { storyKey: StoryRouteKey }) {
+  const { story, loading: storyLoading, error: fetchError, retry } = useStoryByRouteKey(storyKey);
+
+  if (storyLoading) {
+    return (
+      <StoryWorkflowShell storyKey={storyKey}>
+        <div className="space-y-6 animate-pulse">
+          <div className="h-40 rounded-2xl bg-white/[0.05]" />
+          <div className="h-72 rounded-2xl bg-white/[0.04]" />
+        </div>
+      </StoryWorkflowShell>
+    );
+  }
+
+  if (fetchError || !story || !story.id) {
+    return (
+      <StoryWorkflowShell storyKey={storyKey}>
+        <EditorMessage
+          title="Không thể tải truyện"
+          detail={fetchError || undefined}
+          onRetry={retry}
+        />
+      </StoryWorkflowShell>
+    );
+  }
+
+  return <StoryTextEditorInner storyId={story.id} storyKey={storyKey} />;
+}
+
+function StoryTextEditorInner({
+  storyId,
+  storyKey,
+}: {
+  storyId: number;
+  storyKey: StoryRouteKey;
+}) {
   const router = useRouter();
   const editor = useStoryEditor(storyId);
   const isMobileCompact = useIsMobileCompact();
@@ -32,20 +68,20 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
   useEffect(() => {
     const status = editor.story?.status;
     if (!status) return;
-    const presentation = getWorkflowPresentation(storyId, status);
+    const presentation = getWorkflowPresentation(storyKey, status);
     const routeMode = getWorkflowRouteMode(
       presentation,
-      `/admin/stories/${storyId}/edit`
+      `/admin/stories/${storyKey}/edit`
     );
 
     if (routeMode === 'redirect') {
       router.replace(presentation.canonicalHref);
     }
-  }, [editor.story?.status, router, storyId]);
+  }, [editor.story?.status, router, storyKey]);
 
   if (editor.loading) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <div className="space-y-6 animate-pulse">
           <div className="h-40 rounded-2xl bg-white/[0.05]" />
           <div className="h-72 rounded-2xl bg-white/[0.04]" />
@@ -56,7 +92,7 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
 
   if (!editor.story) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <EditorMessage
           title="Không thể tải truyện"
           detail={editor.error || undefined}
@@ -69,13 +105,13 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
   if (editor.story.status === 'generating_text') {
     return (
       <StoryWorkflowShell
-        storyId={storyId}
+        storyKey={storyKey}
         storyTitle={editor.story.title_vi || 'Truyện chưa đặt tên'}
         status={editor.story.status}
       >
         <EditorMessage
           title="Đang sinh nội dung song ngữ…"
-          detail={editor.error || 'Trang tự kiểm tra trạng thái sau mỗi 3 giây.'}
+          detail="Hệ thống đang sinh nội dung và bản dịch. Trạng thái sẽ tự động cập nhật."
         />
       </StoryWorkflowShell>
     );
@@ -83,7 +119,7 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
 
   if (editor.story.status === 'draft') {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <div className="h-40 animate-pulse rounded-2xl bg-white/[0.05]" />
       </StoryWorkflowShell>
     );
@@ -91,17 +127,18 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
 
   if (editor.story.status === 'archived') {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <EditorMessage title="Truyện đã được lưu trữ" />
       </StoryWorkflowShell>
     );
   }
 
-  if (!editor.text) {
+  const { text } = editor;
+  if (!text) {
     return (
-      <StoryWorkflowShell storyId={storyId}>
+      <StoryWorkflowShell storyKey={storyKey}>
         <EditorMessage
-          title="Không thể tải nội dung truyện"
+          title="Không có nội dung để hiển thị"
           detail={editor.error || undefined}
           onRetry={() => void editor.refresh()}
         />
@@ -109,7 +146,6 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
     );
   }
 
-  const text = editor.text;
   const editable = text.status === 'text_draft';
   const disabled = Boolean(
     editor.pending || editor.blocked || !editable || isConfirmingAndPreparing
@@ -129,7 +165,8 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
     const result = await orchestrateConfirmAndPrepare(
       storyId,
       text.text_revision,
-      acknowledge
+      acknowledge,
+      storyKey
     );
 
     if (result.kind === 'success' || result.kind === 'partial') {
@@ -167,7 +204,7 @@ export function StoryTextEditor({ storyId }: { storyId: number }) {
 
   return (
     <StoryWorkflowShell
-      storyId={storyId}
+      storyKey={storyKey}
       storyTitle={text.title_vi || 'Truyện chưa đặt tên'}
       status={text.status}
       actionBar={actionBar}

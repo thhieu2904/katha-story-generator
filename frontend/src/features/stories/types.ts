@@ -1,5 +1,8 @@
+export type StoryRouteKey = string & { readonly __brand: 'StoryRouteKey' };
+
 export interface Story {
   id: number;
+  route_key: StoryRouteKey;
   title_vi: string | null;
   title_km: string | null;
   description_vi: string;
@@ -19,6 +22,7 @@ export interface Story {
 
 export interface StoryListItem {
   id: number;
+  route_key: StoryRouteKey;
   title_vi: string | null;
   title_km: string | null;
   description_vi: string;

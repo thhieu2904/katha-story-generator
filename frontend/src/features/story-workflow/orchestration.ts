@@ -1,4 +1,4 @@
-import type { Story, StoryCreate } from '@/features/stories/types';
+import type { Story, StoryCreate, StoryRouteKey } from '@/features/stories/types';
 import { createStory, fetchStory, generateStoryText } from '@/features/stories/api';
 import { confirmStoryText } from '@/features/story-editor/api';
 import {
@@ -67,15 +67,17 @@ export async function orchestrateCreateAndGenerate(
   try {
     await generateStoryText(story.id);
     const updatedStory = await fetchStory(story.id).catch(() => story);
+    const routeKey = updatedStory.route_key || story.route_key;
     return {
       kind: 'success',
       canonical: updatedStory,
-      nextHref: `/admin/stories/${story.id}/edit`,
+      nextHref: `/admin/stories/${routeKey}/edit`,
     };
   } catch {
     // Generate failed — but story exists. Retry should only retry generate.
     try {
       const canonicalStory = await fetchStory(story.id);
+      const routeKey = canonicalStory.route_key || story.route_key;
       if (
         canonicalStory.status === 'generating_text' ||
         canonicalStory.status === 'text_draft'
@@ -83,7 +85,7 @@ export async function orchestrateCreateAndGenerate(
         return {
           kind: 'success',
           canonical: canonicalStory,
-          nextHref: `/admin/stories/${story.id}/edit`,
+          nextHref: `/admin/stories/${routeKey}/edit`,
         };
       }
       return {
@@ -91,7 +93,7 @@ export async function orchestrateCreateAndGenerate(
         canonical: canonicalStory,
         message:
           'Bản nháp đã được lưu thành công; quá trình sinh nội dung chưa khởi chạy.',
-        nextHref: `/admin/stories/${story.id}/setup`,
+        nextHref: `/admin/stories/${routeKey}/setup`,
       };
     } catch {
       return {
@@ -119,14 +121,15 @@ const CONFIRMED_STATUSES = new Set([
 export async function orchestrateConfirmAndPrepare(
   storyId: number,
   textRevision: number,
-  acknowledge: boolean
+  acknowledge: boolean,
+  storyKey?: StoryRouteKey,
 ): Promise<WorkflowTransitionResult<StoryImagesState>> {
   try {
     await confirmStoryText(storyId, textRevision, acknowledge);
   } catch (confirmErr) {
     // B3: Uncertain confirm — canonical reread before deciding.
     if (isUncertainError(confirmErr)) {
-      return reconcileAfterUncertainConfirm(storyId, textRevision, confirmErr);
+      return reconcileAfterUncertainConfirm(storyId, textRevision, confirmErr, storyKey);
     }
     // Definite (e.g. 422) — safe to show error, allow retry.
     return {
@@ -136,13 +139,14 @@ export async function orchestrateConfirmAndPrepare(
   }
 
   // Confirm succeeded — proceed to image plan.
-  return prepareImagePlanAfterConfirm(storyId, textRevision);
+  return prepareImagePlanAfterConfirm(storyId, textRevision, storyKey);
 }
 
 async function reconcileAfterUncertainConfirm(
   storyId: number,
   textRevision: number,
   originalErr: unknown,
+  storyKey?: StoryRouteKey,
 ): Promise<WorkflowTransitionResult<StoryImagesState>> {
   let canonicalStory: Story;
   try {
@@ -154,9 +158,11 @@ async function reconcileAfterUncertainConfirm(
     };
   }
 
+  const key = storyKey || canonicalStory.route_key;
+
   // Already confirmed or downstream — treat confirm as committed.
   if (CONFIRMED_STATUSES.has(canonicalStory.status)) {
-    return prepareImagePlanAfterConfirm(storyId, textRevision);
+    return prepareImagePlanAfterConfirm(storyId, textRevision, key);
   }
 
   // Still text_draft — confirm was NOT committed.
@@ -193,8 +199,20 @@ async function reconcileAfterUncertainConfirm(
 async function prepareImagePlanAfterConfirm(
   storyId: number,
   textRevision: number,
+  storyKey?: StoryRouteKey,
 ): Promise<WorkflowTransitionResult<StoryImagesState>> {
   let imagesState: StoryImagesState;
+  let key = storyKey;
+  if (!key) {
+    try {
+      const s = await fetchStory(storyId);
+      if (s && s.route_key) key = s.route_key;
+    } catch {
+      // ignore
+    }
+  }
+  const imagesHref = key ? `/admin/stories/${key}/images` : '/admin/stories';
+
   try {
     imagesState = await fetchStoryImages(storyId);
   } catch {
@@ -219,7 +237,7 @@ async function prepareImagePlanAfterConfirm(
       },
       message:
         'Nội dung đã được xác nhận thành công; đang tải lại không gian minh họa.',
-      nextHref: `/admin/stories/${storyId}/images`,
+      nextHref: imagesHref,
     };
   }
 
@@ -232,7 +250,7 @@ async function prepareImagePlanAfterConfirm(
     return {
       kind: 'success',
       canonical: planState,
-      nextHref: `/admin/stories/${storyId}/images`,
+      nextHref: imagesHref,
     };
   } catch {
     try {
@@ -245,7 +263,7 @@ async function prepareImagePlanAfterConfirm(
         return {
           kind: 'success',
           canonical: reconciledState,
-          nextHref: `/admin/stories/${storyId}/images`,
+          nextHref: imagesHref,
         };
       }
       return {
@@ -253,7 +271,7 @@ async function prepareImagePlanAfterConfirm(
         canonical: reconciledState,
         message:
           'Nội dung đã được xác nhận; kế hoạch minh họa chưa tạo được.',
-        nextHref: `/admin/stories/${storyId}/images`,
+        nextHref: imagesHref,
       };
     } catch {
       return {
@@ -261,7 +279,7 @@ async function prepareImagePlanAfterConfirm(
         canonical: imagesState,
         message:
           'Nội dung đã được xác nhận; không thể kiểm tra lại trạng thái kế hoạch minh họa.',
-        nextHref: `/admin/stories/${storyId}/images`,
+        nextHref: imagesHref,
       };
     }
   }
@@ -277,10 +295,21 @@ export async function orchestrateSaveAndStart(
   mappingPayload: StoryImageMappingInput[],
   currentRevision: number,
   currentState?: StoryImagesState | null,
-  onSaveCommit?: (saved: StoryImagesState) => void
+  onSaveCommit?: (saved: StoryImagesState) => void,
+  storyKey?: StoryRouteKey,
 ): Promise<SaveAndStartResult> {
   let targetRevision = currentRevision;
   let savedState: StoryImagesState | null = currentState || null;
+  let key = storyKey;
+  if (!key) {
+    try {
+      const s = await fetchStory(storyId);
+      if (s && s.route_key) key = s.route_key;
+    } catch {
+      // ignore
+    }
+  }
+  const imagesHref = key ? `/admin/stories/${key}/images` : '/admin/stories';
 
   if (currentState) {
     // Guard 1: Active generating_images && !job_stale -> DO NOT POST
@@ -343,7 +372,7 @@ export async function orchestrateSaveAndStart(
               status: 'generating_images',
               progress: reconciled.progress,
             },
-            nextHref: `/admin/stories/${storyId}/images`,
+            nextHref: imagesHref,
           };
         }
 
@@ -356,6 +385,9 @@ export async function orchestrateSaveAndStart(
         ) {
           targetRevision = reconciled.image_plan_revision;
           savedState = reconciled;
+          if (onSaveCommit) {
+            onSaveCommit(reconciled);
+          }
         } else if (reconciled.can_retry || reconciled.can_resume) {
           // Recovery action — route canonical, don't start fresh.
           return {
@@ -367,7 +399,7 @@ export async function orchestrateSaveAndStart(
               progress: reconciled.progress,
             },
             message: 'Trạng thái đã thay đổi. Hãy kiểm tra lại trước khi tiếp tục.',
-            nextHref: `/admin/stories/${storyId}/images`,
+            nextHref: imagesHref,
           };
         } else if (reconciled.mapping_locked) {
           // Mapping locked (downstream) — don't POST.
@@ -380,7 +412,7 @@ export async function orchestrateSaveAndStart(
               progress: reconciled.progress,
             },
             message: 'Lựa chọn nhân vật đã bị khóa. Hãy kiểm tra lại trạng thái.',
-            nextHref: `/admin/stories/${storyId}/images`,
+            nextHref: imagesHref,
           };
         } else {
           // Mapping mismatch — keep local draft, show conflict.
@@ -418,7 +450,7 @@ export async function orchestrateSaveAndStart(
     return {
       kind: 'success',
       canonical: startRes,
-      nextHref: `/admin/stories/${storyId}/images`,
+      nextHref: imagesHref,
       savedState: savedState !== currentState ? savedState ?? undefined : undefined,
     };
   } catch {
@@ -433,7 +465,7 @@ export async function orchestrateSaveAndStart(
             status: 'generating_images',
             progress: reconciledState.progress,
           },
-          nextHref: `/admin/stories/${storyId}/images`,
+          nextHref: imagesHref,
           savedState: savedState !== currentState ? savedState ?? undefined : undefined,
         };
       }
@@ -448,7 +480,7 @@ export async function orchestrateSaveAndStart(
         },
         message:
           'Lựa chọn nhân vật đã lưu, quá trình tạo ảnh chưa bắt đầu.',
-        nextHref: `/admin/stories/${storyId}/images`,
+        nextHref: imagesHref,
         savedState: savedState !== currentState ? savedState ?? undefined : undefined,
       };
     } catch {

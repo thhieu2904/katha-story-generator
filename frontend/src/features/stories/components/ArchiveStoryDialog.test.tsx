@@ -4,7 +4,7 @@ import React from 'react';
 import { ArchiveStoryDialog } from './ArchiveStoryDialog';
 import { archiveStory, fetchStory } from '../api';
 import { ApiError } from '@/lib/api';
-import type { Story } from '../types';
+import type { Story, StoryRouteKey } from '../types';
 
 vi.mock('../api', () => ({
   archiveStory: vi.fn(),
@@ -17,6 +17,7 @@ const mockedFetchStory = vi.mocked(fetchStory);
 function makeStory(status: string): Story {
   return {
     id: 10,
+    route_key: 's1_UkLWZg9D' as StoryRouteKey,
     title_vi: 'Test',
     title_km: null,
     description_vi: 'test',
