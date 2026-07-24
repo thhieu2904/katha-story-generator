@@ -32,3 +32,17 @@
     opacity: 0.6;
   }
 }
+
+/* Mobile compact breakpoint: width < 768px OR height < 600px */
+@layer utilities {
+  @media (max-width: 767px), (max-height: 599px) {
+    .hide-on-mobile-compact {
+      display: none !important;
+    }
+  }
+  @media (min-width: 768px) and (min-height: 600px) {
+    .show-only-on-mobile-compact {
+      display: none !important;
+    }
+  }
+}

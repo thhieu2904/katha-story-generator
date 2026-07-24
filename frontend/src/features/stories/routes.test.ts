@@ -8,13 +8,13 @@ import {
 describe('story workflow routes', () => {
   it.each([
     ['draft', '/admin/stories/42/setup', 'Tiếp tục thiết lập'],
-    ['generating_text', '/admin/stories/42/edit', 'Xem trạng thái'],
+    ['generating_text', '/admin/stories/42/edit', 'Xem tiến độ nội dung'],
     ['text_draft', '/admin/stories/42/edit', 'Tiếp tục biên tập'],
     ['text_confirmed', '/admin/stories/42/images', 'Chuẩn bị minh họa'],
     ['generating_images', '/admin/stories/42/images', 'Xem tiến độ ảnh'],
-    ['pending_review', '/admin/stories/42/images', 'Xem minh họa'],
-    ['approved', '/admin/stories/42/images', 'Xem minh họa'],
-    ['published', '/admin/stories/42/images', 'Xem minh họa'],
+    ['pending_review', '/admin/stories/42/images', 'Sẵn sàng duyệt'],
+    ['approved', '/admin/stories/42/images', 'Đã duyệt'],
+    ['published', '/admin/stories/42/images', 'Quản lý chia sẻ'],
     ['archived', '/admin/stories', 'Xem truyện'],
   ])('routes %s to its canonical workspace', (status, href, label) => {
     expect(getStoryWorkflowHref(42, status)).toBe(href);

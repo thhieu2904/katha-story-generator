@@ -40,7 +40,7 @@ function imageState(overrides: Partial<StoryImagesState> = {}): StoryImagesState
 }
 
 function hookState(
-  overrides: Partial<ReturnType<typeof useStoryImages>> = {},
+  overrides: Partial<ReturnType<typeof useStoryImages>> = {}
 ): ReturnType<typeof useStoryImages> {
   return {
     imageState: imageState(),
@@ -53,12 +53,13 @@ function hookState(
     pending: null,
     blocked: false,
     redirectHref: null,
+    activePage: null,
     canPreparePlan: false,
     canEditMapping: true,
     refresh: vi.fn().mockResolvedValue(undefined),
     updatePageCharacters: vi.fn(),
     preparePlan: vi.fn().mockResolvedValue(false),
-    saveMapping: vi.fn().mockResolvedValue(false),
+    saveMapping: vi.fn().mockResolvedValue(null),
     startGeneration: vi.fn().mockResolvedValue(false),
     ...overrides,
   };
@@ -75,7 +76,7 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
       mockedUseStoryImages.mockReturnValue(hookState());
       const { rerender } = render(<StoryImageWorkspace storyId={10} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu sinh ảnh' }));
+      fireEvent.click(screen.getByRole('button', { name: /Bắt đầu sinh/i }));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
 
       const refresh = vi.fn().mockResolvedValue(undefined);
@@ -84,13 +85,13 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
           blocked: true,
           error: 'Chưa thể đối soát trạng thái mới nhất.',
           refresh,
-        }),
+        })
       );
       rerender(<StoryImageWorkspace storyId={10} />);
       fireEvent.click(
         within(screen.getByRole('dialog')).getByRole('button', {
           name: 'Kiểm tra lại trạng thái',
-        }),
+        })
       );
       expect(refresh).toHaveBeenCalledOnce();
 
@@ -105,21 +106,21 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
                 ? { total: 1, pending: 0, generating: 1, completed: 0, failed: 0 }
                 : { total: 1, pending: 0, generating: 0, completed: 1, failed: 0 },
           }),
-        }),
+        })
       );
       rerender(<StoryImageWorkspace storyId={10} />);
 
       await waitFor(() => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
-    },
+    }
   );
 
   it('updates an open dialog to the canonical retry action', async () => {
     mockedUseStoryImages.mockReturnValue(hookState());
     const { rerender } = render(<StoryImageWorkspace storyId={10} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu sinh ảnh' }));
+    fireEvent.click(screen.getByRole('button', { name: /Bắt đầu sinh/i }));
 
     mockedUseStoryImages.mockReturnValue(
       hookState({
@@ -129,12 +130,12 @@ describe('StoryImageWorkspace generation dialog reconciliation', () => {
           can_retry: true,
           progress: { total: 2, pending: 0, generating: 0, completed: 1, failed: 1 },
         }),
-      }),
+      })
     );
     rerender(<StoryImageWorkspace storyId={10} />);
 
     expect(
-      await screen.findByRole('heading', { name: 'Thử lại các trang còn thiếu' }),
+      await screen.findByRole('heading', { name: 'Thử lại các trang còn thiếu' })
     ).toBeInTheDocument();
   });
 });

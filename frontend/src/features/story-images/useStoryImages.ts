@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchStory } from '@/features/stories/api';
 import {
-  getStoryWorkflowHref,
-  isImageWorkflowStatus,
-} from '@/features/stories/routes';
+  getWorkflowPresentation,
+  getWorkflowRouteMode,
+} from '@/features/story-workflow/workflow';
 import { ApiError } from '@/lib/api';
 import {
   createImagePlan,
@@ -88,10 +88,16 @@ export function useStoryImages(storyId: number) {
 
   const loadWorkspace = useCallback(async (): Promise<StoryImagesState | null> => {
     const story = await fetchStory(storyId);
-    if (!isImageWorkflowStatus(story.status)) {
-      const workflowHref = getStoryWorkflowHref(storyId, story.status);
+    const presentation = getWorkflowPresentation(storyId, story.status);
+    const routeMode = getWorkflowRouteMode(
+      presentation,
+      `/admin/stories/${storyId}/images`
+    );
+
+    if (routeMode === 'redirect') {
+      const workflowHref = presentation.canonicalHref;
       setRedirectHref(
-        story.status === 'archived' ? `${workflowHref}?notice=archived` : workflowHref,
+        story.status === 'archived' ? `${workflowHref}?notice=archived` : workflowHref
       );
       return null;
     }
@@ -103,10 +109,15 @@ export function useStoryImages(storyId: number) {
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 409) {
         const latestStory = await fetchStory(storyId);
-        if (!isImageWorkflowStatus(latestStory.status)) {
-          const workflowHref = getStoryWorkflowHref(storyId, latestStory.status);
+        const latestPres = getWorkflowPresentation(storyId, latestStory.status);
+        const latestRouteMode = getWorkflowRouteMode(
+          latestPres,
+          `/admin/stories/${storyId}/images`
+        );
+        if (latestRouteMode === 'redirect') {
+          const workflowHref = latestPres.canonicalHref;
           setRedirectHref(
-            latestStory.status === 'archived' ? `${workflowHref}?notice=archived` : workflowHref,
+            latestStory.status === 'archived' ? `${workflowHref}?notice=archived` : workflowHref
           );
           return null;
         }
@@ -136,31 +147,46 @@ export function useStoryImages(storyId: number) {
     return () => clearTimeout(timer);
   }, [refresh]);
 
-  const reconcileAfterUncertainMutation = useCallback(async (
-    reason: unknown,
-    fallback: string,
-  ): Promise<StoryImagesState | null> => {
-    try {
-      const canonical = await loadWorkspace();
-      setBlocked(false);
-      setError(
-        reason instanceof ApiError && reason.status === 409
-          ? 'Dữ liệu minh họa vừa được cập nhật. Trạng thái mới nhất đã được tải lại.'
-          : `${messageFromReason(reason, fallback)} Trạng thái mới nhất đã được tải lại.`,
-      );
-      return canonical;
-    } catch {
-      setBlocked(true);
-      setError('Chưa thể đối soát trạng thái mới nhất. Hãy kiểm tra lại trước khi gửi thao tác khác.');
-      return null;
-    }
+  // Foreground tab return refresh
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void loadWorkspace().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [loadWorkspace]);
 
+  const reconcileAfterUncertainMutation = useCallback(
+    async (
+      reason: unknown,
+      fallback: string
+    ): Promise<StoryImagesState | null> => {
+      try {
+        const canonical = await loadWorkspace();
+        setBlocked(false);
+        setError(
+          reason instanceof ApiError && reason.status === 409
+            ? 'Dữ liệu minh họa vừa được cập nhật. Trạng thái mới nhất đã được tải lại.'
+            : `${messageFromReason(reason, fallback)} Trạng thái mới nhất đã được tải lại.`
+        );
+        return canonical;
+      } catch {
+        setBlocked(true);
+        setError(
+          'Chưa thể đối soát trạng thái mới nhất. Hãy kiểm tra lại trước khi gửi thao tác khác.'
+        );
+        return null;
+      }
+    },
+    [loadWorkspace]
+  );
+
   useEffect(() => {
-    if (
-      imageState?.status !== 'generating_images' ||
-      imageState.job_stale
-    ) {
+    if (imageState?.status !== 'generating_images' || imageState.job_stale) {
       return;
     }
 
@@ -192,7 +218,9 @@ export function useStoryImages(storyId: number) {
               scheduleNextPoll();
             }
           } catch (reconcileReason) {
-            setPollError(messageFromReason(reconcileReason, 'Không thể kiểm tra tiến độ ảnh.'));
+            setPollError(
+              messageFromReason(reconcileReason, 'Không thể kiểm tra tiến độ ảnh.')
+            );
             scheduleNextPoll();
           }
           return;
@@ -215,17 +243,22 @@ export function useStoryImages(storyId: number) {
     };
   }, [imageState?.job_stale, imageState?.status, installCanonicalState, loadWorkspace, storyId]);
 
-  const updatePageCharacters = useCallback((pageId: number, characterIds: number[]) => {
-    if (!imageState || imageState.mapping_locked || pending || blocked) return;
-    const allowedIds = new Set(imageState.available_characters.map((character) => character.id));
-    const next = {
-      ...draftMappingsRef.current,
-      [pageId]: normalizeCharacterIds(characterIds, allowedIds),
-    };
-    draftMappingsRef.current = next;
-    setDraftMappings(next);
-    setMappingDirty(!mappingsMatch(imageState, next));
-  }, [blocked, imageState, pending]);
+  const updatePageCharacters = useCallback(
+    (pageId: number, characterIds: number[]) => {
+      if (!imageState || imageState.mapping_locked || pending || blocked) return;
+      const allowedIds = new Set(
+        imageState.available_characters.map((character) => character.id)
+      );
+      const next = {
+        ...draftMappingsRef.current,
+        [pageId]: normalizeCharacterIds(characterIds, allowedIds),
+      };
+      draftMappingsRef.current = next;
+      setDraftMappings(next);
+      setMappingDirty(!mappingsMatch(imageState, next));
+    },
+    [blocked, imageState, pending]
+  );
 
   const preparePlan = useCallback(async (): Promise<boolean> => {
     if (
@@ -246,10 +279,12 @@ export function useStoryImages(storyId: number) {
       const canonical = await createImagePlan(
         storyId,
         imageState.text_revision,
-        imageState.image_plan_revision,
+        imageState.image_plan_revision
       );
       installCanonicalState(canonical);
-      setNotice('Đã tạo kế hoạch minh họa. Hãy kiểm tra mapping nhân vật trước khi bắt đầu.');
+      setNotice(
+        'Đã tạo kế hoạch minh họa. Hãy kiểm tra lựa chọn nhân vật trước khi bắt đầu.'
+      );
       return true;
     } catch (reason) {
       if (needsCanonicalReconcile(reason)) {
@@ -263,7 +298,7 @@ export function useStoryImages(storyId: number) {
     }
   }, [blocked, imageState, installCanonicalState, pending, reconcileAfterUncertainMutation, storyId]);
 
-  const saveMapping = useCallback(async (): Promise<boolean> => {
+  const saveMapping = useCallback(async (): Promise<StoryImagesState | null> => {
     if (
       !imageState ||
       pending ||
@@ -272,7 +307,7 @@ export function useStoryImages(storyId: number) {
       !imageState.image_plan_ready ||
       !mappingDirty
     ) {
-      return false;
+      return imageState;
     }
 
     const pages = mappingPayload(imageState, draftMappingsRef.current);
@@ -283,81 +318,88 @@ export function useStoryImages(storyId: number) {
       const canonical = await saveImagePlanMapping(
         storyId,
         imageState.image_plan_revision,
-        pages,
+        pages
       );
       installCanonicalState(canonical);
-      setNotice('Đã lưu mapping nhân vật cho toàn bộ trang.');
-      return true;
+      setNotice('Đã lưu lựa chọn nhân vật cho toàn bộ trang.');
+      return canonical;
     } catch (reason) {
       if (needsCanonicalReconcile(reason)) {
-        await reconcileAfterUncertainMutation(reason, 'Không thể lưu mapping nhân vật.');
+        await reconcileAfterUncertainMutation(reason, 'Không thể lưu lựa chọn nhân vật.');
       } else {
-        setError(messageFromReason(reason, 'Không thể lưu mapping nhân vật.'));
+        setError(messageFromReason(reason, 'Không thể lưu lựa chọn nhân vật.'));
       }
-      return false;
+      return null;
     } finally {
       setPending(null);
     }
   }, [blocked, imageState, installCanonicalState, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]);
 
-  const startGeneration = useCallback(async (): Promise<boolean> => {
-    if (
-      !imageState ||
-      pending ||
-      blocked ||
-      mappingDirty ||
-      !(imageState.can_start || imageState.can_retry || imageState.can_resume)
-    ) {
-      return false;
-    }
+  const startGeneration = useCallback(
+    async (overrideRevision?: number): Promise<boolean> => {
+      if (
+        !imageState ||
+        pending ||
+        blocked ||
+        mappingDirty ||
+        !(imageState.can_start || imageState.can_retry || imageState.can_resume)
+      ) {
+        return false;
+      }
 
-    setPending('start');
-    setError(null);
-    setNotice(null);
-    try {
-      const result = await startImageGeneration(storyId, imageState.image_plan_revision);
+      const revision = overrideRevision ?? imageState.image_plan_revision;
+      setPending('start');
+      setError(null);
+      setNotice(null);
       try {
-        const canonical = await fetchStoryImages(storyId);
-        installCanonicalState(canonical);
+        const result = await startImageGeneration(storyId, revision);
+        try {
+          const canonical = await fetchStoryImages(storyId);
+          installCanonicalState(canonical);
+        } catch (reason) {
+          const canonical = await reconcileAfterUncertainMutation(
+            reason,
+            'Không thể đọc lại tiến độ sau khi bắt đầu sinh ảnh.'
+          );
+          return canonical?.status === 'generating_images';
+        }
+        setNotice(
+          result.already_running
+            ? 'Một quá trình tạo ảnh đang chạy. Đã tải lại tiến độ mới nhất.'
+            : 'Đã bắt đầu sinh ảnh. Tiến độ sẽ tự cập nhật sau mỗi 3 giây.'
+        );
+        return true;
       } catch (reason) {
-        const canonical = await reconcileAfterUncertainMutation(
-          reason,
-          'Không thể đọc lại tiến độ sau khi bắt đầu sinh ảnh.',
-        );
-        return canonical?.status === 'generating_images';
+        if (needsCanonicalReconcile(reason)) {
+          const canonical = await reconcileAfterUncertainMutation(
+            reason,
+            'Không thể xác nhận yêu cầu sinh ảnh.'
+          );
+          return canonical?.status === 'generating_images';
+        }
+        setError(messageFromReason(reason, 'Không thể bắt đầu sinh ảnh.'));
+        return false;
+      } finally {
+        setPending(null);
       }
-      setNotice(
-        result.already_running
-          ? 'Một job sinh ảnh đang chạy. Đã tải lại tiến độ mới nhất.'
-          : 'Đã bắt đầu sinh ảnh. Tiến độ sẽ tự cập nhật sau mỗi 3 giây.',
-      );
-      return true;
-    } catch (reason) {
-      if (needsCanonicalReconcile(reason)) {
-        const canonical = await reconcileAfterUncertainMutation(
-          reason,
-          'Không thể xác nhận yêu cầu sinh ảnh.',
-        );
-        return canonical?.status === 'generating_images';
-      }
-      setError(messageFromReason(reason, 'Không thể bắt đầu sinh ảnh.'));
-      return false;
-    } finally {
-      setPending(null);
-    }
-  }, [blocked, imageState, installCanonicalState, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]);
+    },
+    [blocked, imageState, installCanonicalState, mappingDirty, pending, reconcileAfterUncertainMutation, storyId]
+  );
+
+  const activePage =
+    imageState?.pages?.find((p) => p.image_status === 'generating') || null;
 
   const canPreparePlan = Boolean(
     imageState &&
       imageState.status === 'text_confirmed' &&
       !imageState.image_plan_ready &&
-      !imageState.mapping_locked,
+      !imageState.mapping_locked
   );
   const canEditMapping = Boolean(
     imageState &&
       imageState.status === 'text_confirmed' &&
       imageState.image_plan_ready &&
-      !imageState.mapping_locked,
+      !imageState.mapping_locked
   );
 
   return {
@@ -371,6 +413,7 @@ export function useStoryImages(storyId: number) {
     pending,
     blocked,
     redirectHref,
+    activePage,
     canPreparePlan,
     canEditMapping,
     refresh,

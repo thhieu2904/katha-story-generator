@@ -9,11 +9,13 @@ import { TARGET_AGE_OPTIONS, LENGTH_PREF_OPTIONS, STATUS_LABELS } from '../const
 
 interface StorySetupFormProps {
   story?: Story;
-  onSubmit: (data: StoryCreate) => Promise<void>;
+  onSubmit?: (data: StoryCreate) => Promise<void>;
   onGenerate?: (data: StoryCreate) => Promise<void>;
-  isSubmitting: boolean;
+  isSubmitting?: boolean;
   isGenerating?: boolean;
   isBlocked?: boolean;
+  hideFooterButtons?: boolean;
+  onFormChange?: (data: StoryCreate, isValid: boolean) => void;
 }
 
 interface FormState {
@@ -38,6 +40,7 @@ function Thumbnail({ src, alt, kind }: ThumbnailProps) {
 
   if (hasImage) {
     return (
+      /* eslint-disable-next-line @next/next/no-img-element */
       <img
         src={src as string}
         alt={alt}
@@ -56,11 +59,28 @@ function Thumbnail({ src, alt, kind }: ThumbnailProps) {
       role="img"
       aria-label={alt}
     >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0"
+      />
     </svg>
   ) : (
-    <svg className="h-8 w-8 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" role="img" aria-label={alt}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42" />
+    <svg
+      className="h-8 w-8 text-white/20"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      role="img"
+      aria-label={alt}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"
+      />
     </svg>
   );
 }
@@ -69,9 +89,11 @@ export function StorySetupForm({
   story,
   onSubmit,
   onGenerate,
-  isSubmitting,
+  isSubmitting = false,
   isGenerating = false,
   isBlocked = false,
+  hideFooterButtons = false,
+  onFormChange,
 }: StorySetupFormProps) {
   const [configs, setConfigs] = useState<{
     backbones: Backbone[];
@@ -92,8 +114,9 @@ export function StorySetupForm({
     length_pref: story?.length_pref || LENGTH_PREF_OPTIONS[0].value,
   });
 
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const [requestId, setRequestId] = useState(0);
 
   useEffect(() => {
@@ -102,38 +125,55 @@ export function StorySetupForm({
     const doFetch = async () => {
       try {
         const [backbones, genres, artStyles, characters] = await Promise.all([
-          fetchBackbones(), fetchGenres(), fetchArtStyles(), fetchCharacters(),
+          fetchBackbones(),
+          fetchGenres(),
+          fetchArtStyles(),
+          fetchCharacters(),
         ]);
         if (!active) return;
         setConfigs({ backbones, genres, artStyles, characters });
         setError(null);
-        // If creating new, set default selections
         if (!story) {
-          setForm(prev => ({
+          setForm((prev) => ({
             ...prev,
-            backbone_id: backbones[0]?.id || 0,
-            genre_id: genres[0]?.id || 0,
-            art_style_id: artStyles[0]?.id || 0,
+            backbone_id: prev.backbone_id || backbones[0]?.id || 0,
+            genre_id: prev.genre_id || genres[0]?.id || 0,
+            art_style_id: prev.art_style_id || artStyles[0]?.id || 0,
           }));
         }
       } catch (err) {
         if (!active) return;
         setError(err instanceof Error ? err.message : 'Lỗi tải cấu hình');
         setConfigs(null);
+      } finally {
+        if (active) setFetched(true);
       }
     };
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- data-fetching effect
+    doFetch();
+
+    return () => {
+      active = false;
+    };
+  }, [requestId, story]);
+
+  useEffect(() => {
+    if (onFormChange) {
+      const isValid =
+        form.description_vi.trim().length >= 10 &&
+        form.character_ids.length >= 2 &&
+        form.character_ids.length <= 3 &&
+        form.backbone_id > 0 &&
+        form.genre_id > 0 &&
+        form.art_style_id > 0;
+      onFormChange(form, isValid);
+    }
+  }, [form, onFormChange]);
+
+  const retryLoadConfigs = () => {
     setFetched(false);
-    doFetch().finally(() => {
-      if (active) setFetched(true);
-    });
-
-    return () => { active = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestId]);
-
-  const retryLoadConfigs = () => setRequestId(n => n + 1);
+    setRequestId((n) => n + 1);
+  };
 
   const isReadOnly = Boolean(story && story.status !== 'draft');
   const isBusy = isSubmitting || isGenerating || isBlocked;
@@ -141,10 +181,13 @@ export function StorySetupForm({
 
   const toggleCharacter = (id: number) => {
     if (controlsDisabled) return;
-    setForm(prev => {
+    setForm((prev) => {
       const isSelected = prev.character_ids.includes(id);
       if (isSelected) {
-        return { ...prev, character_ids: prev.character_ids.filter(cId => cId !== id) };
+        return {
+          ...prev,
+          character_ids: prev.character_ids.filter((cId) => cId !== id),
+        };
       }
       if (prev.character_ids.length >= 3) return prev;
       return { ...prev, character_ids: [...prev.character_ids, id] };
@@ -169,18 +212,12 @@ export function StorySetupForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (controlsDisabled) return;
+    if (controlsDisabled || !onSubmit) return;
     if (validate()) {
       void onSubmit(form);
     }
   };
 
-  const handleGenerate = () => {
-    if (controlsDisabled || !onGenerate) return;
-    if (validate()) {
-      void onGenerate(form);
-    }
-  };
   if (!fetched) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -208,21 +245,24 @@ export function StorySetupForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-10">
+    <form id="story-setup-form" onSubmit={handleSubmit} className="space-y-10">
       {isReadOnly && (
         <div className="rounded-2xl border border-katha-primary/25 bg-katha-primary/10 p-4 text-center">
           <p className="text-katha-primary-light font-medium">
-            Truyện này đang ở trạng thái <strong>{STATUS_LABELS[story?.status || ''] || story?.status}</strong> nên không thể chỉnh sửa thiết lập.
+            Truyện này đang ở trạng thái{' '}
+            <strong>{STATUS_LABELS[story?.status || ''] || story?.status}</strong> nên không thể chỉnh sửa thiết lập.
           </p>
         </div>
       )}
 
       {/* Description */}
       <section>
-        <label className="block text-sm font-medium mb-3">
+        <label htmlFor="description_vi" className="block text-sm font-medium mb-3">
           Chủ đề / Mô tả câu chuyện <span className="text-katha-error">*</span>
         </label>
         <textarea
+          id="description_vi"
+          aria-describedby={validationErrors.description_vi ? 'err-description_vi' : undefined}
           value={form.description_vi}
           onChange={(e) => setForm({ ...form, description_vi: e.target.value })}
           disabled={controlsDisabled}
@@ -230,7 +270,9 @@ export function StorySetupForm({
           className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-white/30 transition focus:border-katha-primary focus:outline-none focus:ring-1 focus:ring-katha-primary disabled:opacity-50 min-h-[120px]"
         />
         {validationErrors.description_vi && (
-          <p className="mt-2 text-xs text-katha-error">{validationErrors.description_vi}</p>
+          <p id="err-description_vi" className="mt-2 text-xs text-katha-error">
+            {validationErrors.description_vi}
+          </p>
         )}
       </section>
 
@@ -242,21 +284,41 @@ export function StorySetupForm({
           </label>
           <span className="text-xs text-white/50">Đã chọn {form.character_ids.length}/3</span>
         </div>
-        {configs.characters.length === 0 && (<p className="text-sm text-white/40 italic py-8 text-center">Chưa có nhân vật. <a href="/admin/characters" className="text-katha-primary hover:underline">Quản lý nhân vật →</a></p>)}
+        {configs.characters.length === 0 && (
+          <p className="text-sm text-white/40 italic py-8 text-center">
+            Chưa có nhân vật.{' '}
+            <a href="/admin/characters" className="text-katha-primary hover:underline">
+              Quản lý nhân vật →
+            </a>
+          </p>
+        )}
         {configs.characters.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div
+            className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+            aria-describedby={validationErrors.character_ids ? 'err-character_ids' : undefined}
+          >
             {configs.characters.map((char) => {
               const isSelected = form.character_ids.includes(char.id);
               const isDisabled = controlsDisabled || (!isSelected && form.character_ids.length >= 3);
               return (
-                <div
+                <label
                   key={char.id}
-                  onClick={() => toggleCharacter(char.id)}
-                  className={`relative cursor-pointer overflow-hidden rounded-xl border transition
-                    ${isSelected ? 'border-katha-primary bg-katha-primary/10 ring-1 ring-katha-primary' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}
+                  className={`relative cursor-pointer overflow-hidden rounded-xl border transition flex flex-col focus-within:ring-2 focus-within:ring-katha-primary
+                    ${
+                      isSelected
+                        ? 'border-katha-primary bg-katha-primary/10 ring-1 ring-katha-primary'
+                        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                    }
                     ${isDisabled && !isSelected ? 'opacity-40 cursor-not-allowed' : ''}
                   `}
                 >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleCharacter(char.id)}
+                    disabled={isDisabled}
+                    className="sr-only"
+                  />
                   <div className="aspect-[3/4] w-full bg-white/5 flex items-center justify-center">
                     <Thumbnail
                       key={char.ref_image_urls?.[0] || 'no-character-image'}
@@ -268,28 +330,40 @@ export function StorySetupForm({
                   <div className="p-2 text-center">
                     <p className="text-xs font-medium truncate">{char.name}</p>
                   </div>
-                </div>
+                </label>
               );
             })}
           </div>
         )}
         {validationErrors.character_ids && (
-          <p className="mt-2 text-xs text-katha-error">{validationErrors.character_ids}</p>
+          <p id="err-character_ids" className="mt-2 text-xs text-katha-error">
+            {validationErrors.character_ids}
+          </p>
         )}
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Backbone */}
         <section>
-          <label className="block text-sm font-medium mb-3">Cấu trúc truyện <span className="text-katha-error">*</span></label>
-          {configs.backbones.length === 0 && (<p className="text-sm text-white/40 italic py-4 text-center">Chưa có cấu trúc truyện. Liên hệ admin để seed dữ liệu.</p>)}
+          <label className="block text-sm font-medium mb-3">
+            Cấu trúc truyện <span className="text-katha-error">*</span>
+          </label>
+          {configs.backbones.length === 0 && (
+            <p className="text-sm text-white/40 italic py-4 text-center">
+              Chưa có cấu trúc truyện.
+            </p>
+          )}
           {configs.backbones.length > 0 && (
             <div className="space-y-3">
               {configs.backbones.map((bb) => (
                 <label
                   key={bb.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition
-                    ${form.backbone_id === bb.id ? 'border-katha-primary bg-katha-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'}
+                    ${
+                      form.backbone_id === bb.id
+                        ? 'border-katha-primary bg-katha-primary/10'
+                        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
+                    }
                     ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                   `}
                 >
@@ -298,7 +372,9 @@ export function StorySetupForm({
                     name="backbone"
                     value={bb.id}
                     checked={form.backbone_id === bb.id}
-                    onChange={() => !controlsDisabled && setForm({ ...form, backbone_id: bb.id })}
+                    onChange={() =>
+                      !controlsDisabled && setForm({ ...form, backbone_id: bb.id })
+                    }
                     disabled={controlsDisabled}
                     className="mt-1 h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                   />
@@ -317,15 +393,25 @@ export function StorySetupForm({
 
         {/* Genre */}
         <section>
-          <label className="block text-sm font-medium mb-3">Thể loại <span className="text-katha-error">*</span></label>
-          {configs.genres.length === 0 && (<p className="text-sm text-white/40 italic py-4 text-center">Chưa có thể loại. Liên hệ admin để seed dữ liệu.</p>)}
+          <label className="block text-sm font-medium mb-3">
+            Thể loại <span className="text-katha-error">*</span>
+          </label>
+          {configs.genres.length === 0 && (
+            <p className="text-sm text-white/40 italic py-4 text-center">
+              Chưa có thể loại.
+            </p>
+          )}
           {configs.genres.length > 0 && (
             <div className="space-y-3">
               {configs.genres.map((genre) => (
                 <label
                   key={genre.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition
-                    ${form.genre_id === genre.id ? 'border-katha-primary bg-katha-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'}
+                    ${
+                      form.genre_id === genre.id
+                        ? 'border-katha-primary bg-katha-primary/10'
+                        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
+                    }
                     ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                   `}
                 >
@@ -334,7 +420,9 @@ export function StorySetupForm({
                     name="genre"
                     value={genre.id}
                     checked={form.genre_id === genre.id}
-                    onChange={() => !controlsDisabled && setForm({ ...form, genre_id: genre.id })}
+                    onChange={() =>
+                      !controlsDisabled && setForm({ ...form, genre_id: genre.id })
+                    }
                     disabled={controlsDisabled}
                     className="mt-1 h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                   />
@@ -354,32 +442,56 @@ export function StorySetupForm({
 
       {/* Art Style */}
       <section>
-        <label className="block text-sm font-medium mb-3">Phong cách ảnh <span className="text-katha-error">*</span></label>
-        {configs.artStyles.length === 0 && (<p className="text-sm text-white/40 italic py-4 text-center">Chưa có phong cách ảnh. Liên hệ admin để seed dữ liệu.</p>)}
+        <label className="block text-sm font-medium mb-3">
+          Phong cách ảnh <span className="text-katha-error">*</span>
+        </label>
+        {configs.artStyles.length === 0 && (
+          <p className="text-sm text-white/40 italic py-4 text-center">
+            Chưa có phong cách ảnh.
+          </p>
+        )}
         {configs.artStyles.length > 0 && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {configs.artStyles.map((style) => (
-              <div
-                key={style.id}
-                onClick={() => !controlsDisabled && setForm({ ...form, art_style_id: style.id })}
-                className={`relative cursor-pointer overflow-hidden rounded-xl border transition
-                  ${form.art_style_id === style.id ? 'border-katha-primary bg-katha-primary/10 ring-1 ring-katha-primary' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}
-                  ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
-                `}
-              >
-                <div className="aspect-[4/3] w-full bg-white/5 flex items-center justify-center">
-                  <Thumbnail
-                    key={style.sample_image_url || 'no-art-style-image'}
-                    src={style.sample_image_url}
-                    alt={style.name_vi}
-                    kind="art-style"
+            {configs.artStyles.map((style) => {
+              const isSelected = form.art_style_id === style.id;
+              return (
+                <label
+                  key={style.id}
+                  className={`relative cursor-pointer overflow-hidden rounded-xl border transition flex flex-col focus-within:ring-2 focus-within:ring-katha-primary
+                    ${
+                      isSelected
+                        ? 'border-katha-primary bg-katha-primary/10 ring-1 ring-katha-primary'
+                        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                    }
+                    ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
+                  `}
+                >
+                  <input
+                    type="radio"
+                    name="art_style"
+                    value={style.id}
+                    checked={isSelected}
+                    onChange={() =>
+                      !controlsDisabled &&
+                      setForm({ ...form, art_style_id: style.id })
+                    }
+                    disabled={controlsDisabled}
+                    className="sr-only"
                   />
-                </div>
-                <div className="p-3">
-                  <p className="text-sm font-medium">{style.name_vi}</p>
-                </div>
-              </div>
-            ))}
+                  <div className="aspect-[4/3] w-full bg-white/5 flex items-center justify-center">
+                    <Thumbnail
+                      key={style.sample_image_url || 'no-art-style-image'}
+                      src={style.sample_image_url}
+                      alt={style.name_vi}
+                      kind="art-style"
+                    />
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-medium">{style.name_vi}</p>
+                  </div>
+                </label>
+              );
+            })}
           </div>
         )}
         {validationErrors.art_style_id && (
@@ -390,7 +502,9 @@ export function StorySetupForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
         {/* Target Age */}
         <section>
-          <label className="block text-sm font-medium mb-3">Nhóm tuổi <span className="text-katha-error">*</span></label>
+          <label className="block text-sm font-medium mb-3">
+            Nhóm tuổi <span className="text-katha-error">*</span>
+          </label>
           <div className="flex flex-col gap-2">
             {TARGET_AGE_OPTIONS.map((opt) => (
               <label key={opt.value} className="flex items-center gap-3">
@@ -399,7 +513,9 @@ export function StorySetupForm({
                   name="target_age"
                   value={opt.value}
                   checked={form.target_age === opt.value}
-                  onChange={() => !controlsDisabled && setForm({ ...form, target_age: opt.value })}
+                  onChange={() =>
+                    !controlsDisabled && setForm({ ...form, target_age: opt.value })
+                  }
                   disabled={controlsDisabled}
                   className="h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
@@ -411,7 +527,9 @@ export function StorySetupForm({
 
         {/* Length Preference */}
         <section>
-          <label className="block text-sm font-medium mb-3">Độ dài <span className="text-katha-error">*</span></label>
+          <label className="block text-sm font-medium mb-3">
+            Độ dài <span className="text-katha-error">*</span>
+          </label>
           <div className="flex flex-col gap-2">
             {LENGTH_PREF_OPTIONS.map((opt) => (
               <label key={opt.value} className="flex items-center gap-3">
@@ -420,7 +538,9 @@ export function StorySetupForm({
                   name="length_pref"
                   value={opt.value}
                   checked={form.length_pref === opt.value}
-                  onChange={() => !controlsDisabled && setForm({ ...form, length_pref: opt.value })}
+                  onChange={() =>
+                    !controlsDisabled && setForm({ ...form, length_pref: opt.value })
+                  }
                   disabled={controlsDisabled}
                   className="h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
@@ -431,7 +551,7 @@ export function StorySetupForm({
         </section>
       </div>
 
-      {!isReadOnly && (
+      {!isReadOnly && !hideFooterButtons && (
         <div className="border-t border-white/10 pt-4">
           {isGenerating && (
             <p className="mb-4 text-right text-sm text-katha-primary-light">
@@ -444,12 +564,16 @@ export function StorySetupForm({
               disabled={isBusy}
               className="rounded-lg border border-white/15 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-50"
             >
-              {isSubmitting ? 'Đang cập nhật...' : story ? 'Cập nhật thiết lập' : 'Lưu bản nháp'}
+              {isSubmitting
+                ? 'Đang cập nhật...'
+                : story
+                  ? 'Cập nhật thiết lập'
+                  : 'Lưu bản nháp'}
             </button>
             {story && onGenerate && (
               <button
                 type="button"
-                onClick={handleGenerate}
+                onClick={() => validate() && onGenerate(form)}
                 disabled={isBusy}
                 className="rounded-lg bg-katha-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-katha-primary-light disabled:opacity-50"
               >

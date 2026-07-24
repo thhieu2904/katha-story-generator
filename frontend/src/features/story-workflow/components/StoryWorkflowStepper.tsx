@@ -1,0 +1,125 @@
+import Link from 'next/link';
+import type { WorkflowPresentation } from '../types';
+import { WORKFLOW_STEPS } from '../types';
+
+interface StoryWorkflowStepperProps {
+  presentation: WorkflowPresentation;
+  storyId?: number;
+}
+
+export function StoryWorkflowStepper({
+  presentation,
+  storyId,
+}: StoryWorkflowStepperProps) {
+  const { currentStep, stepStates, allowedReadOnlyHrefs } = presentation;
+
+  const currentStepObj = WORKFLOW_STEPS.find((s) => s.number === currentStep);
+
+  const getStepHref = (stepKey: string, stepNumber: number) => {
+    if (!storyId) return undefined;
+    if (stepNumber === currentStep) return presentation.canonicalHref;
+    if (stepStates[stepKey as keyof typeof stepStates] === 'completed') {
+      const candidateHref =
+        stepKey === 'setup'
+          ? `/admin/stories/${storyId}/setup`
+          : stepKey === 'text'
+            ? `/admin/stories/${storyId}/edit`
+            : stepKey === 'images'
+              ? `/admin/stories/${storyId}/images`
+              : undefined;
+
+      if (candidateHref && allowedReadOnlyHrefs.includes(candidateHref)) {
+        return candidateHref;
+      }
+    }
+    return undefined;
+  };
+
+  return (
+    <nav aria-label="Tiến trình tạo truyện" className="mb-8">
+      {/* Mobile compact stepper (width < 768px OR height < 600px) */}
+      <div className="show-only-on-mobile-compact flex items-center justify-between rounded-xl border border-white/10 bg-katha-surface/80 p-3 text-xs text-white">
+        <div className="flex items-center gap-2 font-medium">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-katha-primary text-xs text-white">
+            {currentStep}
+          </span>
+          <span>Bước {currentStep}/4 · {currentStepObj?.label}</span>
+        </div>
+      </div>
+
+      {/* Desktop horizontal stepper (width >= 768px AND height >= 600px) */}
+      <ol className="hide-on-mobile-compact flex items-center justify-between w-full relative">
+        {WORKFLOW_STEPS.map((step, index) => {
+          const state = stepStates[step.key];
+          const isCurrent = step.number === currentStep;
+          const isCompleted = state === 'completed';
+          const isLocked = state === 'locked';
+          const href = getStepHref(step.key, step.number);
+
+          const StepContent = (
+            <div className="flex items-center gap-3 relative z-10 bg-katha-surface px-2">
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                  isCompleted
+                    ? 'bg-katha-success text-white'
+                    : isCurrent
+                      ? 'bg-katha-primary text-white ring-4 ring-katha-primary/20'
+                      : isLocked
+                        ? 'bg-white/10 text-white/40'
+                        : 'border border-white/20 text-white/40 bg-white/5'
+                }`}
+              >
+                {isCompleted ? (
+                  '✓'
+                ) : isLocked ? (
+                  '🔒'
+                ) : (
+                  step.number
+                )}
+              </span>
+              <span
+                className={`text-sm font-medium ${
+                  isCurrent
+                    ? 'text-white font-bold'
+                    : isCompleted
+                      ? 'text-emerald-300'
+                      : 'text-white/40'
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+          );
+
+          return (
+            <li
+              key={step.key}
+              aria-current={isCurrent ? 'step' : undefined}
+              className="flex-1 flex items-center relative"
+            >
+              {index > 0 && (
+                <div
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 -z-0 ${
+                    index < currentStep
+                      ? 'bg-katha-success/60'
+                      : 'bg-white/10'
+                  }`}
+                />
+              )}
+              {href ? (
+                <Link
+                  href={href}
+                  className="hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-katha-primary rounded-lg"
+                >
+                  {StepContent}
+                </Link>
+              ) : (
+                StepContent
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}

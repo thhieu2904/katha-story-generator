@@ -1,12 +1,27 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
+import { StorySetupSummary } from '@/features/story-workflow/components/StorySetupSummary';
 import { StorySetupForm } from '@/features/stories/components/StorySetupForm';
 import { ArchiveStoryDialog } from '@/features/stories/components/ArchiveStoryDialog';
 import { useStory } from '@/features/stories/useStory';
-import { fetchStory, generateStoryText, updateStory } from '@/features/stories/api';
+import {
+  fetchStory,
+  generateStoryText,
+  updateStory,
+  fetchBackbones,
+  fetchGenres,
+  fetchArtStyles,
+} from '@/features/stories/api';
+import { fetchCharacters } from '@/features/characters/api';
+import {
+  getCanonicalHref,
+  getWorkflowPresentation,
+  getWorkflowRouteMode,
+} from '@/features/story-workflow/workflow';
 import type { StoryCreate } from '@/features/stories/types';
 
 export default function EditStoryPage() {
@@ -15,7 +30,7 @@ export default function EditStoryPage() {
 
   if (!Number.isInteger(storyId) || storyId <= 0) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
+      <StoryWorkflowShell>
         <section className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
           <h2 className="font-semibold text-red-100">ID truyện không hợp lệ</h2>
           <Link
@@ -25,7 +40,7 @@ export default function EditStoryPage() {
             Quay lại danh sách
           </Link>
         </section>
-      </main>
+      </StoryWorkflowShell>
     );
   }
 
@@ -37,14 +52,66 @@ function EditStoryInner({ storyId }: { storyId: number }) {
   const searchParams = useSearchParams();
   const { story, error: fetchError, loading, retry } = useStory(storyId);
 
+  const [formData, setFormData] = useState<StoryCreate | null>(null);
+  const [isValid, setIsValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [needsReconcile, setNeedsReconcile] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(
-    () => searchParams.get('success') === 'created' ? 'Tạo truyện thành công!' : null
+    () => (searchParams.get('success') === 'created' ? 'Tạo truyện thành công!' : null)
   );
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+
+  const [configs, setConfigs] = useState<{
+    backboneMap: Map<number, string>;
+    genreMap: Map<number, string>;
+    artStyleMap: Map<number, string>;
+    characterMap: Map<number, { id: number; name: string; avatar_url?: string | null }>;
+  } | null>(null);
+
+  // Runtime Route Guard using getWorkflowRouteMode
+  useEffect(() => {
+    if (!story) return;
+    const presentation = getWorkflowPresentation(storyId, story.status);
+    const routeMode = getWorkflowRouteMode(
+      presentation,
+      `/admin/stories/${storyId}/setup`
+    );
+
+    if (routeMode === 'redirect') {
+      router.replace(presentation.canonicalHref);
+    }
+  }, [story, router, storyId]);
+
+  useEffect(() => {
+    if (!story || story.status === 'draft') return;
+    let active = true;
+
+    Promise.all([
+      fetchBackbones().catch(() => []),
+      fetchGenres().catch(() => []),
+      fetchArtStyles().catch(() => []),
+      fetchCharacters().catch(() => []),
+    ]).then(([backbones, genres, artStyles, characters]) => {
+      if (!active) return;
+      setConfigs({
+        backboneMap: new Map(backbones.map((b) => [b.id, b.name_vi])),
+        genreMap: new Map(genres.map((g) => [g.id, g.name_vi])),
+        artStyleMap: new Map(artStyles.map((a) => [a.id, a.name_vi])),
+        characterMap: new Map(
+          characters.map((c) => [
+            c.id,
+            { id: c.id, name: c.name, avatar_url: c.ref_image_urls?.[0] },
+          ])
+        ),
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [story]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -52,12 +119,18 @@ function EditStoryInner({ storyId }: { storyId: number }) {
     return () => clearTimeout(timer);
   }, [successMessage]);
 
-  const handleSubmit = async (data: StoryCreate) => {
+  const handleFormChange = (data: StoryCreate, valid: boolean) => {
+    setFormData(data);
+    setIsValid(valid);
+  };
+
+  const handleSaveOnly = async () => {
+    if (!formData || !isValid || isSubmitting || isGenerating) return;
     setIsSubmitting(true);
     setSubmitError(null);
     setSuccessMessage(null);
     try {
-      await updateStory(storyId, data);
+      await updateStory(storyId, formData);
       setSuccessMessage('Cập nhật thiết lập thành công!');
       retry();
     } catch (err) {
@@ -67,17 +140,16 @@ function EditStoryInner({ storyId }: { storyId: number }) {
     }
   };
 
-  const handleGenerate = async (data: StoryCreate) => {
+  const handleSaveAndGenerate = async () => {
+    if (!formData || !isValid || isSubmitting || isGenerating) return;
     setIsGenerating(true);
     setSubmitError(null);
     setSuccessMessage(null);
     try {
-      await updateStory(storyId, data);
+      await updateStory(storyId, formData);
       await generateStoryText(storyId);
       router.replace(`/admin/stories/${storyId}/edit`);
     } catch (err) {
-      // A timed-out or disconnected request may still have completed server-side.
-      // Reconcile canonical status before enabling another generation attempt.
       try {
         const current = await fetchStory(storyId);
         if (current.status === 'text_draft' || current.status === 'generating_text') {
@@ -87,18 +159,19 @@ function EditStoryInner({ storyId }: { storyId: number }) {
       } catch {
         setNeedsReconcile(true);
         setSubmitError(
-          'Chưa thể xác định yêu cầu đã hoàn tất hay chưa. Hãy kiểm tra lại trạng thái trước khi thử lại.',
+          'Chưa thể xác định yêu cầu đã hoàn tất hay chưa. Hãy kiểm tra lại trạng thái trước khi thử lại.'
         );
         return;
       }
       setSubmitError(
-        err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi sinh nội dung',
+        err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi sinh nội dung'
       );
       retry();
     } finally {
       setIsGenerating(false);
     }
   };
+
   const handleReconcile = async () => {
     setIsGenerating(true);
     setSubmitError(null);
@@ -112,29 +185,27 @@ function EditStoryInner({ storyId }: { storyId: number }) {
       router.replace(`/admin/stories/${storyId}/edit`);
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : 'Chưa thể kiểm tra trạng thái truyện',
+        err instanceof Error ? err.message : 'Chưa thể kiểm tra trạng thái truyện'
       );
     } finally {
       setIsGenerating(false);
     }
   };
-  const handleArchiveSuccess = () => {
-    setIsArchiveDialogOpen(false);
-    router.replace('/admin/stories');
-  };
 
   if (loading) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
-        <div className="h-8 w-1/4 bg-white/[0.055] rounded animate-pulse mb-8" />
-        <div className="h-96 w-full bg-white/[0.055] rounded-2xl animate-pulse" />
-      </main>
+      <StoryWorkflowShell storyId={storyId}>
+        <div className="space-y-6 animate-pulse">
+          <div className="h-8 w-1/4 bg-white/[0.055] rounded mb-8" />
+          <div className="h-96 w-full bg-white/[0.055] rounded-2xl" />
+        </div>
+      </StoryWorkflowShell>
     );
   }
 
   if (fetchError || !story) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
+      <StoryWorkflowShell storyId={storyId}>
         <section className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
           <h2 className="font-semibold text-red-100">Không thể tải thông tin truyện</h2>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/50">{fetchError}</p>
@@ -146,68 +217,135 @@ function EditStoryInner({ storyId }: { storyId: number }) {
             Thử lại
           </button>
         </section>
-      </main>
+      </StoryWorkflowShell>
     );
   }
 
+  const isDraft = story.status === 'draft';
+  const isBusy = isSubmitting || isGenerating || needsReconcile;
+  const canonicalHref = getCanonicalHref(story.id, story.status);
+
+  const actionBar = isDraft ? (
+    <>
+      <div className="text-xs text-white/50 hidden sm:block">
+        Thiết lập hiện tại sẽ được lưu trước khi tạo nội dung.
+      </div>
+      <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <button
+          type="button"
+          onClick={() => setIsArchiveDialogOpen(true)}
+          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20 mr-auto sm:mr-0"
+        >
+          Lưu trữ
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveOnly}
+          disabled={!isValid || isBusy}
+          className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-medium text-white transition hover:bg-white/10 disabled:opacity-40"
+        >
+          {isSubmitting ? 'Đang lưu…' : 'Lưu thay đổi'}
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveAndGenerate}
+          disabled={!isValid || isBusy}
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+        >
+          {isGenerating ? 'Đang sinh nội dung…' : 'Lưu và sinh nội dung'}
+        </button>
+      </div>
+    </>
+  ) : (
+    <>
+      <div className="text-xs text-white/50">
+        Thiết lập đã được khóa cho trạng thái hiện tại.
+      </div>
+      <Link
+        href={canonicalHref}
+        className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light"
+      >
+        Chuyển tới bước hiện tại →
+      </Link>
+    </>
+  );
+
+  const resolvedCharacters = story.character_ids
+    .map((id) => configs?.characterMap.get(id))
+    .filter(
+      (c): c is { id: number; name: string; avatar_url?: string | null } =>
+        Boolean(c)
+    );
+
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end justify-between">
+    <StoryWorkflowShell
+      storyId={storyId}
+      storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
+      status={story.status}
+      actionBar={actionBar}
+    >
+      <div className="space-y-6">
         <div>
-          <Link
-            href="/admin/stories"
-            className="text-sm text-white/50 hover:text-white transition inline-flex items-center gap-2 mb-4"
-          >
-            &larr; Quay lại danh sách
-          </Link>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Thiết lập truyện
+          <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+            Thiết lập ban đầu
           </h1>
-          <p className="mt-2 text-sm text-white/50">
+          <p className="mt-1 text-sm text-white/60">
             {story.title_vi || 'Truyện chưa đặt tên'}
           </p>
         </div>
-        {story.status === 'draft' && (
-          <button
-            onClick={() => setIsArchiveDialogOpen(true)}
-            className="rounded-lg border border-katha-error/50 bg-katha-error/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-katha-error/20"
-          >
-            Lưu trữ truyện
-          </button>
+
+        {successMessage && (
+          <div className="rounded-xl border border-katha-success/25 bg-katha-success/10 p-4 text-sm text-emerald-200">
+            {successMessage}
+          </div>
         )}
-      </div>
 
-      {successMessage && (
-        <div className="mb-8 rounded-xl border border-katha-success/25 bg-katha-success/10 p-4">
-          <p className="text-sm text-emerald-200">{successMessage}</p>
-        </div>
-      )}
+        {submitError && (
+          <div className="rounded-xl border border-katha-error/25 bg-katha-error/10 p-4 text-sm text-rose-200">
+            <p>{submitError}</p>
+            {needsReconcile && (
+              <button
+                type="button"
+                onClick={handleReconcile}
+                disabled={isGenerating}
+                className="mt-3 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface disabled:opacity-50"
+              >
+                Kiểm tra lại trạng thái
+              </button>
+            )}
+          </div>
+        )}
 
-      {submitError && (
-        <div className="mb-8 rounded-xl border border-katha-error/25 bg-katha-error/8 p-4">
-          <p className="text-sm text-red-200">{submitError}</p>
-          {needsReconcile && (
-            <button
-              type="button"
-              onClick={handleReconcile}
-              disabled={isGenerating}
-              className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-katha-surface disabled:opacity-50"
-            >
-              Kiểm tra lại trạng thái
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 sm:p-8">
-        <StorySetupForm
-          story={story}
-          onSubmit={handleSubmit}
-          onGenerate={handleGenerate}
-          isSubmitting={isSubmitting}
-          isGenerating={isGenerating}
-          isBlocked={needsReconcile}
-        />
+        {isDraft ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 sm:p-8">
+            <StorySetupForm
+              story={story}
+              onFormChange={handleFormChange}
+              isSubmitting={isSubmitting}
+              isGenerating={isGenerating}
+              isBlocked={needsReconcile}
+              hideFooterButtons
+            />
+          </div>
+        ) : (
+          <StorySetupSummary
+            story={story}
+            backboneName={
+              story.backbone_id
+                ? configs?.backboneMap.get(story.backbone_id)
+                : undefined
+            }
+            genreName={
+              story.genre_id ? configs?.genreMap.get(story.genre_id) : undefined
+            }
+            artStyleName={
+              story.art_style_id
+                ? configs?.artStyleMap.get(story.art_style_id)
+                : undefined
+            }
+            characters={resolvedCharacters}
+          />
+        )}
       </div>
 
       {isArchiveDialogOpen && (
@@ -215,9 +353,9 @@ function EditStoryInner({ storyId }: { storyId: number }) {
           storyId={story.id}
           storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
           onClose={() => setIsArchiveDialogOpen(false)}
-          onSuccess={handleArchiveSuccess}
+          onSuccess={() => router.replace('/admin/stories')}
         />
       )}
-    </main>
+    </StoryWorkflowShell>
   );
 }
