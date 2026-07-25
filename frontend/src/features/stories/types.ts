@@ -16,6 +16,7 @@ export interface Story {
   cover_image_url: string | null;
   created_by: string | null;
   character_ids: number[];
+  image_workflow_kind: 'initial' | 'review_regeneration' | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -30,6 +31,8 @@ export interface StoryListItem {
   length_pref: string | null;
   status: string;
   text_revision: number;
+  image_workflow_kind: 'initial' | 'review_regeneration' | null;
+  share_active: boolean;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;

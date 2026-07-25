@@ -15,9 +15,9 @@ describe('story workflow routes', () => {
     ['text_draft', `/admin/stories/${TEST_KEY}/edit`, 'Tiếp tục biên tập'],
     ['text_confirmed', `/admin/stories/${TEST_KEY}/images`, 'Chuẩn bị minh họa'],
     ['generating_images', `/admin/stories/${TEST_KEY}/images`, 'Xem tiến độ ảnh'],
-    ['pending_review', `/admin/stories/${TEST_KEY}/images`, 'Sẵn sàng duyệt'],
-    ['approved', `/admin/stories/${TEST_KEY}/images`, 'Đã duyệt'],
-    ['published', `/admin/stories/${TEST_KEY}/images`, 'Quản lý chia sẻ'],
+    ['pending_review', `/admin/stories/${TEST_KEY}/review`, 'Sẵn sàng duyệt'],
+    ['approved', `/admin/stories/${TEST_KEY}/review`, 'Đã duyệt'],
+    ['published', `/admin/stories/${TEST_KEY}/review`, 'Quản lý chia sẻ'],
     ['archived', '/admin/stories', 'Xem truyện'],
   ])('routes %s to its canonical workspace', (status, href, label) => {
     expect(getStoryWorkflowHref(TEST_KEY, status)).toBe(href);

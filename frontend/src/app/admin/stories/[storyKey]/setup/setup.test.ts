@@ -20,6 +20,7 @@ function makeStory(overrides: Partial<Story> = {}): Story {
     created_by: null,
     character_ids: [1, 2, 2], // with duplicate
     created_at: null,
+    image_workflow_kind: null,
     updated_at: null,
     ...overrides,
   };

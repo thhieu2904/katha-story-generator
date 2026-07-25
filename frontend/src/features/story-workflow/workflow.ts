@@ -13,7 +13,11 @@ export function isImageWorkflowStatus(status: string): boolean {
   return IMAGE_WORKFLOW_STATUSES.has(status);
 }
 
-export function getCanonicalHref(storyKey: StoryRouteKey, status: string): string {
+export function getCanonicalHref(
+  storyKey: StoryRouteKey,
+  status: string,
+  imageWorkflowKind?: string | null
+): string {
   if (status === 'draft') {
     return `/admin/stories/${storyKey}/setup`;
   }
@@ -22,14 +26,25 @@ export function getCanonicalHref(storyKey: StoryRouteKey, status: string): strin
     return `/admin/stories/${storyKey}/edit`;
   }
 
-  if (isImageWorkflowStatus(status)) {
+  // Phase 5: review regeneration routes to /review
+  if (status === 'generating_images' && imageWorkflowKind === 'review_regeneration') {
+    return `/admin/stories/${storyKey}/review`;
+  }
+  
+  // Phase 5: review/publish statuses route to /review
+  if (status === 'pending_review' || status === 'approved' || status === 'published') {
+    return `/admin/stories/${storyKey}/review`;
+  }
+  
+  // Initial image generation or text_confirmed
+  if (status === 'text_confirmed' || status === 'generating_images') {
     return `/admin/stories/${storyKey}/images`;
   }
 
   return '/admin/stories';
 }
 
-export function getResumeLabel(status: string): string {
+export function getResumeLabel(status: string, imageWorkflowKind?: string | null): string {
   switch (status) {
     case 'draft':
       return 'Tiếp tục thiết lập';
@@ -40,7 +55,7 @@ export function getResumeLabel(status: string): string {
     case 'text_confirmed':
       return 'Chuẩn bị minh họa';
     case 'generating_images':
-      return 'Xem tiến độ ảnh';
+      return imageWorkflowKind === 'review_regeneration' ? 'Xem tiến độ vẽ lại' : 'Xem tiến độ ảnh';
     case 'pending_review':
       return 'Sẵn sàng duyệt';
     case 'approved':
@@ -54,10 +69,11 @@ export function getResumeLabel(status: string): string {
 
 export function getWorkflowPresentation(
   storyKey: StoryRouteKey,
-  status: string
+  status: string,
+  imageWorkflowKind?: string | null
 ): WorkflowPresentation {
-  const canonicalHref = getCanonicalHref(storyKey, status);
-  const resumeLabel = getResumeLabel(status);
+  const canonicalHref = getCanonicalHref(storyKey, status, imageWorkflowKind);
+  const resumeLabel = getResumeLabel(status, imageWorkflowKind);
 
   if (status === 'archived') {
     return {
@@ -114,7 +130,38 @@ export function getWorkflowPresentation(
       };
 
     case 'text_confirmed':
+      return {
+        currentStep: 3,
+        currentKey: 'images',
+        stepStates: {
+          setup: 'completed',
+          text: 'completed',
+          images: 'current',
+          review: 'future',
+        },
+        canonicalHref,
+        allowedReadOnlyHrefs: [setupPath, editPath],
+        resumeLabel,
+        showStepper: true,
+      };
+
     case 'generating_images':
+      if (imageWorkflowKind === 'review_regeneration') {
+        return {
+          currentStep: 4,
+          currentKey: 'review',
+          stepStates: {
+            setup: 'completed',
+            text: 'completed',
+            images: 'completed',
+            review: 'current',
+          },
+          canonicalHref,
+          allowedReadOnlyHrefs: [setupPath, editPath],
+          resumeLabel,
+          showStepper: true,
+        };
+      }
       return {
         currentStep: 3,
         currentKey: 'images',

@@ -68,7 +68,7 @@ function StoryTextEditorInner({
   useEffect(() => {
     const status = editor.story?.status;
     if (!status) return;
-    const presentation = getWorkflowPresentation(storyKey, status);
+    const presentation = getWorkflowPresentation(storyKey, status, editor.story?.image_workflow_kind);
     const routeMode = getWorkflowRouteMode(
       presentation,
       `/admin/stories/${storyKey}/edit`
@@ -108,6 +108,7 @@ function StoryTextEditorInner({
         storyKey={storyKey}
         storyTitle={editor.story.title_vi || 'Truyện chưa đặt tên'}
         status={editor.story.status}
+        imageWorkflowKind={editor.story.image_workflow_kind}
       >
         <EditorMessage
           title="Đang sinh nội dung song ngữ…"
@@ -207,6 +208,7 @@ function StoryTextEditorInner({
       storyKey={storyKey}
       storyTitle={text.title_vi || 'Truyện chưa đặt tên'}
       status={text.status}
+      imageWorkflowKind={editor.story.image_workflow_kind}
       actionBar={actionBar}
     >
       <div className="space-y-6">

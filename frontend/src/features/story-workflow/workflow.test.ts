@@ -15,9 +15,9 @@ describe('workflow presentation logic', () => {
     ['text_draft', 2, 'text', `/admin/stories/${TEST_KEY}/edit`, 'Tiếp tục biên tập'],
     ['text_confirmed', 3, 'images', `/admin/stories/${TEST_KEY}/images`, 'Chuẩn bị minh họa'],
     ['generating_images', 3, 'images', `/admin/stories/${TEST_KEY}/images`, 'Xem tiến độ ảnh'],
-    ['pending_review', 4, 'review', `/admin/stories/${TEST_KEY}/images`, 'Sẵn sàng duyệt'],
-    ['approved', 4, 'review', `/admin/stories/${TEST_KEY}/images`, 'Đã duyệt'],
-    ['published', 4, 'review', `/admin/stories/${TEST_KEY}/images`, 'Quản lý chia sẻ'],
+    ['pending_review', 4, 'review', `/admin/stories/${TEST_KEY}/review`, 'Sẵn sàng duyệt'],
+    ['approved', 4, 'review', `/admin/stories/${TEST_KEY}/review`, 'Đã duyệt'],
+    ['published', 4, 'review', `/admin/stories/${TEST_KEY}/review`, 'Quản lý chia sẻ'],
   ])(
     'status=%s → step=%i, key=%s, href=%s, label=%s',
     (status, expectedStep, expectedKey, expectedHref, expectedLabel) => {
@@ -28,6 +28,14 @@ describe('workflow presentation logic', () => {
       expect(presentation.resumeLabel).toBe(expectedLabel);
     }
   );
+
+  it('generating_images with review_regeneration routes to review', () => {
+    const presentation = getWorkflowPresentation(TEST_KEY, 'generating_images', 'review_regeneration');
+    expect(presentation.currentStep).toBe(4);
+    expect(presentation.currentKey).toBe('review');
+    expect(presentation.canonicalHref).toBe(`/admin/stories/${TEST_KEY}/review`);
+    expect(presentation.resumeLabel).toBe('Xem tiến độ vẽ lại');
+  });
 
   it('archived → showStepper false, no workflow CTA', () => {
     const presentation = getWorkflowPresentation(TEST_KEY, 'archived');

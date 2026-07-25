@@ -72,7 +72,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
 
   useEffect(() => {
     if (!story) return;
-    const presentation = getWorkflowPresentation(story.route_key, story.status);
+    const presentation = getWorkflowPresentation(story.route_key, story.status, story.image_workflow_kind);
     const routeMode = getWorkflowRouteMode(
       presentation,
       `/admin/stories/${story.route_key}/setup`
@@ -234,7 +234,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
 
   const isDraft = story.status === 'draft';
   const isBusy = isSubmitting || isGenerating || needsReconcile;
-  const canonicalHref = getCanonicalHref(story.route_key, story.status);
+  const canonicalHref = getCanonicalHref(story.route_key, story.status, story.image_workflow_kind);
 
   const actionBar = isDraft ? (
     <>
@@ -293,6 +293,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
       storyKey={story.route_key}
       storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
       status={story.status}
+      imageWorkflowKind={story.image_workflow_kind}
       actionBar={actionBar}
     >
       <div className="space-y-6">

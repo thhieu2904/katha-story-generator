@@ -123,7 +123,7 @@ export function useStoryImages(storyId: number) {
       return null;
     }
 
-    const presentation = getWorkflowPresentation(story.route_key, story.status);
+    const presentation = getWorkflowPresentation(story.route_key, story.status, story.image_workflow_kind);
     const routeMode = getWorkflowRouteMode(
       presentation,
       `/admin/stories/${story.route_key}/images`
@@ -158,7 +158,7 @@ export function useStoryImages(storyId: number) {
         if (reqSeq !== undefined && !isCurrentRequest(reqSeq)) {
           return null;
         }
-        const latestPres = getWorkflowPresentation(latestStory.route_key, latestStory.status);
+        const latestPres = getWorkflowPresentation(latestStory.route_key, latestStory.status, latestStory.image_workflow_kind);
         const latestRouteMode = getWorkflowRouteMode(
           latestPres,
           `/admin/stories/${latestStory.route_key}/images`

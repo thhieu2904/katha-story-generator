@@ -34,6 +34,7 @@ describe('orchestration logic', () => {
       created_by: 'user1',
       character_ids: [1],
       created_at: null,
+      image_workflow_kind: null,
       updated_at: null,
     });
   });
@@ -66,6 +67,7 @@ describe('orchestration logic', () => {
       created_by: 'user1',
       character_ids: [1],
       created_at: null,
+      image_workflow_kind: null,
       updated_at: null,
     };
 
@@ -485,7 +487,7 @@ describe('orchestration logic', () => {
         backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
         length_pref: 'short', status: 'text_confirmed', text_revision: 1,
         cover_image_url: null, created_by: 'u', character_ids: [1],
-        created_at: null, updated_at: null,
+        created_at: null, image_workflow_kind: null, updated_at: null,
       });
       const mockImagesState: StoryImagesState = {
         story_id: 42, title_vi: 'Test', status: 'text_confirmed',
@@ -516,7 +518,7 @@ describe('orchestration logic', () => {
         backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
         length_pref: 'short', status: 'text_draft', text_revision: 1,
         cover_image_url: null, created_by: 'u', character_ids: [1],
-        created_at: null, updated_at: null,
+        created_at: null, image_workflow_kind: null, updated_at: null,
       });
 
       const result = await orchestrateConfirmAndPrepare(42, 1, false);
@@ -536,7 +538,7 @@ describe('orchestration logic', () => {
         backbone_id: 1, genre_id: 1, art_style_id: 1, target_age: 'age_3_5',
         length_pref: 'short', status: 'archived', text_revision: 1,
         cover_image_url: null, created_by: 'u', character_ids: [1],
-        created_at: null, updated_at: null,
+        created_at: null, image_workflow_kind: null, updated_at: null,
       });
 
       const result = await orchestrateConfirmAndPrepare(42, 1, false);

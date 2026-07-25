@@ -1,0 +1,107 @@
+import { apiFetch } from '@/lib/api';
+import type { ReviewState } from './types';
+
+export function fetchReviewState(storyId: number, signal?: AbortSignal) {
+  return apiFetch<ReviewState>(`/api/stories/${storyId}/review`, { signal });
+}
+
+export function editKhmerTitle(
+  storyId: number,
+  textKm: string,
+  expectedTextRevision: number,
+) {
+  return apiFetch<ReviewState>(`/api/stories/${storyId}/review/title-km`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      text_km: textKm,
+      expected_text_revision: expectedTextRevision,
+    }),
+  });
+}
+
+export function editKhmerPage(
+  storyId: number,
+  pageId: number,
+  textKm: string,
+  expectedTextRevision: number,
+) {
+  return apiFetch<ReviewState>(
+    `/api/stories/${storyId}/pages/${pageId}/review/text-km`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        text_km: textKm,
+        expected_text_revision: expectedTextRevision,
+      }),
+    },
+  );
+}
+
+export function approvePage(
+  storyId: number,
+  pageId: number,
+  params: {
+    acknowledgeKhmerWarnings: boolean;
+    expectedTextRevision: number;
+    expectedReviewStatus: string;
+    expectedImageAttemptCount: number;
+    expectedImageUrl: string;
+  },
+) {
+  return apiFetch<ReviewState>(
+    `/api/stories/${storyId}/pages/${pageId}/review`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        decision: 'approve',
+        acknowledge_khmer_warnings: params.acknowledgeKhmerWarnings,
+        expected_text_revision: params.expectedTextRevision,
+        expected_review_status: params.expectedReviewStatus,
+        expected_image_attempt_count: params.expectedImageAttemptCount,
+        expected_image_url: params.expectedImageUrl,
+      }),
+    },
+  );
+}
+
+export function rejectPage(
+  storyId: number,
+  pageId: number,
+  params: {
+    reason: string;
+    expectedTextRevision: number;
+    expectedReviewStatus: string;
+    expectedImageAttemptCount: number;
+    expectedImageUrl: string;
+  },
+) {
+  return apiFetch<ReviewState>(
+    `/api/stories/${storyId}/pages/${pageId}/review`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        decision: 'reject',
+        reason: params.reason,
+        expected_text_revision: params.expectedTextRevision,
+        expected_review_status: params.expectedReviewStatus,
+        expected_image_attempt_count: params.expectedImageAttemptCount,
+        expected_image_url: params.expectedImageUrl,
+      }),
+    },
+  );
+}
+
+export function completeReview(
+  storyId: number,
+  expectedTextRevision: number,
+) {
+  return apiFetch<ReviewState>(
+    `/api/stories/${storyId}/complete-review`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        expected_text_revision: expectedTextRevision,
+      }),
+    },
+  );
+}
