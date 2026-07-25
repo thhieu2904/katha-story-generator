@@ -26,6 +26,37 @@ class Story(Base):
             "image_generation_claim_id IS NULL OR COALESCE(status = 'generating_images', false)",
             name="stories_image_generation_claim_status_check",
         ),
+        # Phase 5: active regeneration target requires generating_images with claim
+        CheckConstraint(
+            "active_image_regeneration_page_id IS NULL "
+            "OR (COALESCE(status = 'generating_images', false) "
+            "AND image_generation_claim_id IS NOT NULL "
+            "AND image_generation_heartbeat_at IS NOT NULL)",
+            name="stories_active_regen_target_status_check",
+        ),
+        # Phase 5: published_at required when published
+        CheckConstraint(
+            "status <> 'published' OR published_at IS NOT NULL",
+            name="stories_published_at_check",
+        ),
+        # Phase 5: share revision non-negative
+        CheckConstraint(
+            "public_share_revision >= 0",
+            name="stories_share_revision_check",
+        ),
+        # Phase 5: token format when present
+        CheckConstraint(
+            "public_share_token IS NULL OR public_share_token ~ '^[A-Za-z0-9_-]{43}$'",
+            name="stories_share_token_format_check",
+        ),
+        # Phase 5: active token requires published + activated + not revoked
+        CheckConstraint(
+            "public_share_token IS NULL "
+            "OR (COALESCE(status = 'published', false) "
+            "AND public_share_activated_at IS NOT NULL "
+            "AND public_share_revoked_at IS NULL)",
+            name="stories_active_share_check",
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -45,6 +76,14 @@ class Story(Base):
     image_plan_locked_at = Column(TIMESTAMP(timezone=True), nullable=True)
     image_generation_claim_id = Column(UUID(as_uuid=True), nullable=True)
     image_generation_heartbeat_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    # Phase 5: manual regeneration target — integer, no FK to avoid circular dependency
+    active_image_regeneration_page_id = Column(Integer, nullable=True)
+    # Phase 5: publish and share lifecycle
+    published_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    public_share_token = Column(Text, nullable=True)  # varchar(43) enforced by CHECK
+    public_share_revision = Column(Integer, nullable=False, default=0, server_default="0")
+    public_share_activated_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    public_share_revoked_at = Column(TIMESTAMP(timezone=True), nullable=True)
     # FK to auth.users handled in raw SQL migration — no SQLAlchemy ForeignKey
     created_by = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -120,7 +159,7 @@ class StoryPage(Base):
     image_error_code = Column(Text, nullable=True)
     spellcheck_flags = Column(JSONB, server_default="[]")
     khmer_validated_at = Column(TIMESTAMP(timezone=True), nullable=True)
-    review_status = Column(Text, server_default="pending")  # CHECK in SQL migration
+    review_status = Column(Text, nullable=False, default="pending", server_default="pending")
     # FK to auth.users handled in raw SQL migration — no SQLAlchemy ForeignKey
     reviewed_by = Column(UUID(as_uuid=True), nullable=True)
     reviewed_at = Column(TIMESTAMP(timezone=True), nullable=True)

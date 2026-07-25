@@ -295,13 +295,13 @@ async def validate_khmer_snapshot(
     request: ValidateKhmerRequest,
     validator: KhmerValidator,
 ) -> StoryTextResponse:
-    snapshot = await _load_snapshot(session, story_id, request.expected_revision)
+    snapshot = await _load_snapshot_for_validation(session, story_id, request.expected_revision)
     if all(page.khmer_validated_at is not None for page in snapshot.pages):
         await session.rollback()
         return await generation_service.get_story_text(session, story_id)
     await session.rollback()
     results = {page.id: validator.validate(page.text_km) for page in snapshot.pages}
-    await _lock_story(session, story_id, request.expected_revision)
+    await _lock_story_for_validation(session, story_id, request.expected_revision)
     pages = await _load_pages(session, story_id)
     _ensure_page_snapshot(pages, snapshot)
     validated_at = datetime.now(timezone.utc)
@@ -546,6 +546,78 @@ async def _lock_story(session: AsyncSession, story_id: int, expected_revision: i
     if story is None:
         raise HTTPException(status_code=404, detail="Story not found")
     if story.status != "text_draft":
+        raise HTTPException(status_code=409, detail="Story text is locked")
+    if story.text_revision != expected_revision:
+        raise HTTPException(status_code=409, detail="Story text revision is stale")
+    return story
+
+
+# Phase 5: validation-only variants that accept pending_review in addition to text_draft.
+# These do NOT increment revision or change status — they only write spellcheck results.
+_VALIDATION_STATUSES = {"text_draft", "pending_review"}
+
+
+async def _load_snapshot_for_validation(
+    session: AsyncSession, story_id: int, expected_revision: int
+) -> EditorSnapshot:
+    """Load snapshot for validate-only ops (no AI, no revision bump)."""
+    result = await session.execute(select(Story).where(Story.id == story_id))
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise HTTPException(status_code=404, detail="Story not found")
+    if story.status not in _VALIDATION_STATUSES:
+        raise HTTPException(status_code=409, detail="Story text is locked")
+    if story.text_revision != expected_revision:
+        raise HTTPException(status_code=409, detail="Story text revision is stale")
+    pages = await _load_pages(session, story_id)
+    characters_result = await session.execute(
+        select(Character)
+        .join(StoryCharacter, StoryCharacter.character_id == Character.id)
+        .where(StoryCharacter.story_id == story_id)
+        .order_by(Character.id)
+    )
+    characters = tuple(
+        {
+            "name": character.name,
+            "age": character.age,
+            "personality_vi": character.personality_vi,
+        }
+        for character in characters_result.scalars().all()
+    )
+    if not story.title_vi or not story.title_km or not pages:
+        raise HTTPException(status_code=422, detail="Canonical story text is incomplete")
+    return EditorSnapshot(
+        story_id=cast(int, story.id),
+        title_vi=cast(str, story.title_vi),
+        title_km=cast(str, story.title_km),
+        description_vi=cast(str, story.description_vi),
+        target_age=cast(str, story.target_age),
+        length_pref=cast(str, story.length_pref),
+        revision=cast(int, story.text_revision),
+        pages=tuple(
+            PageSnapshot(
+                id=cast(int, page.id),
+                page_no=cast(int, page.page_no),
+                text_vi=cast(str, page.text_vi),
+                text_km=cast(str, page.text_km),
+                spellcheck_flags=list(page.spellcheck_flags or []),
+                khmer_validated_at=cast(datetime | None, page.khmer_validated_at),
+            )
+            for page in pages
+        ),
+        characters=characters,
+    )
+
+
+async def _lock_story_for_validation(
+    session: AsyncSession, story_id: int, expected_revision: int
+) -> Story:
+    """Lock story for validate-only ops (text_draft or pending_review)."""
+    result = await session.execute(select(Story).where(Story.id == story_id).with_for_update())
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise HTTPException(status_code=404, detail="Story not found")
+    if story.status not in _VALIDATION_STATUSES:
         raise HTTPException(status_code=409, detail="Story text is locked")
     if story.text_revision != expected_revision:
         raise HTTPException(status_code=409, detail="Story text revision is stale")

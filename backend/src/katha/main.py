@@ -16,6 +16,7 @@ from katha.features.config_data.router import router as config_router
 from katha.features.stories.router import router as stories_router
 from katha.features.story_editor.router import router as story_editor_router
 from katha.features.story_images.router import router as story_images_router
+from katha.features.story_review.router import router as story_review_router
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ app.include_router(characters_router, prefix="/api", tags=["characters"])
 app.include_router(stories_router, prefix="/api", tags=["stories"])
 app.include_router(story_editor_router, prefix="/api", tags=["story-editor"])
 app.include_router(story_images_router, prefix="/api", tags=["story-images"])
+app.include_router(story_review_router, prefix="/api", tags=["story-review"])
 
 
 @app.get("/health")

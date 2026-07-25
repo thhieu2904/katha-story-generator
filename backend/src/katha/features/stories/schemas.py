@@ -106,6 +106,9 @@ class StoryResponse(BaseModel):
     character_ids: list[int]
     created_at: datetime | None
     updated_at: datetime | None
+    # Phase 5: raw fields for computed properties (excluded from JSON by default)
+    active_image_regeneration_page_id: int | None = Field(default=None, exclude=True)
+    public_share_token: str | None = Field(default=None, exclude=True)
 
     @field_validator("text_revision", mode="before")
     @classmethod
@@ -116,6 +119,14 @@ class StoryResponse(BaseModel):
     @property
     def route_key(self) -> str:
         return encode_story_route_key(self.id)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def image_workflow_kind(self) -> str | None:
+        """Distinguish initial image generation from manual review regeneration."""
+        if self.status != "generating_images":
+            return None
+        return "review_regeneration" if self.active_image_regeneration_page_id else "initial"
 
 
 class StoryListItem(BaseModel):
@@ -131,6 +142,9 @@ class StoryListItem(BaseModel):
     created_by: UUID | None
     created_at: datetime | None
     updated_at: datetime | None
+    # Phase 5: raw fields for computed properties (excluded from JSON by default)
+    active_image_regeneration_page_id: int | None = Field(default=None, exclude=True)
+    public_share_token: str | None = Field(default=None, exclude=True)
 
     @field_validator("text_revision", mode="before")
     @classmethod
@@ -141,6 +155,20 @@ class StoryListItem(BaseModel):
     @property
     def route_key(self) -> str:
         return encode_story_route_key(self.id)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def image_workflow_kind(self) -> str | None:
+        """Distinguish initial image generation from manual review regeneration."""
+        if self.status != "generating_images":
+            return None
+        return "review_regeneration" if self.active_image_regeneration_page_id else "initial"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def share_active(self) -> bool:
+        """Whether the story has an active public share link."""
+        return self.status == "published" and self.public_share_token is not None
 
 
 class StoryPageTextResponse(BaseModel):
