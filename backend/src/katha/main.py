@@ -13,6 +13,7 @@ from katha.core.dependencies import get_db
 from katha.features.auth.router import router as auth_router
 from katha.features.characters.router import router as characters_router
 from katha.features.config_data.router import router as config_router
+from katha.features.public_stories.router import router as public_stories_router
 from katha.features.stories.router import router as stories_router
 from katha.features.story_editor.router import router as story_editor_router
 from katha.features.story_images.router import router as story_images_router
@@ -62,6 +63,7 @@ app.include_router(stories_router, prefix="/api", tags=["stories"])
 app.include_router(story_editor_router, prefix="/api", tags=["story-editor"])
 app.include_router(story_images_router, prefix="/api", tags=["story-images"])
 app.include_router(story_review_router, prefix="/api", tags=["story-review"])
+app.include_router(public_stories_router, prefix="/api", tags=["public-stories"])
 
 
 @app.get("/health")

@@ -14,12 +14,15 @@ from katha.features.story_images.ports import StoryImageAI, StoryImageStorage
 from katha.features.story_review import runner, service
 from katha.features.story_review.schemas import (
     CompleteReviewRequest,
+    CreateShareLinkRequest,
     EditKhmerPageRequest,
     EditKhmerTitleRequest,
+    PublishStoryRequest,
     RegenerateImageRequest,
     RegenerateImageResponse,
     ReviewPageRequest,
     ReviewStateResponse,
+    RevokeShareRequest,
 )
 
 router = APIRouter()
@@ -113,3 +116,36 @@ async def regenerate_page_image(
             storage,
         )
     return response
+
+
+@router.post("/stories/{story_id}/publish", response_model=ReviewStateResponse)
+async def publish_story(
+    story_id: Annotated[int, Path(gt=0)],
+    request: PublishStoryRequest,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[TokenUser, Depends(get_admin_user)],
+) -> ReviewStateResponse:
+    """Publish a story and generate a share link."""
+    return await service.publish_story(session, story_id, request, admin.id)
+
+
+@router.post("/stories/{story_id}/share-link/revoke", response_model=ReviewStateResponse)
+async def revoke_share_link(
+    story_id: Annotated[int, Path(gt=0)],
+    request: RevokeShareRequest,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[TokenUser, Depends(get_admin_user)],
+) -> ReviewStateResponse:
+    """Revoke the current share link for a published story."""
+    return await service.revoke_share(session, story_id, request, admin.id)
+
+
+@router.post("/stories/{story_id}/share-link", response_model=ReviewStateResponse)
+async def create_share_link(
+    story_id: Annotated[int, Path(gt=0)],
+    request: CreateShareLinkRequest,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[TokenUser, Depends(get_admin_user)],
+) -> ReviewStateResponse:
+    """Create a new share link for a published story."""
+    return await service.create_share_link(session, story_id, request, admin.id)

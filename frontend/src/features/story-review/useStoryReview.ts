@@ -10,6 +10,10 @@ import {
   rejectPage,
   completeReview,
   regeneratePageImage,
+  publishStory,
+  revokeShare,
+  createShareLink,
+  archiveStory,
 } from './api';
 import { POLL_INTERVAL_MS } from './constants';
 import type { ReviewState } from './types';
@@ -308,6 +312,82 @@ export function useStoryReview(storyId: number) {
     }
   };
 
+  const handlePublish = async (expectedTextRevision: number, expectedShareRevision: number) => {
+    if (mutating) return false;
+    const seq = beginRequest();
+    setMutating(true);
+    setError(null);
+    try {
+      const result = await publishStory(storyId, expectedTextRevision, expectedShareRevision);
+      if (isCurrentRequest(seq)) setReviewState(result);
+      return true;
+    } catch (reason) {
+      if (!isCurrentRequest(seq)) return false;
+      if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else setError(messageFromReason(reason, 'Không thể xuất bản.'));
+      return false;
+    } finally {
+      if (isCurrentRequest(seq)) setMutating(false);
+    }
+  };
+
+  const handleRevokeShare = async (expectedShareRevision: number) => {
+    if (mutating) return false;
+    const seq = beginRequest();
+    setMutating(true);
+    setError(null);
+    try {
+      const result = await revokeShare(storyId, expectedShareRevision);
+      if (isCurrentRequest(seq)) setReviewState(result);
+      return true;
+    } catch (reason) {
+      if (!isCurrentRequest(seq)) return false;
+      if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else setError(messageFromReason(reason, 'Không thể ngừng chia sẻ.'));
+      return false;
+    } finally {
+      if (isCurrentRequest(seq)) setMutating(false);
+    }
+  };
+
+  const handleCreateShareLink = async (expectedShareRevision: number) => {
+    if (mutating) return false;
+    const seq = beginRequest();
+    setMutating(true);
+    setError(null);
+    try {
+      const result = await createShareLink(storyId, expectedShareRevision);
+      if (isCurrentRequest(seq)) setReviewState(result);
+      return true;
+    } catch (reason) {
+      if (!isCurrentRequest(seq)) return false;
+      if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else setError(messageFromReason(reason, 'Không thể tạo liên kết.'));
+      return false;
+    } finally {
+      if (isCurrentRequest(seq)) setMutating(false);
+    }
+  };
+
+  const handleArchive = async (expectedStatus: string, expectedShareRevision: number) => {
+    if (mutating) return false;
+    const seq = beginRequest();
+    setMutating(true);
+    setError(null);
+    try {
+      const result = await archiveStory(storyId, expectedStatus, expectedShareRevision);
+      if (isCurrentRequest(seq)) setReviewState(result);
+      return true;
+    } catch (reason) {
+      if (!isCurrentRequest(seq)) return false;
+      if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else setError(messageFromReason(reason, 'Không thể lưu trữ.'));
+      return false;
+    } finally {
+      if (isCurrentRequest(seq)) setMutating(false);
+    }
+  };
+
   return {
     reviewState,
     loading,
@@ -323,5 +403,9 @@ export function useStoryReview(storyId: number) {
     handleRejectPage,
     handleCompleteReview,
     handleRegenerateImage,
+    handlePublish,
+    handleRevokeShare,
+    handleCreateShareLink,
+    handleArchive,
   };
 }

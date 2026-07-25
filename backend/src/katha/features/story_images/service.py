@@ -456,7 +456,6 @@ def _page_status(page: StoryPage) -> ImageStatus:
 
 
 def _has_retryable_page(pages: Iterable[StoryPage]) -> bool:
-
     return any(_page_status(page) in {"pending", "failed"} for page in pages)
 
 

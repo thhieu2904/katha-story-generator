@@ -12,6 +12,10 @@ import type { ReviewPageData, ReviewState } from '../types';
 import { ReviewProgress as ReviewProgressBar } from './ReviewProgress';
 import { ReviewPageCard } from './ReviewPageCard';
 import { CompleteReviewDialog } from './CompleteReviewDialog';
+import { PublishStoryDialog } from './PublishStoryDialog';
+import { ShareLinkPanel } from './ShareLinkPanel';
+import { StopSharingDialog } from './StopSharingDialog';
+import { ArchiveReviewDialog } from './ArchiveReviewDialog';
 
 function WorkspaceSkeleton() {
   return (
@@ -102,6 +106,12 @@ function StoryReviewWorkspaceInner({
   const isMobileCompact = useIsMobileCompact();
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const {
     reviewState,
@@ -118,6 +128,10 @@ function StoryReviewWorkspaceInner({
     handleRejectPage,
     handleCompleteReview,
     handleRegenerateImage,
+    handlePublish,
+    handleRevokeShare,
+    handleCreateShareLink,
+    handleArchive,
   } = useStoryReview(storyId);
 
   if (loading && !reviewState) {
@@ -158,6 +172,40 @@ function StoryReviewWorkspaceInner({
     } finally {
       setIsCompleting(false);
     }
+  };
+
+  const handlePublishConfirm = async () => {
+    try {
+      setIsPublishing(true);
+      await handlePublish(story.text_revision, reviewState.share.revision);
+      setPublishDialogOpen(false);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleRevokeConfirm = async () => {
+    try {
+      setIsRevoking(true);
+      await handleRevokeShare(reviewState.share.revision);
+      setRevokeDialogOpen(false);
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  const handleArchiveConfirm = async () => {
+    try {
+      setIsArchiving(true);
+      await handleArchive(story.status, reviewState.share.revision);
+      setArchiveDialogOpen(false);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleCreateShareLinkAction = async () => {
+    await handleCreateShareLink(reviewState.share.revision);
   };
 
   const handlePageEditSave = async (pageId: number, text: string) => {
@@ -212,17 +260,36 @@ function StoryReviewWorkspaceInner({
   const statusStyle =
     STATUS_BADGE_STYLES[story.status] || STATUS_BADGE_STYLES.pending_review;
 
-  const actionBar = capabilities.can_complete_review ? (
-    <div className="flex justify-end w-full">
-      <button
-        onClick={() => setCompleteDialogOpen(true)}
-        disabled={mutating || isCompleting}
-        className="px-6 py-3 rounded-xl font-medium bg-katha-primary hover:bg-katha-primary-light text-white transition-colors disabled:opacity-50"
-      >
-        Hoàn tất duyệt truyện
-      </button>
-    </div>
-  ) : null;
+  let actionBar = null;
+  if (story.status === 'pending_review' || story.status === 'generating_images') {
+    if (capabilities.can_complete_review) {
+      actionBar = (
+        <div className="flex justify-end w-full">
+          <button
+            onClick={() => setCompleteDialogOpen(true)}
+            disabled={mutating || isCompleting}
+            className="px-6 py-3 rounded-xl font-medium bg-katha-primary hover:bg-katha-primary-light text-white transition-colors disabled:opacity-50"
+          >
+            Hoàn tất duyệt truyện
+          </button>
+        </div>
+      );
+    }
+  } else if (story.status === 'approved') {
+    if (capabilities.can_publish) {
+      actionBar = (
+        <div className="flex justify-end w-full">
+          <button
+            onClick={() => setPublishDialogOpen(true)}
+            disabled={mutating || isPublishing}
+            className="px-6 py-3 rounded-xl font-medium bg-katha-primary hover:bg-katha-primary-light text-white transition-colors disabled:opacity-50"
+          >
+            Xuất bản và tạo liên kết
+          </button>
+        </div>
+      );
+    }
+  }
 
   return (
     <StoryWorkflowShell storyKey={storyKey} actionBar={actionBar}>
@@ -318,6 +385,21 @@ function StoryReviewWorkspaceInner({
         </div>
       )}
 
+      {/* Share Link Panel (for published stories) */}
+      {story.status === 'published' && (
+        <div className="mb-8">
+          <ShareLinkPanel
+            share={reviewState.share}
+            capabilities={capabilities}
+            storyTitle={story.title_vi}
+            onRevokeShare={() => setRevokeDialogOpen(true)}
+            onCreateShareLink={handleCreateShareLinkAction}
+            onArchive={() => setArchiveDialogOpen(true)}
+            disabled={mutating || isPublishing || isRevoking || isArchiving}
+          />
+        </div>
+      )}
+
       {/* Pages Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {pages.map((page) => (
@@ -345,6 +427,28 @@ function StoryReviewWorkspaceInner({
         onConfirm={handleCompleteConfirm}
         isSubmitting={isCompleting}
         progress={progress}
+      />
+
+      <PublishStoryDialog
+        open={publishDialogOpen}
+        onClose={() => setPublishDialogOpen(false)}
+        onConfirm={handlePublishConfirm}
+        isSubmitting={isPublishing}
+      />
+
+      <StopSharingDialog
+        open={revokeDialogOpen}
+        onClose={() => setRevokeDialogOpen(false)}
+        onConfirm={handleRevokeConfirm}
+        isSubmitting={isRevoking}
+      />
+
+      <ArchiveReviewDialog
+        open={archiveDialogOpen}
+        storyTitle={story.title_vi}
+        onClose={() => setArchiveDialogOpen(false)}
+        onConfirm={handleArchiveConfirm}
+        isSubmitting={isArchiving}
       />
     </StoryWorkflowShell>
   );

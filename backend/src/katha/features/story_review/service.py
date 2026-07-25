@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import secrets
 import unicodedata
 from datetime import datetime
 from typing import Sequence, cast
@@ -10,6 +11,7 @@ from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -18,9 +20,12 @@ from katha.features.stories.models import Story, StoryPage
 from katha.features.story_review.prompts import EffectivePromptTooLongError, build_effective_prompt
 from katha.features.story_review.schemas import (
     ApprovePageRequest,
+    ArchiveStoryRequest,
     CompleteReviewRequest,
+    CreateShareLinkRequest,
     EditKhmerPageRequest,
     EditKhmerTitleRequest,
+    PublishStoryRequest,
     RegenerateImageRequest,
     RegenerateImageResponse,
     RejectPageRequest,
@@ -32,6 +37,7 @@ from katha.features.story_review.schemas import (
     ReviewShareResponse,
     ReviewStateResponse,
     ReviewStoryResponse,
+    RevokeShareRequest,
 )
 
 TITLE_MAX_CHARS = 160
@@ -405,6 +411,191 @@ async def start_regeneration(
         already_running=False,
         active_page_id=page_id,
     )
+
+
+async def publish_story(
+    session: AsyncSession,
+    story_id: int,
+    request: PublishStoryRequest,
+    admin_id: UUID,
+) -> ReviewStateResponse:
+    story = await _locked_story_for_review(session, story_id, lock=True)
+    if story.status == "published":
+        if story.public_share_activated_at and not story.public_share_revoked_at:
+            return await get_review_state(session, story_id)
+        else:
+            return await get_review_state(session, story_id)
+
+    if story.status != "approved":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Story is not in approved status",
+        )
+
+    if (
+        story.text_revision != request.expected_text_revision
+        or story.public_share_revision != request.expected_share_revision
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Revision mismatch",
+        )
+
+    for _ in range(3):
+        token = secrets.token_urlsafe(32)
+        savepoint = await session.begin_nested()
+        try:
+            story.status = "published"
+            story.public_share_token = token
+            story.public_share_revision = cast(int, story.public_share_revision) + 1
+            db_now = await _database_now(session)
+            story.published_at = db_now
+            story.public_share_activated_at = db_now
+            story.public_share_revoked_at = None
+            story.updated_at = db_now
+            await savepoint.commit()
+            break
+        except IntegrityError:
+            await savepoint.rollback()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate unique share token",
+        )
+
+    await session.commit()
+    return await get_review_state(session, story_id)
+
+
+async def revoke_share(
+    session: AsyncSession,
+    story_id: int,
+    request: RevokeShareRequest,
+    admin_id: UUID,
+) -> ReviewStateResponse:
+    story = await _locked_story_for_review(session, story_id, lock=True)
+    if story.status != "published":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Story is not published",
+        )
+
+    if story.public_share_token is None and story.public_share_revoked_at is not None:
+        return await get_review_state(session, story_id)
+
+    if story.public_share_revision != request.expected_share_revision:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Share revision mismatch",
+        )
+
+    db_now = await _database_now(session)
+    story.public_share_token = None
+    story.public_share_revoked_at = db_now
+    story.public_share_revision = cast(int, story.public_share_revision) + 1
+    story.updated_at = db_now
+
+    await session.commit()
+    return await get_review_state(session, story_id)
+
+
+async def create_share_link(
+    session: AsyncSession,
+    story_id: int,
+    request: CreateShareLinkRequest,
+    admin_id: UUID,
+) -> ReviewStateResponse:
+    story = await _locked_story_for_review(session, story_id, lock=True)
+    if story.status != "published":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Story is not published",
+        )
+
+    if story.public_share_token is not None:
+        return await get_review_state(session, story_id)
+
+    if story.public_share_revision != request.expected_share_revision:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Share revision mismatch",
+        )
+
+    for _ in range(3):
+        token = secrets.token_urlsafe(32)
+        savepoint = await session.begin_nested()
+        try:
+            db_now = await _database_now(session)
+            story.public_share_token = token
+            story.public_share_activated_at = db_now
+            story.public_share_revoked_at = None
+            story.public_share_revision = cast(int, story.public_share_revision) + 1
+            story.updated_at = db_now
+            await savepoint.commit()
+            break
+        except IntegrityError:
+            await savepoint.rollback()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate unique share token",
+        )
+
+    await session.commit()
+    return await get_review_state(session, story_id)
+
+
+async def archive_story_extended(
+    session: AsyncSession,
+    story_id: int,
+    request: ArchiveStoryRequest,
+    admin_id: UUID,
+) -> ReviewStateResponse:
+    stmt = (
+        select(Story)
+        .options(selectinload(Story.genre))
+        .where(Story.id == story_id)
+        .with_for_update()
+    )
+    story = (await session.execute(stmt)).scalar_one_or_none()
+    if not story:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+
+    db_now = await _database_now(session)
+    pages = await _locked_pages(session, story_id, lock=False)
+
+    if story.status == "archived":
+        return _build_review_state(story, pages, db_now)
+
+    allowed_source_statuses = {"draft", "pending_review", "approved", "published"}
+    if story.status not in allowed_source_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot archive from this status",
+        )
+
+    if story.status != request.expected_status:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Status mismatch",
+        )
+
+    if story.status == "published":
+        if story.public_share_revision != request.expected_share_revision:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Share revision mismatch",
+            )
+        if story.public_share_token is not None:
+            story.public_share_token = None
+            story.public_share_revision = cast(int, story.public_share_revision) + 1
+            story.public_share_revoked_at = db_now
+
+    story.status = "archived"
+    story.updated_at = db_now
+
+    await session.commit()
+    return _build_review_state(story, pages, db_now)
 
 
 def _validate_khmer(value: str, label: str, max_chars: int) -> str:

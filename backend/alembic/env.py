@@ -8,15 +8,15 @@ import os
 import sys
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 # Add project src/ to path so katha package is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # Import model registry to register all models with Base.metadata
 import katha.db.model_registry  # noqa: F401
-
 from katha.db.base import Base
 
 # this is the Alembic Config object

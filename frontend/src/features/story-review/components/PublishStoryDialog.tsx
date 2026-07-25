@@ -1,0 +1,68 @@
+import React from 'react';
+
+interface PublishStoryDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isSubmitting: boolean;
+}
+
+export function PublishStoryDialog({
+  open,
+  onClose,
+  onConfirm,
+  isSubmitting,
+}: PublishStoryDialogProps) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={isSubmitting ? undefined : onClose}
+      />
+      
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-katha-surface shadow-2xl p-6 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-katha-primary/10 mb-4">
+          <svg className="h-6 w-6 text-katha-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+        </div>
+        
+        <h3 className="text-xl font-semibold text-white mb-2">
+          Xuất bản và tạo liên kết
+        </h3>
+        
+        <p className="text-sm text-gray-300 mb-2">
+          Truyện sẽ được xuất bản. Một liên kết chia sẻ sẽ được tạo.
+        </p>
+
+        <p className="text-xs text-gray-400 mb-6 bg-white/5 p-3 rounded-lg text-left border border-white/5">
+          <svg className="inline w-4 h-4 mr-1.5 align-text-bottom text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Liên kết không được liệt kê công khai, nhưng bất kỳ ai có liên kết đều đọc được.
+        </p>
+
+        <div className="flex justify-center space-x-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 transition-colors disabled:opacity-50"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isSubmitting}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium bg-katha-primary text-white hover:bg-katha-primary-light transition-colors disabled:opacity-50"
+          >
+            {isSubmitting ? 'Đang xử lý...' : 'Xuất bản'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

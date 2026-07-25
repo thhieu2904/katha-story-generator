@@ -19,6 +19,8 @@ from katha.features.stories.schemas import (
     StoryTextResponse,
     StoryUpdate,
 )
+from katha.features.story_review import service as story_review_service
+from katha.features.story_review.schemas import ArchiveStoryRequest, ReviewStateResponse
 from katha.integrations.openai_story_text import StoryTextAI
 
 router = APIRouter()
@@ -84,14 +86,15 @@ async def update_story(
     return await service.update_story(session, story_id, data)
 
 
-@router.post("/stories/{story_id}/archive", response_model=StoryResponse)
+@router.post("/stories/{story_id}/archive", response_model=ReviewStateResponse)
 async def archive_story(
     story_id: Annotated[int, Path(gt=0)],
+    request: ArchiveStoryRequest,
     session: Annotated[AsyncSession, Depends(get_db)],
     admin: Annotated[TokenUser, Depends(get_admin_user)],
-) -> Story:
+) -> ReviewStateResponse:
     """Archive a draft story."""
-    return await service.archive_story(session, story_id)
+    return await story_review_service.archive_story_extended(session, story_id, request, admin.id)
 
 
 @router.post("/stories/{story_id}/generate-text", response_model=StoryTextResponse)

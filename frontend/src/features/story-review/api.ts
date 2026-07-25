@@ -129,3 +129,31 @@ export function regeneratePageImage(
     },
   );
 }
+
+export function publishStory(storyId: number, expectedTextRevision: number, expectedShareRevision: number) {
+  return apiFetch<ReviewState>(`/api/stories/${storyId}/publish`, {
+    method: 'POST',
+    body: JSON.stringify({ expected_text_revision: expectedTextRevision, expected_share_revision: expectedShareRevision }),
+  });
+}
+
+export function revokeShare(storyId: number, expectedShareRevision: number) {
+  return apiFetch<ReviewState>(`/api/stories/${storyId}/share-link/revoke`, {
+    method: 'POST',
+    body: JSON.stringify({ expected_share_revision: expectedShareRevision }),
+  });
+}
+
+export function createShareLink(storyId: number, expectedShareRevision: number) {
+  return apiFetch<ReviewState>(`/api/stories/${storyId}/share-link`, {
+    method: 'POST',
+    body: JSON.stringify({ expected_share_revision: expectedShareRevision }),
+  });
+}
+
+export function archiveStory(storyId: number, expectedStatus: string, expectedShareRevision: number) {
+  return apiFetch<ReviewState>(`/api/stories/${storyId}/archive`, {
+    method: 'POST',
+    body: JSON.stringify({ expected_status: expectedStatus, expected_share_revision: expectedShareRevision }),
+  });
+}

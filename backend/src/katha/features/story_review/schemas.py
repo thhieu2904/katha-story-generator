@@ -136,3 +136,25 @@ class RegenerateImageResponse(BaseModel):
     job_id: str
     already_running: bool
     active_page_id: int
+
+
+class PublishStoryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_text_revision: int = Field(..., ge=0)
+    expected_share_revision: int = Field(..., ge=0)
+
+
+class RevokeShareRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_share_revision: int = Field(..., ge=0)
+
+
+class CreateShareLinkRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_share_revision: int = Field(..., ge=0)
+
+
+class ArchiveStoryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_status: str
+    expected_share_revision: int = Field(0, ge=0)

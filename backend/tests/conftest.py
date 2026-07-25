@@ -33,9 +33,8 @@ def postgres_url():
 @pytest.fixture(scope="session")
 def run_migrations(postgres_url):
     """Run Alembic migrations against the testcontainer database."""
-    from alembic.config import Config
-
     from alembic import command
+    from alembic.config import Config
 
     sync_url = postgres_url.replace("postgresql+asyncpg://", "postgresql://")
     alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
