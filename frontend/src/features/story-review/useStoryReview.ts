@@ -159,7 +159,7 @@ export function useStoryReview(storyId: number) {
       }
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -183,7 +183,7 @@ export function useStoryReview(storyId: number) {
       }
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -216,7 +216,7 @@ export function useStoryReview(storyId: number) {
       }
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -249,7 +249,7 @@ export function useStoryReview(storyId: number) {
       }
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -284,7 +284,7 @@ export function useStoryReview(storyId: number) {
       }
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -308,7 +308,7 @@ export function useStoryReview(storyId: number) {
       }
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -327,7 +327,7 @@ export function useStoryReview(storyId: number) {
       else setError(messageFromReason(reason, 'Không thể xuất bản.'));
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -346,7 +346,7 @@ export function useStoryReview(storyId: number) {
       else setError(messageFromReason(reason, 'Không thể ngừng chia sẻ.'));
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -365,7 +365,7 @@ export function useStoryReview(storyId: number) {
       else setError(messageFromReason(reason, 'Không thể tạo liên kết.'));
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 
@@ -384,7 +384,7 @@ export function useStoryReview(storyId: number) {
       else setError(messageFromReason(reason, 'Không thể lưu trữ.'));
       return false;
     } finally {
-      if (isCurrentRequest(seq)) setMutating(false);
+      setMutating(false);
     }
   };
 

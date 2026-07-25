@@ -93,6 +93,12 @@ class Story(Base):
     backbone = relationship("StoryBackbone")
     genre = relationship("StoryGenre")
     art_style = relationship("ArtStyle")
+    pages = relationship(
+        "StoryPage",
+        order_by="StoryPage.page_no",
+        cascade="all, delete-orphan",
+        back_populates="story",
+    )
 
 
 class StoryCharacter(Base):
@@ -166,3 +172,5 @@ class StoryPage(Base):
     review_notes = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    story = relationship("Story", back_populates="pages")

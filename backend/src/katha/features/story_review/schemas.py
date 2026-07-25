@@ -126,9 +126,10 @@ class CompleteReviewRequest(BaseModel):
 
 
 class RegenerateImageRequest(BaseModel):
-    expected_text_revision: int
+    model_config = ConfigDict(extra="forbid")
+    expected_text_revision: int = Field(..., ge=0)
     expected_review_status: str
-    expected_image_attempt_count: int
+    expected_image_attempt_count: int = Field(..., ge=0)
     expected_image_url: str
 
 
@@ -156,5 +157,5 @@ class CreateShareLinkRequest(BaseModel):
 
 class ArchiveStoryRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    expected_status: str
-    expected_share_revision: int = Field(0, ge=0)
+    expected_status: str | None = None
+    expected_share_revision: int | None = Field(default=None, ge=0)

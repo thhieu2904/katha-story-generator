@@ -181,8 +181,8 @@ export function useStoryImages(storyId: number) {
   // Dirty-safe foreground install — only used when mapping is NOT dirty.
   const installCanonicalStateSafe = useCallback((next: StoryImagesState) => {
     bumpSequence();
-    // If mapping is dirty or pending, don't overwrite local draft
-    if (draftMappingsRef.current && Object.keys(draftMappingsRef.current).length > 0) {
+    // If mapping is dirty, don't overwrite local draft
+    if (mappingDirty) {
       const prevRevision = lastRevisionRef.current;
       if (prevRevision > 0 && next.image_plan_revision !== prevRevision) {
         // Remote revision changed while we have a dirty local draft → conflict
@@ -195,7 +195,7 @@ export function useStoryImages(storyId: number) {
     } else {
       installCanonicalState(next);
     }
-  }, [bumpSequence, installCanonicalState]);
+  }, [bumpSequence, installCanonicalState, mappingDirty]);
 
   // refresh returns typed result. Blocked only cleared after success.
   const refresh = useCallback(async (): Promise<RefreshResult> => {

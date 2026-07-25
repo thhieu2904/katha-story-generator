@@ -276,7 +276,7 @@ async def _commit_success(story_id: int, claim_id: UUID, page_id: int, new_url: 
             or story.active_image_regeneration_page_id != page_id
         ):
             await session.rollback()
-            return
+            raise ClaimLost("Claim lost during commit_success")
 
         page_result = await session.execute(
             select(StoryPage)

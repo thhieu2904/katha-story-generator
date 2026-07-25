@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Path
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from katha.core.dependencies import get_db
@@ -93,6 +93,7 @@ async def complete_review(
 @router.post(
     "/stories/{story_id}/pages/{page_id}/regenerate-image",
     response_model=RegenerateImageResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def regenerate_page_image(
     story_id: Annotated[int, Path(gt=0)],

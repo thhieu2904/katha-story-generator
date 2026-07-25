@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import type { StoryRouteKey } from '@/features/stories/types';
 import { useStoryByRouteKey } from '@/features/stories/useStory';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
 import { useIsMobileCompact } from '@/features/story-workflow/useIsMobileCompact';
 import { STORY_STATUS_LABELS } from '../constants';
 import { useStoryReview } from '../useStoryReview';
-import type { ReviewPageData, ReviewState } from '../types';
+import type { ReviewPageData } from '../types';
 import { ReviewProgress as ReviewProgressBar } from './ReviewProgress';
 import { ReviewPageCard } from './ReviewPageCard';
 import { CompleteReviewDialog } from './CompleteReviewDialog';
@@ -16,6 +15,7 @@ import { PublishStoryDialog } from './PublishStoryDialog';
 import { ShareLinkPanel } from './ShareLinkPanel';
 import { StopSharingDialog } from './StopSharingDialog';
 import { ArchiveReviewDialog } from './ArchiveReviewDialog';
+import { EditKhmerTitleDialog } from './EditKhmerTitleDialog';
 
 function WorkspaceSkeleton() {
   return (
@@ -112,6 +112,8 @@ function StoryReviewWorkspaceInner({
   const [isRevoking, setIsRevoking] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
 
   const {
     reviewState,
@@ -219,12 +221,22 @@ function StoryReviewWorkspaceInner({
     }
   };
 
-  const handlePageApprove = async (page: ReviewPageData) => {
-    const hasWarnings =
-      (page.spellcheck_flags && page.spellcheck_flags.length > 0) ||
-      !page.khmer_validated_at;
+  const handleSaveTitleKm = async (newTitleKm: string) => {
+    try {
+      setIsSavingTitle(true);
+      const success = await handleEditKhmerTitle(newTitleKm, story.text_revision);
+      if (success) setEditTitleDialogOpen(false);
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
+  const handlePageApprove = async (
+    page: ReviewPageData,
+    acknowledgeKhmerWarnings: boolean,
+  ) => {
     await handleApprovePage(page.id, {
-      acknowledgeKhmerWarnings: hasWarnings,
+      acknowledgeKhmerWarnings,
       expectedTextRevision: story.text_revision,
       expectedReviewStatus: page.review_status,
       expectedImageAttemptCount: page.image_attempt_count,
@@ -365,9 +377,23 @@ function StoryReviewWorkspaceInner({
 
           <div className="space-y-3">
             <div>
-              <h2 className="text-xl font-khmer text-white mb-1">
-                {story.title_km || 'Chưa có tiêu đề Khmer'}
-              </h2>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-xl font-khmer text-white">
+                  {story.title_km || 'Chưa có tiêu đề Khmer'}
+                </h2>
+                {capabilities.can_edit_khmer && !isMobileCompact && (
+                  <button
+                    onClick={() => setEditTitleDialogOpen(true)}
+                    disabled={mutating}
+                    className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                    title="Sửa tiêu đề Khmer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <p className="text-sm text-gray-400">
                 {story.title_vi || 'Chưa có tiêu đề'}
               </p>
@@ -413,7 +439,7 @@ function StoryReviewWorkspaceInner({
             onEditStart={() => setEditingPageId(page.id)}
             onEditCancel={() => setEditingPageId(null)}
             onEditSave={(text) => handlePageEditSave(page.id, text)}
-            onApprove={() => handlePageApprove(page)}
+            onApprove={(ack) => handlePageApprove(page, ack)}
             onReject={(reason) => handlePageReject(page, reason)}
             onRegenerate={() => handlePageRegenerate(page)}
             isMutating={mutating}
@@ -449,6 +475,14 @@ function StoryReviewWorkspaceInner({
         onClose={() => setArchiveDialogOpen(false)}
         onConfirm={handleArchiveConfirm}
         isSubmitting={isArchiving}
+      />
+
+      <EditKhmerTitleDialog
+        open={editTitleDialogOpen}
+        initialTitle={story.title_km || ''}
+        onClose={() => setEditTitleDialogOpen(false)}
+        onConfirm={handleSaveTitleKm}
+        isSubmitting={isSavingTitle}
       />
     </StoryWorkflowShell>
   );

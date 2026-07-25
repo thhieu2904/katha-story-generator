@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { PublicStory, ReaderLanguage } from '../types';
 import { StoryCover } from './StoryCover';
 import { ReaderPage } from './ReaderPage';
@@ -11,14 +11,13 @@ interface StoryReaderProps {
 
 export function StoryReader({ story }: StoryReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [language, setLanguage] = useState<ReaderLanguage>('km');
-
-  useEffect(() => {
-    const saved = localStorage.getItem('katha-reader-lang');
-    if (saved === 'km' || saved === 'vi') {
-      setLanguage(saved);
+  const [language, setLanguage] = useState<ReaderLanguage>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('katha-reader-lang');
+      if (saved === 'km' || saved === 'vi') return saved;
     }
-  }, []);
+    return 'km';
+  });
 
   const handleLanguageChange = (newLang: ReaderLanguage) => {
     setLanguage(newLang);

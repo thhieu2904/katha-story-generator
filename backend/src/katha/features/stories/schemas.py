@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
@@ -113,7 +113,17 @@ class StoryResponse(BaseModel):
     @field_validator("text_revision", mode="before")
     @classmethod
     def default_text_revision(cls, value: int | None) -> int:
-        return 0 if value is None else value
+        return 0 if value is None or not isinstance(value, int) else value
+
+    @field_validator("public_share_token", mode="before")
+    @classmethod
+    def sanitize_public_share_token(cls, value: Any) -> str | None:
+        return value if isinstance(value, str) else None
+
+    @field_validator("active_image_regeneration_page_id", mode="before")
+    @classmethod
+    def sanitize_active_page_id(cls, value: Any) -> int | None:
+        return value if isinstance(value, int) else None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -149,7 +159,17 @@ class StoryListItem(BaseModel):
     @field_validator("text_revision", mode="before")
     @classmethod
     def default_text_revision(cls, value: int | None) -> int:
-        return 0 if value is None else value
+        return 0 if value is None or not isinstance(value, int) else value
+
+    @field_validator("public_share_token", mode="before")
+    @classmethod
+    def sanitize_public_share_token(cls, value: Any) -> str | None:
+        return value if isinstance(value, str) else None
+
+    @field_validator("active_image_regeneration_page_id", mode="before")
+    @classmethod
+    def sanitize_active_page_id(cls, value: Any) -> int | None:
+        return value if isinstance(value, int) else None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

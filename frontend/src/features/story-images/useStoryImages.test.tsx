@@ -42,6 +42,7 @@ function story(status: string): Story {
     character_ids: [],
     created_at: null,
     image_workflow_kind: null,
+    share_active: false,
     updated_at: null,
   };
 }

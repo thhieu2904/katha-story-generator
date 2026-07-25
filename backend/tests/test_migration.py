@@ -218,8 +218,9 @@ class Test002MigrationLifecycle:
         """Legacy integer values map correctly to text enums."""
         import os
 
-        from alembic import command
         from alembic.config import Config
+
+        from alembic import command
 
         sync_url = postgres_url.replace("postgresql+asyncpg://", "postgresql://")
         alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
@@ -419,8 +420,9 @@ class Test003004MigrationLifecycle:
     def test_phase3_migrations_upgrade_and_downgrade(self, postgres_url, run_migrations):
         import os
 
-        from alembic import command
         from alembic.config import Config
+
+        from alembic import command
 
         sync_url = postgres_url.replace("postgresql+asyncpg://", "postgresql://")
         config = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))

@@ -1,4 +1,5 @@
 import re
+from typing import cast
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -23,6 +24,8 @@ async def get_shared_story(session: AsyncSession, share_token: str) -> PublicSto
         .where(
             Story.public_share_token == share_token,
             Story.status == "published",
+            Story.public_share_activated_at.is_not(None),
+            Story.public_share_revoked_at.is_(None),
         )
         .options(selectinload(Story.pages))
     )
@@ -37,17 +40,17 @@ async def get_shared_story(session: AsyncSession, share_token: str) -> PublicSto
     cover_url = sorted_pages[0].image_url if sorted_pages else None
 
     return PublicStoryResponse(
-        title_km=story.title_km,
-        title_vi=story.title_vi,
-        target_age=story.target_age,
+        title_km=cast(str | None, story.title_km),
+        title_vi=cast(str | None, story.title_vi),
+        target_age=cast(str | None, story.target_age),
         page_count=len(sorted_pages),
-        cover=PublicCoverResponse(background_url=cover_url),
+        cover=PublicCoverResponse(background_url=cast(str | None, cover_url)),
         pages=[
             PublicPageResponse(
-                page_no=p.page_no,
-                text_km=p.text_km or "",
-                text_vi=p.text_vi or "",
-                image_url=p.image_url,
+                page_no=cast(int, p.page_no),
+                text_km=cast(str, p.text_km or ""),
+                text_vi=cast(str, p.text_vi or ""),
+                image_url=cast(str | None, p.image_url),
             )
             for p in sorted_pages
         ],

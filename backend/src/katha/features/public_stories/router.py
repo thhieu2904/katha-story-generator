@@ -9,7 +9,7 @@ from . import service
 router = APIRouter()
 
 
-@router.get("/shared-stories/{share_token}")
+@router.get("/public/shared-stories/{share_token}")
 async def get_shared_story(
     share_token: str,
     session: AsyncSession = Depends(get_db),

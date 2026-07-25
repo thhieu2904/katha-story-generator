@@ -4,6 +4,7 @@ import { REVIEW_STATUS_LABELS, REVIEW_STATUS_COLORS } from '../constants';
 import { KhmerTextEditor } from './KhmerTextEditor';
 import { RejectPageDialog } from './RejectPageDialog';
 import { RegenerateImageDialog } from './RegenerateImageDialog';
+import { ApproveWarningDialog } from './ApproveWarningDialog';
 
 interface ReviewPageCardProps {
   page: ReviewPageData;
@@ -14,7 +15,7 @@ interface ReviewPageCardProps {
   onEditStart: () => void;
   onEditCancel: () => void;
   onEditSave: (text: string) => Promise<void>;
-  onApprove: () => Promise<void>;
+  onApprove: (acknowledgeKhmerWarnings: boolean) => Promise<void>;
   onReject: (reason: string) => Promise<void>;
   onRegenerate: () => Promise<void>;
   isMutating: boolean;
@@ -36,6 +37,7 @@ export function ReviewPageCard({
 }: ReviewPageCardProps) {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [regenDialogOpen, setRegenDialogOpen] = useState(false);
+  const [approveWarningDialogOpen, setApproveWarningDialogOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isRegeneratingLocal, setIsRegeneratingLocal] = useState(false);
@@ -59,10 +61,19 @@ export function ReviewPageCard({
     (page.spellcheck_flags && page.spellcheck_flags.length > 0) ||
     !page.khmer_validated_at;
 
-  const handleApproveClick = async () => {
+  const handleApproveClick = () => {
+    if (hasWarnings) {
+      setApproveWarningDialogOpen(true);
+    } else {
+      void executeApprove(false);
+    }
+  };
+
+  const executeApprove = async (acknowledgeWarnings: boolean) => {
     try {
       setIsApproving(true);
-      await onApprove();
+      await onApprove(acknowledgeWarnings);
+      setApproveWarningDialogOpen(false);
     } finally {
       setIsApproving(false);
     }
@@ -311,6 +322,14 @@ export function ReviewPageCard({
         onConfirm={handleRegenerateConfirm}
         isSubmitting={isRegeneratingLocal}
         pageNo={page.page_no}
+      />
+
+      <ApproveWarningDialog
+        open={approveWarningDialogOpen}
+        pageNo={page.page_no}
+        onClose={() => setApproveWarningDialogOpen(false)}
+        onConfirm={() => executeApprove(true)}
+        isSubmitting={isApproving}
       />
     </div>
   );
