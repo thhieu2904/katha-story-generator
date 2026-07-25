@@ -276,3 +276,60 @@
   - Docker/PostgreSQL migration, browser matrix và live OpenAI/R2 smoke là verification gates deferred, không phải bằng chứng đã chạy.
 - **Lý do**: Đủ an toàn cho MVP một app instance mà không thêm queue infrastructure, đồng thời giữ recovery và progress canonical trong PostgreSQL.
 - **Trạng thái**: ✅ Chốt
+
+---
+
+## Quyết định đã chốt — Phase 5 Review & Public Reader (2026-07-24)
+
+### D36 — Phase 5 Review Contract & Single-Page Regeneration
+- **Ngày**: 2026-07-24
+- **Quyết định**:
+  - `POST /stories/{id}/review/regenerate-image` trả về `202 ACCEPTED` với `job_id`.
+  - Manual regeneration finalizer cập nhật page `completed`, chuyển story về `pending_review`, clear claim/heartbeat/active target. Không gọi lại Phase 4 whole-story finalizer.
+  - Claim lost fence failure trong candidate upload hủy candidate asset và ném `ClaimLost()` để dọn dẹp orphan asset.
+- **Trạng thái**: ✅ Chốt
+
+### D37 — Archive Story Extended Contract & Optimistic Concurrency
+- **Ngày**: 2026-07-24
+- **Quyết định**:
+  - Giữ `POST /stories/{id}/archive` không body cho draft list cũ, trả về `StoryResponse`.
+  - Hỗ trợ body tùy chọn `ArchiveStoryRequest` (expected_status, expected_share_revision) cho optimistic concurrency khi archive từ review/published.
+  - Loại bỏ hai owner riêng rẽ; route/service archive duy nhất nằm trong `stories/router.py` và `story_review/service.py`.
+- **Trạng thái**: ✅ Chốt
+
+### D38 — Public Reader Projection & Token Security
+- **Ngày**: 2026-07-24
+- **Quyết định**:
+  - `Story` định nghĩa ORM relationship `pages = relationship("StoryPage", order_by="StoryPage.page_no", back_populates="story")`.
+  - Token public reader bắt buộc khớp regex `^[A-Za-z0-9_-]{43}$`. Trả về `404 Not Found` kèm security headers (`Cache-Control: private, no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow, noarchive`) nếu token sai/hết hạn/revoked.
+  - Không leak internal story/page IDs hoặc metadata trong PublicStoryResponse.
+- **Trạng thái**: ✅ Chốt
+
+### D39 — Explicit Admin Confirmation for Spellcheck Warnings
+- **Ngày**: 2026-07-24
+- **Quyết định**:
+  - Phải có checkbox xác nhận tường minh khi duyệt trang có cảnh báo spellcheck/chưa validate Khmer (`acknowledge_khmer_warnings`).
+  - Nút Approve hiển thị modal confirm kèm checkbox trước khi gọi API approve.
+- **Trạng thái**: ✅ Chốt
+
+### D40 — Title Khmer Edit Capability & Header CTA
+- **Ngày**: 2026-07-24
+- **Quyết định**:
+  - Admin có `can_edit_khmer` capability được phép sửa tiêu đề tiếng Khmer khi ở `pending_review`.
+  - UI cung cấp `EditKhmerTitleDialog` kích hoạt từ nút bấm trên header workspace review.
+- **Trạng thái**: ✅ Chốt
+
+### D49 — Single Hook Abort Controller in Reader Lifecycles
+- **Ngày**: 2026-07-25
+- **Quyết định**: `usePublicStory` phụ thuộc strictly vào `[shareToken, load]`, quản lý AbortController tập trung để phòng ngừa fetch loop lặp vô hạn.
+- **Trạng thái**: ✅ Chốt
+
+### D50 — Unconditional Mutating State Cleanup
+- **Ngày**: 2026-07-25
+- **Quyết định**: Mọi async handler trong `useStoryReview` bắt buộc reset `setMutating(false)` trong khối `finally` không điều kiện để tránh đơ UI khi sequence bump.
+- **Trạng thái**: ✅ Chốt
+
+### D51 — Public Reader Simple Cover Contract
+- **Ngày**: 2026-07-25
+- **Quyết định**: Public cover hiển thị bằng ảnh trang 1 + fallback cố định + gradient + hai title DOM; không sinh hoặc upload thêm ảnh bìa riêng.
+- **Trạng thái**: ✅ Chốt
