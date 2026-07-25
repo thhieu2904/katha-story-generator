@@ -117,6 +117,7 @@ function StoryReviewWorkspaceInner({
     handleApprovePage,
     handleRejectPage,
     handleCompleteReview,
+    handleRegenerateImage,
   } = useStoryReview(storyId);
 
   if (loading && !reviewState) {
@@ -189,6 +190,15 @@ function StoryReviewWorkspaceInner({
   ) => {
     await handleRejectPage(page.id, {
       reason,
+      expectedTextRevision: story.text_revision,
+      expectedReviewStatus: page.review_status,
+      expectedImageAttemptCount: page.image_attempt_count,
+      expectedImageUrl: page.image_url || '',
+    });
+  };
+
+  const handlePageRegenerate = async (page: ReviewPageData) => {
+    await handleRegenerateImage(page.id, {
       expectedTextRevision: story.text_revision,
       expectedReviewStatus: page.review_status,
       expectedImageAttemptCount: page.image_attempt_count,
@@ -323,6 +333,7 @@ function StoryReviewWorkspaceInner({
             onEditSave={(text) => handlePageEditSave(page.id, text)}
             onApprove={() => handlePageApprove(page)}
             onReject={(reason) => handlePageReject(page, reason)}
+            onRegenerate={() => handlePageRegenerate(page)}
             isMutating={mutating}
           />
         ))}

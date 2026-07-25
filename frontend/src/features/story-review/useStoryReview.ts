@@ -9,6 +9,7 @@ import {
   approvePage,
   rejectPage,
   completeReview,
+  regeneratePageImage,
 } from './api';
 import { POLL_INTERVAL_MS } from './constants';
 import type { ReviewState } from './types';
@@ -248,6 +249,41 @@ export function useStoryReview(storyId: number) {
     }
   };
 
+  const handleRegenerateImage = async (
+    pageId: number,
+    params: {
+      expectedTextRevision: number;
+      expectedReviewStatus: string;
+      expectedImageAttemptCount: number;
+      expectedImageUrl: string;
+    }
+  ) => {
+    if (mutating) return false;
+    const seq = beginRequest();
+    setMutating(true);
+    setError(null);
+    try {
+      await regeneratePageImage(storyId, pageId, params);
+      // After starting regeneration, refresh to get the new job state
+      if (isCurrentRequest(seq)) {
+        await refresh();
+      }
+      return true;
+    } catch (reason) {
+      if (!isCurrentRequest(seq)) return false;
+      if (reason instanceof ApiError && reason.status === 409) {
+        await handleConflict();
+      } else if (reason instanceof ApiError && reason.status === 422) {
+        setError('Prompt quá dài. Vui lòng rút ngắn lý do từ chối và thử lại.');
+      } else {
+        setError(messageFromReason(reason, 'Không thể tạo lại ảnh.'));
+      }
+      return false;
+    } finally {
+      if (isCurrentRequest(seq)) setMutating(false);
+    }
+  };
+
   const handleCompleteReview = async (expectedRevision: number) => {
     if (mutating) return false;
     const seq = beginRequest();
@@ -286,5 +322,6 @@ export function useStoryReview(storyId: number) {
     handleApprovePage,
     handleRejectPage,
     handleCompleteReview,
+    handleRegenerateImage,
   };
 }

@@ -3,6 +3,7 @@ import type { ReviewPageData, ReviewState } from '../types';
 import { REVIEW_STATUS_LABELS, REVIEW_STATUS_COLORS } from '../constants';
 import { KhmerTextEditor } from './KhmerTextEditor';
 import { RejectPageDialog } from './RejectPageDialog';
+import { RegenerateImageDialog } from './RegenerateImageDialog';
 
 interface ReviewPageCardProps {
   page: ReviewPageData;
@@ -15,6 +16,7 @@ interface ReviewPageCardProps {
   onEditSave: (text: string) => Promise<void>;
   onApprove: () => Promise<void>;
   onReject: (reason: string) => Promise<void>;
+  onRegenerate: () => Promise<void>;
   isMutating: boolean;
 }
 
@@ -29,11 +31,14 @@ export function ReviewPageCard({
   onEditSave,
   onApprove,
   onReject,
+  onRegenerate,
   isMutating,
 }: ReviewPageCardProps) {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [regenDialogOpen, setRegenDialogOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isRegeneratingLocal, setIsRegeneratingLocal] = useState(false);
 
   const { capabilities } = reviewState;
   const canEdit =
@@ -70,6 +75,16 @@ export function ReviewPageCard({
       setRejectDialogOpen(false);
     } finally {
       setIsRejecting(false);
+    }
+  };
+
+  const handleRegenerateConfirm = async () => {
+    try {
+      setIsRegeneratingLocal(true);
+      await onRegenerate();
+      setRegenDialogOpen(false);
+    } finally {
+      setIsRegeneratingLocal(false);
     }
   };
 
@@ -219,6 +234,16 @@ export function ReviewPageCard({
           </div>
         )}
 
+        {page.review_status === 'rejected' && page.can_regenerate && !isMobileCompact && (
+          <button
+            onClick={() => setRegenDialogOpen(true)}
+            disabled={disabled || isMutating || isRegenerating}
+            className="w-full mt-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/20 transition-colors disabled:opacity-50"
+          >
+            Tạo lại ảnh
+          </button>
+        )}
+
         {/* Approve / Reject controls */}
         {canReview && !isMobileCompact && (
           <div className="mt-auto pt-2">
@@ -278,6 +303,14 @@ export function ReviewPageCard({
         onClose={() => setRejectDialogOpen(false)}
         onConfirm={handleRejectConfirm}
         isSubmitting={isRejecting}
+      />
+
+      <RegenerateImageDialog
+        open={regenDialogOpen}
+        onClose={() => setRegenDialogOpen(false)}
+        onConfirm={handleRegenerateConfirm}
+        isSubmitting={isRegeneratingLocal}
+        pageNo={page.page_no}
       />
     </div>
   );

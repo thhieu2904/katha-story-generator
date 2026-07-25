@@ -500,6 +500,15 @@ async def _finalize_claim(story_id: int, claim_id: UUID) -> bool:
             story = await _locked_current_story(session, story_id, claim_id)
         except ClaimLost:
             return False
+
+        # Guard: manual regeneration jobs use their own atomic terminal writes.
+        # If this function is somehow called for a manual job, skip finalization.
+        if story.active_image_regeneration_page_id is not None:
+            logger.warning(
+                "_finalize_claim called for manual regen job (story=%d), skipping",
+                story_id,
+            )
+            return False
         pages = await _locked_pages(session, story_id)
         all_completed = bool(pages) and all(
             _page_status(page) == "completed" and _has_valid_url(page) for page in pages

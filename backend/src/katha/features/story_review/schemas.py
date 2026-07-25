@@ -123,3 +123,16 @@ ReviewPageRequest = Annotated[
 class CompleteReviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_text_revision: int = Field(..., ge=0)
+
+
+class RegenerateImageRequest(BaseModel):
+    expected_text_revision: int
+    expected_review_status: str
+    expected_image_attempt_count: int
+    expected_image_url: str
+
+
+class RegenerateImageResponse(BaseModel):
+    job_id: str
+    already_running: bool
+    active_page_id: int

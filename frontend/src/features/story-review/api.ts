@@ -105,3 +105,27 @@ export function completeReview(
     },
   );
 }
+
+export function regeneratePageImage(
+  storyId: number,
+  pageId: number,
+  params: {
+    expectedTextRevision: number;
+    expectedReviewStatus: string;
+    expectedImageAttemptCount: number;
+    expectedImageUrl: string;
+  },
+) {
+  return apiFetch<{ job_id: string; already_running: boolean; active_page_id: number }>(
+    `/api/stories/${storyId}/pages/${pageId}/regenerate-image`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        expected_text_revision: params.expectedTextRevision,
+        expected_review_status: params.expectedReviewStatus,
+        expected_image_attempt_count: params.expectedImageAttemptCount,
+        expected_image_url: params.expectedImageUrl,
+      }),
+    },
+  );
+}

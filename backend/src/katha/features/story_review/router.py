@@ -1,18 +1,23 @@
 """FastAPI router for story review endpoints."""
 
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, BackgroundTasks, Depends, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from katha.core.dependencies import get_db
 from katha.features.auth.dependencies import get_admin_user
 from katha.features.auth.schemas import TokenUser
-from katha.features.story_review import service
+from katha.features.story_images.dependencies import get_story_image_ai, get_story_image_storage
+from katha.features.story_images.ports import StoryImageAI, StoryImageStorage
+from katha.features.story_review import runner, service
 from katha.features.story_review.schemas import (
     CompleteReviewRequest,
     EditKhmerPageRequest,
     EditKhmerTitleRequest,
+    RegenerateImageRequest,
+    RegenerateImageResponse,
     ReviewPageRequest,
     ReviewStateResponse,
 )
@@ -80,3 +85,31 @@ async def complete_review(
 ) -> ReviewStateResponse:
     """Complete the review process and approve the story."""
     return await service.complete_review(session, story_id, request, admin.id)
+
+
+@router.post(
+    "/stories/{story_id}/pages/{page_id}/regenerate-image",
+    response_model=RegenerateImageResponse,
+)
+async def regenerate_page_image(
+    story_id: Annotated[int, Path(gt=0)],
+    page_id: Annotated[int, Path(gt=0)],
+    request: RegenerateImageRequest,
+    background_tasks: BackgroundTasks,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[TokenUser, Depends(get_admin_user)],
+    provider: Annotated[StoryImageAI, Depends(get_story_image_ai)],
+    storage: Annotated[StoryImageStorage, Depends(get_story_image_storage)],
+) -> RegenerateImageResponse:
+    """Regenerate a rejected page's image."""
+    response = await service.start_regeneration(session, story_id, page_id, request, admin.id)
+    if not response.already_running:
+        background_tasks.add_task(
+            runner.run_single_page_regeneration,
+            story_id,
+            UUID(response.job_id),
+            page_id,
+            provider,
+            storage,
+        )
+    return response

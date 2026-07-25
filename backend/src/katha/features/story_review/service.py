@@ -6,7 +6,7 @@ import re
 import unicodedata
 from datetime import datetime
 from typing import Sequence, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -15,11 +15,14 @@ from sqlalchemy.orm import selectinload
 
 from katha.core.config import get_settings
 from katha.features.stories.models import Story, StoryPage
+from katha.features.story_review.prompts import EffectivePromptTooLongError, build_effective_prompt
 from katha.features.story_review.schemas import (
     ApprovePageRequest,
     CompleteReviewRequest,
     EditKhmerPageRequest,
     EditKhmerTitleRequest,
+    RegenerateImageRequest,
+    RegenerateImageResponse,
     RejectPageRequest,
     ReviewCapabilitiesResponse,
     ReviewJobResponse,
@@ -297,6 +300,111 @@ async def complete_review(
     story.updated_at = await _database_now(session)  # type: ignore[assignment]
     await session.commit()
     return await get_review_state(session, story_id)
+
+
+async def start_regeneration(
+    session: AsyncSession,
+    story_id: int,
+    page_id: int,
+    request: RegenerateImageRequest,
+    admin_id: UUID,
+) -> RegenerateImageResponse:
+    """Start image regeneration for a specific page."""
+    story = await _locked_story_for_review(session, story_id, lock=True)
+    db_now = await _database_now(session)
+
+    if story.status == "pending_review":
+        pass
+    elif story.status == "generating_images" and _has_active_regeneration(story):
+        if _is_job_stale(story, db_now):
+            pass  # Reclaim stale job
+        elif story.active_image_regeneration_page_id == page_id:
+            await session.rollback()
+            return RegenerateImageResponse(
+                job_id=str(story.image_generation_claim_id),
+                already_running=True,
+                active_page_id=page_id,
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Another regeneration job is actively running",
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Story is not in a valid state for image regeneration",
+        )
+
+    pages = await _locked_pages(session, story_id, lock=True)
+    target_page = next((p for p in pages if p.id == page_id), None)
+    if not target_page:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
+
+    if story.text_revision != request.expected_text_revision:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Text revision mismatch")
+
+    if (
+        target_page.review_status != request.expected_review_status
+        or target_page.image_attempt_count != request.expected_image_attempt_count
+        or (target_page.image_url or "") != request.expected_image_url
+    ):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Page identity mismatch")
+
+    if target_page.review_status != "rejected":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Page must be rejected to regenerate image",
+        )
+
+    if not target_page.review_notes or not target_page.review_notes.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Page is missing rejection reason (review_notes)",
+        )
+
+    if not target_page.image_prompt_en or not target_page.image_prompt_en.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Page is missing image_prompt_en",
+        )
+
+    try:
+        build_effective_prompt(target_page.image_prompt_en, target_page.review_notes)
+    except EffectivePromptTooLongError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Combined prompt and rejection notes exceed the limit",
+        ) from exc
+
+    if (
+        story.status == "generating_images"
+        and _has_active_regeneration(story)
+        and _is_job_stale(story, db_now)
+    ):
+        old_target = next(
+            (p for p in pages if p.id == story.active_image_regeneration_page_id), None
+        )
+        if old_target and old_target.image_status == "generating":
+            old_target.image_status = "failed"
+            old_target.image_error_code = "STALE_JOB_INTERRUPTED"
+
+    target_page.image_status = "pending"
+
+    claim_id = uuid4()
+    story.status = "generating_images"
+    story.image_generation_claim_id = claim_id
+    story.image_generation_heartbeat_at = db_now
+    story.active_image_regeneration_page_id = page_id
+    story.updated_at = db_now
+
+    await session.commit()
+
+    return RegenerateImageResponse(
+        job_id=str(claim_id),
+        already_running=False,
+        active_page_id=page_id,
+    )
 
 
 def _validate_khmer(value: str, label: str, max_chars: int) -> str:
