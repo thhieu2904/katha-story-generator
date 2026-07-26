@@ -1,12 +1,13 @@
 # Katha backend — homeserver deployment.
 #
 # Homeserver này không có IPv4 public (CGNAT) nên đường public chính thức là
-# Cloudflare Tunnel: cloudflared mở kết nối RA NGOÀI tới Cloudflare, Cloudflare
-# route api.<domain> -> tunnel -> api:8000. Không cần mở port router.
+# Cloudflare Tunnel. Từ 2026-07-27 (migration plan/13 §7A), cloudflared KHÔNG
+# còn nằm trong compose này — nó là hạ tầng chung, chạy ở stack riêng
+# /srv/tunnel trên server, join network `proxy` và gọi vào đây qua alias.
 #
-# Container api cũng join network `proxy` (external, của caddy_proxy có sẵn
-# trên server) với alias `katha-api` — nếu sau này muốn route nội bộ LAN qua
-# Caddy thì chỉ cần thêm block reverse_proxy katha-api:8000.
+# Container api join network `proxy` (external, của caddy_proxy có sẵn trên
+# server) với alias `katha-api` — cloudflared/Caddy đều gọi backend qua đường
+# này. KHÔNG dùng tên service trần `api` làm target ở bất cứ đâu (plan/13 §2.1).
 #
 # Same rule as the VPS compose: exactly ONE api container (in-process
 # image-generation runner, D35).
@@ -51,25 +52,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-
-  # NOTE: cloudflared sẽ chuyển sang stack riêng /srv/tunnel khi migration
-  # multi-app (plan/13 §7 giai đoạn A) — đừng xoá ở đây trước khi stack mới
-  # chạy và dashboard hiện 2 connector.
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run
-    environment:
-      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-    networks:
-      default: {}
-    depends_on:
-      - api
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
 
 networks:
   proxy:
