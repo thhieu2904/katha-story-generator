@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/useAuth';
+import { KathaLogo } from './KathaLogo';
 
 export function AdminHeader() {
   const { user, signOut } = useAuth();
@@ -18,9 +19,7 @@ export function AdminHeader() {
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
         <div className="flex items-center gap-7">
           <Link href="/admin/characters" className="flex items-center gap-2.5 font-bold">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-katha-primary to-katha-accent text-sm shadow-lg shadow-katha-primary/15">
-              K
-            </span>
+            <KathaLogo height={48} priority className="-my-2" />
             <span className="hidden sm:inline">Katha</span>
           </Link>
           <nav aria-label="Quản trị" className="flex items-center gap-1">

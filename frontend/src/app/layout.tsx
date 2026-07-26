@@ -25,6 +25,10 @@ const notoSerifKhmer = Noto_Serif_Khmer({
 });
 
 export const metadata: Metadata = {
+  // Cần cho ảnh OpenGraph (src/app/opengraph-image.jpg) resolve ra URL tuyệt đối.
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL
+    ? new URL(process.env.NEXT_PUBLIC_SITE_URL)
+    : undefined,
   title: 'Katha — កថា',
   description: 'Truyện tranh song ngữ Khmer – Việt · Bilingual Khmer–Vietnamese picture stories',
   openGraph: {

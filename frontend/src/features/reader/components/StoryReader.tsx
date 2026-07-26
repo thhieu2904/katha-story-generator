@@ -4,6 +4,7 @@ import { StoryCover } from './StoryCover';
 import { ReaderPage } from './ReaderPage';
 import { ReaderControls } from './ReaderControls';
 import { ReaderLanguageToggle } from './ReaderLanguageToggle';
+import { KathaLogo } from '@/components/layout/KathaLogo';
 
 interface StoryReaderProps {
   story: PublicStory;
@@ -37,7 +38,8 @@ export function StoryReader({ story }: StoryReaderProps) {
     <div className="min-h-screen bg-katha-surface text-gray-100 flex flex-col font-sans selection:bg-katha-primary/30">
       <header className="absolute inset-x-0 top-0 z-40 bg-gradient-to-b from-black/50 to-transparent">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <KathaLogo height={42} priority className="-my-2" />
             <span className="shrink-0 text-sm font-semibold tracking-wide text-white/85">
               Katha{' '}
               <span lang="km" className="font-khmer font-normal text-white/55">

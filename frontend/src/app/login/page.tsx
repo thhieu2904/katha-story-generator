@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/useAuth';
+import { KathaLogo } from '@/components/layout/KathaLogo';
 
 function requestedAdminPath() {
   if (typeof window === 'undefined') return '/admin/characters';
@@ -54,12 +55,10 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute -bottom-44 -right-24 h-96 w-96 rounded-full bg-katha-accent/15 blur-3xl" />
 
       <section className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.045] p-7 shadow-2xl backdrop-blur-xl sm:p-9">
-        <div className="mb-8">
-          <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-katha-primary to-katha-accent text-xl font-bold shadow-lg shadow-katha-primary/20">
-            K
-          </div>
+        <div className="mb-8 text-center">
+          <KathaLogo width={224} priority className="mx-auto mb-1" />
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-katha-primary-light">
-            Katha Admin
+            Trang quản trị
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Chào mừng trở lại</h1>
           <p className="mt-2 text-sm leading-6 text-white/50">
