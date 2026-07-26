@@ -1,0 +1,7 @@
+# Replace api.katha.example.com with the real API domain (A record -> VPS IP).
+# Caddy tự lo HTTPS (Let's Encrypt) khi domain trỏ đúng.
+
+api.katha.example.com {
+	encode zstd gzip
+	reverse_proxy api:8000
+}

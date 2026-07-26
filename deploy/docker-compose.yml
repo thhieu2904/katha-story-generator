@@ -1,0 +1,50 @@
+# Katha backend — VPS deployment (FE deploys separately on Vercel).
+#
+# IMPORTANT: run exactly ONE api container (no replicas). The image
+# generation runner is in-process (D35: single-instance BackgroundTasks
+# with UUID claim + heartbeat); a second instance would fight over claims.
+#
+# Usage (from the repo root on the VPS):
+#   cd deploy
+#   cp .env.example .env        # then fill in real values
+#   docker compose up -d --build
+#   docker compose exec api alembic upgrade head
+#   curl -fsS http://localhost/health   # via Caddy, or check your domain
+
+services:
+  api:
+    build:
+      context: ../backend
+    env_file: .env
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

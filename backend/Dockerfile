@@ -25,6 +25,9 @@ FROM python:3.11-slim AS runner
 
 WORKDIR /app
 
+# Run as an unprivileged user; the app only writes to stdout/R2/DB.
+RUN useradd --create-home --uid 1000 app
+
 # Copy the virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
 
@@ -38,5 +41,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app/src"
 
 EXPOSE 8000
+
+USER app
 
 CMD ["uvicorn", "katha.main:app", "--host", "0.0.0.0", "--port", "8000"]
