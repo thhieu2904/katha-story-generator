@@ -165,7 +165,7 @@
 - Offline gates: Ruff pass, mypy pass, `151 passed, 26 deselected`; OpenAPI đủ 7 route; frontend ESLint pass với 1 warning `<img>` có sẵn, TypeScript pass, production build pass.
 - 26 integration tests được collect, gồm full Phase 3 generation/editor/concurrency/rollback/migration lifecycle; chưa chạy vì Docker Desktop pipe không tồn tại.
 - `text_draft` archive và advanced dictionary/segmentation adapter là P1, chưa triển khai.
-- Báo cáo chi tiết: `PHASE_3C_IMPLEMENTATION_REPORT.md` ở repo root.
+- Báo cáo chi tiết: `old/PHASE_3C_IMPLEMENTATION_REPORT.md` (đã archive).
 
 ## 6. File map — Đọc gì ở đâu
 
@@ -181,9 +181,9 @@
 | `06-project-structure.md` | Cấu trúc thư mục frontend/ + backend/ |
 | `07-database-schema.md` | **DB schema duy nhất** — source of truth cho migration |
 | `08-implementation-gates.md` | Quyết định chưa chốt — dev KHÔNG được tự ý quyết |
-| `PHASE_3B_TEXT_GENERATION_PLAN.md` | Source of truth triển khai generation + bilingual preview |
-| `PHASE_3C_STORY_EDITOR_CONFIRMATION_PLAN.md` | Source of truth editor + validation + confirm sau khi 3B accept |
-| `PHASE_5_HUMAN_REVIEW_PUBLISH_READER_PLAN.md` | Source of truth D36–D42, D49–D51 và API/public-reader contract Phase 5 |
+| `old/PHASE_3B_TEXT_GENERATION_PLAN.md` | Source of truth triển khai generation + bilingual preview |
+| `old/PHASE_3C_STORY_EDITOR_CONFIRMATION_PLAN.md` | Source of truth editor + validation + confirm sau khi 3B accept |
+| `old/PHASE_5_HUMAN_REVIEW_PUBLISH_READER_PLAN.md` | Source of truth D36–D42, D49–D51 và API/public-reader contract Phase 5 |
 | `characters/README.md` | Tổng quan character bank |
 | `characters/characters.json` | Data nhân vật (JSON) |
 | `characters/prompts.md` | Prompt đã dùng gen ảnh |
