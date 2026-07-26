@@ -747,6 +747,7 @@ dependencies = [
     { name = "httpx" },
     { name = "openai" },
     { name = "pillow" },
+    { name = "psycopg2-binary" },
     { name = "pydantic-settings" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "sqids" },
@@ -757,7 +758,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "psycopg2-binary" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -773,6 +773,7 @@ requires-dist = [
     { name = "httpx" },
     { name = "openai", specifier = ">=2.46.0" },
     { name = "pillow", specifier = ">=12.3.0" },
+    { name = "psycopg2-binary" },
     { name = "pydantic-settings" },
     { name = "pyjwt", extras = ["crypto"] },
     { name = "sqids", specifier = ">=0.5.0" },
@@ -783,7 +784,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy" },
-    { name = "psycopg2-binary" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
