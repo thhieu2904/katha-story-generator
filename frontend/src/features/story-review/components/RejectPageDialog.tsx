@@ -54,8 +54,8 @@ export function RejectPageDialog({
           />
           
           <div className="flex items-center justify-between">
-            <span className={`text-xs ${reason.length < 5 || reason.length > 500 ? 'text-red-400' : 'text-gray-400'}`}>
-              {reason.length} / 500 (tối thiểu 5 ký tự)
+            <span className={`text-xs ${reason.length > 0 && isInvalid ? 'text-red-400' : 'text-gray-400'}`}>
+              {reason.trim().length} / 500 (tối thiểu 5 ký tự)
             </span>
           </div>
 

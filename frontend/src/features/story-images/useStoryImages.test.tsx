@@ -42,7 +42,6 @@ function story(status: string): Story {
     character_ids: [],
     created_at: null,
     image_workflow_kind: null,
-    share_active: false,
     updated_at: null,
   };
 }
@@ -99,14 +98,14 @@ async function flushInitialLoad(): Promise<void> {
 describe('useStoryImages', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('polls, reconciles a 409, and installs the canonical image state', async () => {
+  it('redirects to review when polling observes a downstream status', async () => {
     const generating = imageState({
       status: 'generating_images',
       mapping_locked: true,
@@ -114,14 +113,12 @@ describe('useStoryImages', () => {
       progress: { total: 1, pending: 0, generating: 1, completed: 0, failed: 0 },
       pages: [{ ...imageState().pages[0], image_status: 'generating', image_url: null }],
     });
-    const finished = imageState({ status: 'pending_review', mapping_locked: true });
     mockedFetchStory
       .mockResolvedValueOnce(story('generating_images'))
       .mockResolvedValueOnce(story('pending_review'));
     mockedFetchStoryImages
       .mockResolvedValueOnce(generating)
-      .mockRejectedValueOnce(new ApiError('stale read', 409))
-      .mockResolvedValueOnce(finished);
+      .mockRejectedValueOnce(new ApiError('stale read', 409));
 
     const { result } = renderHook(() => useStoryImages(10));
     await flushInitialLoad();
@@ -131,9 +128,10 @@ describe('useStoryImages', () => {
       await vi.advanceTimersByTimeAsync(IMAGE_POLL_INTERVAL_MS);
     });
 
-    expect(mockedFetchStoryImages).toHaveBeenCalledTimes(3);
+    expect(mockedFetchStoryImages).toHaveBeenCalledTimes(2);
     expect(mockedFetchStory).toHaveBeenCalledTimes(2);
-    expect(result.current.imageState).toEqual(finished);
+    expect(result.current.imageState).toEqual(generating);
+    expect(result.current.redirectHref).toBe('/admin/stories/s1_UkLWZg9D/review');
     expect(result.current.pollError).toBeNull();
   });
 
@@ -467,8 +465,9 @@ describe('useStoryImages', () => {
       .mockReturnValueOnce(f1Promise)         // F1 (first visibility event)
       .mockResolvedValueOnce(rev5);           // F2 (second visibility event)
 
-    // Fire first visibility event → triggers F1
+    // Fire first visible transition → triggers F1 exactly once.
     act(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', writable: true, configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));
       Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true, configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));

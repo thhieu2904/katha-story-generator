@@ -2,7 +2,7 @@
 
 > ⚠️ **FILE NÀY LÀ BẮT BUỘC ĐỌC** khi bắt đầu chat mới về dự án Katha.
 > Đọc file này TRƯỚC, sau đó đọc các file được reference bên dưới.
-> Ngày cập nhật: 2026-07-20
+> Ngày cập nhật: 2026-07-26
 
 ---
 
@@ -37,8 +37,8 @@
 - Phase 4 không hard-code giá ảnh/truyện; các ước tính lịch sử không phải runtime contract.
 ### Kiến trúc core
 - **2-phase pipeline**: Text Phase (rẻ, iterate thoải mái) → Image Phase (đắt, chạy 1 lần)
-- Text KHÓA sau khi admin confirm → không sửa text ở image phase
-- Sửa ảnh từng trang riêng lẻ (không gen lại hàng loạt)
+- Sau confirm, VI/EN/structure/setup/prompt/mapping khóa downstream; D37 chỉ cho controlled `title_km`/`text_km` ở `pending_review`, page edit tăng revision và clear validator/review metadata.
+- Regenerate chỉ một page `rejected` có reason tại một thời điểm/story; giữ URL + rejection metadata cũ cho tới khi safe swap/failure.
 - Auto-save bản hiện tại, không undo/version history trong MVP
 
 ### Content design
@@ -51,26 +51,27 @@
 - **Hard limit**: tối đa 16 trang nội dung
 - **Sinh text**: AI sinh trực tiếp title + full story pages; không có outline riêng
 - **Bìa**: code template React/Tailwind/SVG, không sinh AI và không nằm trong `story_pages`
-- **Layout**: Landscape (tất cả)
-- **Song ngữ**: KM primary (reader) / VN primary (admin edit)
+- **Reader layout**: một cột mọi viewport, ảnh 16:9 trên/text dưới, không ép xoay; cover có cả hai title.
+- **Ngôn ngữ reader**: Khmer mặc định; toggle chỉ một body language tại một thời điểm. Admin dùng Việt làm đối chiếu/edit context.
 
 ### Edit flow
 - Quick actions: [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn]
 - Tất cả quick actions giữ nguyên page count/order
 - Custom instruction luôn giữ page IDs/count/order trong P0; add/delete/reorder chỉ qua control riêng
 - Add/delete/reorder dùng control riêng; archive `text_draft` deferred P1
-- Validate page Khmer cũ qua explicit `POST /validate-km`; retranslate title/page qua endpoint chung
-- KHÔNG có inline text edit trong MVP
+- Validator: `POST /api/stories/{id}/validate-km` với expected revision, warning-only, không tăng revision/đổi review status; warning/unvalidated cần explicit acknowledgement khi approve.
+- Không inline edit VI/EN/structure downstream; Phase 5 controlled edit `title_km`/`text_km` chỉ ở `pending_review` (D37).
 
 ### Auth + Data
 - 2-5 tài khoản tạo sẵn (Supabase Auth)
-- Reader public, không yêu cầu đăng nhập (D22)
+- Reader public không login **chỉ** qua opaque `/stories/[shareToken]` (D49); không catalogue/search/numeric public route.
+- D51 mobile compact (`width < 768px` hoặc `height < 600px`) giữ quick/create-list/resume, progress, stale-recovery và share; Khmer deep edit/review/regenerate decisions cần canvas `width >= 768px` và `height >= 600px`.
 - Character Bank chỉ đọc 7 nhân vật seed trong MVP (D23)
 - Archive thay vì delete (giữ data cho NCKH)
 - Vocabulary layer: future phase, KHÔNG trong MVP
 
 ### DB Schema design — 7 bảng, không thêm bảng mới ✅
-- **Source of truth**: `07-database-schema.md`; migration 003 đã thêm status/revision/generation claim UUID; migration 004 đã thêm Khmer validation timestamp
+- **Source of truth**: `07-database-schema.md`; migration 003/004 là text lifecycle/Khmer validation, 005 image generation và 006 review/publish constraints.
 - KHÔNG có `story_outlines`, `story_edit_logs`, `usage_logs`, `vocabulary` trong MVP
 - Generation ownership dùng `text_generation_claim_id`; `updated_at` chỉ xác định stale
 - G2 đã chốt ở D34 và G4 đã chốt ở D35 cho Phase 4; G1/G3/G5/G6 cũng đã chốt
@@ -134,15 +135,15 @@
     - 3B: ✅ Corrective offline coverage complete — Docker/live AI smoke pending
     - 3C: ✅ Corrective review blockers fixed; code-complete offline — Docker/live/native Khmer review pending
 ⚠️ Phase 4:   Image generation MVP — code-complete offline; PostgreSQL/live/browser acceptance còn pending
-⬜ Phase 5:   Review, publish, reader
+🔨 Phase 5:   Review, publish, reader — đang corrective review; chưa tuyên bố code-complete
 ⬜ Phase 6:   QA, deploy
 ⬜ Phase 7:   NCKH evaluation
 ```
 
 ### Bước tiếp theo
 
-1. Bật Docker Desktop và chạy 37 integration tests (11 test Phase 4) cho migration/race/fencing trên PostgreSQL thật.
-2. Chạy live smoke có kiểm soát cho Phase 3 và Phase 4 với `OPENAI_API_KEY` ngoài test suite.
+1. Bật Docker Desktop và chạy toàn bộ integration suite qua Testcontainers; repo không có Docker Compose service `postgres`.
+2. Chạy live smoke có kiểm soát cho Phase 3–5 với `OPENAI_API_KEY`/R2 ngoài test suite.
 3. Nhờ người đọc Khmer review sample; archive `text_draft` tiếp tục deferred P1.
 4. Với Phase 4, kiểm tra legacy image URL + downstream-status migration guards, custom-size/multi-reference edit, R2 WebP upload và stale-job resume.
 
@@ -182,6 +183,7 @@
 | `08-implementation-gates.md` | Quyết định chưa chốt — dev KHÔNG được tự ý quyết |
 | `PHASE_3B_TEXT_GENERATION_PLAN.md` | Source of truth triển khai generation + bilingual preview |
 | `PHASE_3C_STORY_EDITOR_CONFIRMATION_PLAN.md` | Source of truth editor + validation + confirm sau khi 3B accept |
+| `PHASE_5_HUMAN_REVIEW_PUBLISH_READER_PLAN.md` | Source of truth D36–D42, D49–D51 và API/public-reader contract Phase 5 |
 | `characters/README.md` | Tổng quan character bank |
 | `characters/characters.json` | Data nhân vật (JSON) |
 | `characters/prompts.md` | Prompt đã dùng gen ảnh |
@@ -230,3 +232,22 @@ Phần này thay thế các ghi chú cũ nói G2/G4 còn mở, Phase 4 có manua
 - **Offline evidence**: backend `245 passed, 37 deselected`; riêng Phase 4 offline `94 passed`; Ruff/mypy pass; frontend Vitest `21 passed`, TypeScript và production build pass.
 - **Timeout budget**: defaults dành `300s` cho tối đa hai OpenAI attempts (`150s × 2`), giữ `5s` finalization margin và tối đa `25s` botocore transport cho hai R2 upload attempts; custom config yêu cầu tối thiểu `1s` transport budget; botocore không có hidden retry.
 - **Deferred**: `37` integration tests collect (`11` Phase 4) nhưng chưa execute; controlled live OpenAI/R2 custom-size/multi-reference và browser/manual matrix cũng chưa chạy.
+
+## Phase 5 corrective implementation evidence (cập nhật 2026-07-26)
+
+- **Status**: đang xử lý corrective review; Alembic head `006`. Chưa tuyên bố Phase 5 code-complete hoặc PostgreSQL verified.
+- **Review**: canonical `/review` projection, optimistic page identity, edit title/page Khmer, chạy lại validator, explicit warning acknowledgement, complete-review.
+- **Regeneration**: một page rejected, locked mapping/reference preflight trước UUID claim; response public chỉ có `already_running` + `review`. Claim đưa page về `pending` và clear lỗi cũ; fenced schedule reset đưa page về `failed/SCHEDULE_FAILED`, giữ URL/rejection metadata và bật retry. Stale target `pending|generating` được reclaim bằng fresh UUID trước usable-image guard.
+- **Publish/share/reader**: publish revalidate dưới lock, share revision rotation, token cũ 404 với security headers, public projection không lộ ID nội bộ.
+- **Archive/navigation**: draft giữ bodyless archive; review/published bắt buộc expected fields. `/images` redirect `/review` cho review regeneration và downstream statuses.
+- **Offline evidence**: backend `268 passed, 65 deselected`; Ruff/format/mypy pass. Frontend `130 passed`/16 files, TypeScript và production build pass; lint 0 error/4 warning.
+- **Integration evidence**: 65 test collect, gồm 28 Phase 5 test cho migration 006, durable ACK-loss fresh-session reconcile/reset, real provider/upload runner fencing, stale reclaim, §14 races, token collision và full flow. Docker Desktop Linux engine đang tắt, nên đây chỉ là collect/static review, không phải integration pass.
+
+## Phase 5 UI corrective fixes + live smoke (2026-07-26, cùng ngày)
+
+- **UI/flow fixes**: (1) review workspace truyền `status`/`storyTitle`/`imageWorkflowKind` vào `StoryWorkflowShell` ở mọi nhánh (kể cả loading/error, fallback meta từ stories API) — stepper hiện đúng bước 4 thay vì mặc định bước 1; (2) `CompleteReviewDialog` bỏ `&quot;` entity để né bug SWC/Turbopack Next 16.2 nuốt space sau `{expr}` khi text node chứa entity ("6trang"); (3) Duyệt/Từ chối gate theo `page.can_approve`/`page.can_reject` từ backend, Duyệt disable thêm khi trang đã approved, kèm hint text hiển thị (không chỉ tooltip); (4) action bar review theo đúng convention chung (hint trái + CTA phải, luôn hiện cho mọi status); (5) `useStoryReview`: reconcile nhận predicate `wasApplied` — banner lỗi được xóa khi canonical reread chứng minh mutation đã ăn; `handleRegenerateImage` thêm nhánh reconcile `status === 0` (nhận biết cả trường hợp job đã chạy xong qua attempt count/URL đổi); (6) thống nhất fallback title "Truyện chưa đặt tên", quotes typographic, counter trim-consistent cho 3 input, thêm counter cho `EditKhmerTitleDialog`.
+- **Design pass**: Be Vietnam Pro (UI, hỗ trợ tiếng Việt đầy đủ) + Noto Serif Khmer (thân truyện reader + tiêu đề bìa — cảm giác sách); palette dịch sang indigo đêm ấm + accent vàng saffron; badge trạng thái kiểu chấm màu + chữ thường thay vì pill uppercase; stepper bỏ emoji khóa, dùng SVG.
+- **Tests sau fix**: Vitest `137 passed/16 files` (5 test mới cho gating + reconcile predicate, có negative case); `tsc` 0 lỗi; lint 0 error/4 warning cũ.
+- **Migration live**: `alembic upgrade head` chạy trên Supabase live 2026-07-26 → head `006`; verify đủ cột/constraint/partial unique index.
+- **Live smoke**: approve 6/6 → complete → publish → token 43 ký tự → public API `200` (projection sạch) → reader render thật → revoke → `404` + security headers + UI not-found. Story 1 đã restore về `pending_review` nguyên trạng. Chi tiết: `PHASE_5_MANUAL_VERIFICATION.md` Section 4.
+- **Còn pending**: 65 integration test (Testcontainers) chờ Docker Desktop Linux engine — app không tự khởi động trong phiên headless, cần mở thủ công; live OpenAI/R2 regeneration smoke; admin UI browser matrix sau đăng nhập.

@@ -13,8 +13,8 @@
 │                                                                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐    │
 │  │ Admin Pages  │  │ Reader Pages │  │ Auth (Supabase Client) │    │
-│  │ - Characters │  │ - Story list │  │                        │    │
-│  │ - Create     │  │ - Page flip  │  │                        │    │
+│  │ - Characters │  │ - Opaque link│  │                        │    │
+│  │ - Create     │  │ - Lang toggle│  │                        │    │
 │  │ - Review     │  │ - Bilingual  │  │                        │    │
 │  └──────┬───────┘  └──────┬───────┘  └────────────────────────┘    │
 │         │                 │                                         │
@@ -124,7 +124,7 @@ BƯỚC 1: Sinh toàn bộ text tiếng Việt + dịch Khmer (~30-60 giây)
 │  │                                                │
 │  │ Một buổi sáng, bạn Dara chạy tới rủ Srey     │ ← VN: primary
 │  │ ra công viên chơi. Srey ôm chặt búp bê...    │    (edit qua chat —
-│  │                                                │     D07: không inline)
+│  │                                                │     D07 Phase 3; D37 mở Khmer-only review edit)
 │  │                                                │
 │  │ ព្រឹកមួយថ្ងៃ មិត្តដារ៉ារត់មកជួបស្រី...         │ ← KM: subtitle
 │  │                                                │    (preview)
@@ -151,7 +151,7 @@ BƯỚC 2: Admin edit (lặp nhiều lần — rẻ)
 │
 │  [Xác nhận nội dung] ← admin ưng text VN + KM rồi
 │  → story.status = 'text_confirmed'
-│  → Text bị KHÓA từ đây (không sửa text nữa)
+│  → VI/EN/structure/image inputs bị khóa; D37 cho controlled Khmer edit ở pending_review
 │
 ▼
 ═══════════════════════════════════════════════════════════
@@ -192,17 +192,17 @@ BƯỚC 4: Review ảnh (sửa TỪNG TRANG riêng lẻ)
 │  
 │  Ảnh ưng → approve trang đó
 │  Ảnh không ưng → [🔄 Tạo lại ảnh trang này] (chỉ gen lại 1 ảnh, ~$0.13)
-│  Text đã khóa; Khmer chỉ được retranslate trước confirm ở Phase 3C
+│  VI/EN/structure đã khóa; D37 cho sửa title_km/text_km có kiểm soát ở pending_review
 │
 │  KHÔNG gen lại hàng loạt — từng trang một
 │
-│  Khi tất cả trang approved → story.status = 'approved'
+│  Khi tất cả trang approved → chỉ bật CTA complete-review; action lock/revalidate riêng mới chuyển `pending_review → approved` (D38)
 │
 ▼
 BƯỚC 5: Xuất bản
 │
 │  Admin bấm [Xuất bản] → story.status = 'published'
-│  Truyện xuất hiện trong Reader
+│  Truyện đọc được chỉ qua active opaque link; không xuất hiện trong catalogue
 │
 │  Truyện không ưng → story.status = 'archived' (KHÔNG XÓA)
 │  Text + ảnh vẫn giữ trong DB/R2
@@ -364,15 +364,14 @@ TEXT_PROVIDER = os.getenv("TEXT_PROVIDER", "openai")
 │                                                 │
 ├─────────────────────────────────────────────────┤
 │                                                 │
-│  ក្មេងស្រីម្នាក់រស់នៅក្នុងភូមិតូចមួយ             │  ← Khmer: font lớn (24px+),
-│                                                 │     Noto Sans Khmer, đậm,
-│  Một cô bé sống trong một ngôi làng nhỏ          │     line-height: 1.8
-│                                                 │
-│                                                 │  ← Việt: font nhỏ hơn (16px),
-│                                                 │     màu nhạt hơn (opacity 0.6)
+│  [ខ្មែរ] [Tiếng Việt]                            │  ← one-language toggle
+│  ក្មេងស្រីម្នាក់រស់នៅក្នុងភូមិតូចមួយ             │  ← chỉ body language đang chọn;
+│                                                 │     Khmer là mặc định
 │                                 [◀ 2/8 ▶]      │
 └─────────────────────────────────────────────────┘
 ```
+
+> D50 supersede layout song ngữ cũ: không hiển thị đồng thời Khmer/Việt, không desktop split/two-column và không ép xoay; ảnh 16:9 ở trên, text được chọn ở dưới trên mọi viewport.
 
 ### Trong Admin (giáo viên tạo/review)
 
@@ -412,3 +411,11 @@ Phần này thay thế các ghi chú Phase 4/G2/G4 và ước tính giá cũ ở
 - **Scope**: Phase 4 không có manual per-page regenerate; chức năng đó thuộc review Phase 5.
 - **Migration**: `005_story_image_generation` hard-fail trước DDL nếu còn `story_pages.image_url` legacy không rỗng hoặc story ở `pending_review`/`approved`/`published` chưa có Phase 4 state.
 - **Remaining gates**: Docker/PostgreSQL migration và controlled OpenAI/R2 smoke còn deferred.
+
+## Phase 5 review/publish contract — corrective working tree (2026-07-26)
+
+- `GET /review` trả projection canonical gồm capability, progress, active regeneration job và share state; regeneration `202` trả `{already_running, review}` và không expose claim UUID; archive trả `StoryResponse` để UI điều hướng khỏi workspace.
+- Page review dùng optimistic identity (`text_revision`, review status, image attempt, image URL). Khmer validator là warning-only và có CTA chạy lại; approve warning cần acknowledgment tường minh.
+- Manual regeneration chỉ nhận page rejected, preflight locked mapping/reference trước claim, dùng DB-clock UUID fencing và safe-swap URL. Schedule failure chỉ reset đúng UUID + active page, đưa target về `failed/SCHEDULE_FAILED` nhưng giữ old URL/rejection metadata để capability retry bật. Stale target `pending|generating` được reclaim trước usable-image guard.
+- Complete-review/publish khóa và revalidate page invariants. Share link revoke/create tăng revision; public reader không có internal IDs và token invalid/revoked luôn 404 no-store.
+- Direct `/images` không phải historical reader sau khi vào review: review regeneration, `pending_review`, `approved`, `published` đều canonical tại `/review`.

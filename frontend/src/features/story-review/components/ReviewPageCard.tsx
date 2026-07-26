@@ -15,9 +15,9 @@ interface ReviewPageCardProps {
   onEditStart: () => void;
   onEditCancel: () => void;
   onEditSave: (text: string) => Promise<void>;
-  onApprove: (acknowledgeKhmerWarnings: boolean) => Promise<void>;
-  onReject: (reason: string) => Promise<void>;
-  onRegenerate: () => Promise<void>;
+  onApprove: (acknowledgeKhmerWarnings: boolean) => Promise<boolean>;
+  onReject: (reason: string) => Promise<boolean>;
+  onRegenerate: () => Promise<boolean>;
   isMutating: boolean;
 }
 
@@ -53,10 +53,6 @@ export function ReviewPageCard({
     REVIEW_STATUS_COLORS[page.review_status] ||
     REVIEW_STATUS_COLORS.pending;
 
-  const isImageUsable =
-    (page.image_status === 'completed' || page.image_status === 'failed') &&
-    !!page.image_url;
-
   const hasWarnings =
     (page.spellcheck_flags && page.spellcheck_flags.length > 0) ||
     !page.khmer_validated_at;
@@ -72,8 +68,10 @@ export function ReviewPageCard({
   const executeApprove = async (acknowledgeWarnings: boolean) => {
     try {
       setIsApproving(true);
-      await onApprove(acknowledgeWarnings);
-      setApproveWarningDialogOpen(false);
+      const approved = await onApprove(acknowledgeWarnings);
+      if (approved) {
+        setApproveWarningDialogOpen(false);
+      }
     } finally {
       setIsApproving(false);
     }
@@ -82,8 +80,10 @@ export function ReviewPageCard({
   const handleRejectConfirm = async (reason: string) => {
     try {
       setIsRejecting(true);
-      await onReject(reason);
-      setRejectDialogOpen(false);
+      const rejected = await onReject(reason);
+      if (rejected) {
+        setRejectDialogOpen(false);
+      }
     } finally {
       setIsRejecting(false);
     }
@@ -92,8 +92,10 @@ export function ReviewPageCard({
   const handleRegenerateConfirm = async () => {
     try {
       setIsRegeneratingLocal(true);
-      await onRegenerate();
-      setRegenDialogOpen(false);
+      const regenerated = await onRegenerate();
+      if (regenerated) {
+        setRegenDialogOpen(false);
+      }
     } finally {
       setIsRegeneratingLocal(false);
     }
@@ -102,6 +104,10 @@ export function ReviewPageCard({
   const isRegenerating =
     reviewState.job.is_running &&
     reviewState.job.active_page_id === page.id;
+  const isStaleRecoveryTarget =
+    reviewState.job.can_resume &&
+    reviewState.job.active_page_id === page.id &&
+    page.review_status === 'rejected';
 
   return (
     <div
@@ -177,8 +183,9 @@ export function ReviewPageCard({
         )}
         {/* Status badge */}
         <span
-          className={`absolute top-2 right-2 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider backdrop-blur shadow-sm z-10 ${statusColor}`}
+          className={`absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium backdrop-blur shadow-sm ${statusColor}`}
         >
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
           {statusLabel}
         </span>
       </div>
@@ -245,7 +252,19 @@ export function ReviewPageCard({
           </div>
         )}
 
-        {page.review_status === 'rejected' && page.can_regenerate && !isMobileCompact && (
+        {isStaleRecoveryTarget && (
+          <button
+            type="button"
+            data-testid="stale-regeneration-recovery"
+            onClick={() => setRegenDialogOpen(true)}
+            disabled={disabled || isMutating || isRegenerating}
+            className="w-full mt-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-blue-500/15 text-blue-200 hover:bg-blue-500/25 border border-blue-500/20 transition-colors disabled:opacity-50"
+          >
+            Khôi phục tạo lại ảnh
+          </button>
+        )}
+
+        {page.review_status === 'rejected' && page.can_regenerate && !isMobileCompact && !isStaleRecoveryTarget && (
           <button
             onClick={() => setRegenDialogOpen(true)}
             disabled={disabled || isMutating || isRegenerating}
@@ -266,7 +285,8 @@ export function ReviewPageCard({
                   disabled ||
                   isMutating ||
                   isApproving ||
-                  isRejecting
+                  isRejecting ||
+                  !page.can_reject
                 }
                 className="flex-1 flex justify-center items-center px-4 py-2.5 rounded-xl text-sm font-medium bg-katha-error/20 text-red-300 hover:bg-katha-error/30 transition-colors disabled:opacity-50"
               >
@@ -280,12 +300,8 @@ export function ReviewPageCard({
                   isMutating ||
                   isApproving ||
                   isRejecting ||
-                  !isImageUsable
-                }
-                title={
-                  !isImageUsable
-                    ? 'Không thể duyệt khi chưa có ảnh hợp lệ'
-                    : 'Duyệt trang này'
+                  !page.can_approve ||
+                  page.review_status === 'approved'
                 }
                 className="flex-1 flex justify-center items-center px-4 py-2.5 rounded-xl text-sm font-medium bg-katha-success/20 text-emerald-300 hover:bg-katha-success/30 transition-colors disabled:opacity-50"
               >
@@ -305,6 +321,16 @@ export function ReviewPageCard({
                 Duyệt
               </button>
             </div>
+            {!page.can_approve && (
+              <p className="mt-2 text-center text-[11px] text-gray-500">
+                Trang cần có đủ văn bản song ngữ và ảnh để duyệt hoặc từ chối.
+              </p>
+            )}
+            {page.can_approve && page.review_status === 'approved' && (
+              <p className="mt-2 text-center text-[11px] text-gray-500">
+                Trang đã được duyệt — dùng «Từ chối» nếu muốn đổi quyết định.
+              </p>
+            )}
           </div>
         )}
       </div>

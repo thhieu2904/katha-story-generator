@@ -10,11 +10,22 @@ export function usePublicStory(shareToken: string) {
   const [notFound, setNotFound] = useState(false);
 
   const fetchCountRef = useRef(0);
+  const loadingOwnerRef = useRef(0);
+  const currentTokenRef = useRef<string | null>(null);
+  const storyRef = useRef<PublicStory | null>(null);
+  const authoritativeOutcomeRef = useRef<{
+    token: string;
+    fetchId: number;
+  } | null>(null);
 
   const load = useCallback(async (token: string, signal?: AbortSignal, isSilent = false) => {
     if (!token) return;
     const fetchId = ++fetchCountRef.current;
+    const loadingOwner = isSilent ? null : ++loadingOwnerRef.current;
     if (!isSilent) {
+      currentTokenRef.current = token;
+      storyRef.current = null;
+      authoritativeOutcomeRef.current = null;
       setLoading(true);
       setError(null);
       setNotFound(false);
@@ -22,7 +33,20 @@ export function usePublicStory(shareToken: string) {
     }
     try {
       const data = await fetchSharedStory(token, signal);
-      if (fetchId === fetchCountRef.current) {
+      const newerAuthoritativeOutcome = authoritativeOutcomeRef.current;
+      if (
+        token === currentTokenRef.current &&
+        (
+          fetchId === fetchCountRef.current ||
+          (!isSilent &&
+            storyRef.current === null &&
+            (!newerAuthoritativeOutcome ||
+              newerAuthoritativeOutcome.token !== token ||
+              newerAuthoritativeOutcome.fetchId <= fetchId))
+        )
+      ) {
+        authoritativeOutcomeRef.current = { token, fetchId };
+        storyRef.current = data;
         setStory(data);
         setError(null);
         setNotFound(false);
@@ -31,13 +55,21 @@ export function usePublicStory(shareToken: string) {
       if (fetchId !== fetchCountRef.current) return;
       if (err instanceof Error && err.name === 'AbortError') return;
       if (err instanceof PublicApiError && err.status === 404) {
+        // A newer 404 is authoritative: an older foreground response may not
+        // resurrect a link that has just been revoked or rotated.
+        authoritativeOutcomeRef.current = { token, fetchId };
+        storyRef.current = null;
         setNotFound(true);
         setStory(null);
+        // A terminal 404 must not wait forever for an older initial request.
+        loadingOwnerRef.current += 1;
+        setLoading(false);
       } else {
+        if (isSilent && storyRef.current !== null) return;
         setError(err instanceof Error ? err.message : 'Không thể tải truyện.');
       }
     } finally {
-      if (fetchId === fetchCountRef.current && !isSilent) {
+      if (loadingOwner !== null && loadingOwner === loadingOwnerRef.current) {
         setLoading(false);
       }
     }

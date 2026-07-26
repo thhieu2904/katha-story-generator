@@ -12,8 +12,10 @@ ADMIN FLOW:
   Login → Dashboard → Characters (read-only seed) → Create Story → Review/Edit
   → Generate Images → Review → Publish
 
-USER FLOW:    ← Reader public (D22)
-  Story List → Read Story (page flip, bilingual)
+USER FLOW:    ← Reader public (D49–D51)
+  Admin publish → active opaque /stories/[shareToken] → no-login reader
+  Khmer default → one-language toggle → pager/keyboard/swipe
+  (không public list/search/numeric ID và không page-flip)
 ```
 
 ---
@@ -200,9 +202,11 @@ Khi AI xử lý edit xong → toast notification:
 
 ## 4. User — Đọc truyện
 
-### 4.1 Danh sách truyện
+> **PHASE 5 SUPERSESSION (D49–D51):** Toàn bộ wireframe catalogue/page-flip/song ngữ đồng thời ngay dưới đây là lịch sử, không phải contract triển khai. Reader chỉ mở qua opaque 43-character `/stories/[shareToken]`; không có public list, search, numeric ID hoặc `react-pageflip`. Mọi viewport dùng ảnh 16:9 trên, đúng một body language phía dưới (Khmer mặc định), pager/keyboard/swipe. Mobile compact giữ recovery/progress/share, còn deep review/regenerate decision chỉ mở khi canvas usable.
 
-> Reader là public và không yêu cầu đăng nhập (D22).
+### 4.1 ~~Danh sách truyện~~ — SUPERSEDED bởi D49
+
+> Không có public catalogue hoặc Story List trong Phase 5. Nội dung wireframe lịch sử bên dưới chỉ để truy vết và không được triển khai.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -226,7 +230,18 @@ Khi AI xử lý edit xong → toast notification:
 Tiêu đề hiển thị: KM (primary) + VN (subtitle)
 ```
 
-### 4.2 Đọc truyện — Page flip
+### 4.2 Reader exact-link — D49/D50
+
+```
+/stories/[shareToken] (không login, không catalogue)
+[Cover: cả hai title] → [ảnh content 16:9] → [Khmer | Tiếng Việt] → [Trước 3/8 Sau]
+```
+
+- Khmer mặc định; toggle chỉ đưa một body language vào accessibility tree tại một thời điểm.
+- Giữ lựa chọn ngôn ngữ khi đổi trang; dùng Previous/Next, keyboard và swipe thay page-flip.
+- Ảnh landscape 16:9 ở trên, text được chọn ở dưới trên mọi viewport; không ép xoay.
+
+> **SUPERSEDED:** Wireframe page-flip/song ngữ đồng thời bên dưới là mô tả lịch sử, không dùng `react-pageflip`.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -247,7 +262,7 @@ Tiêu đề hiển thị: KM (primary) + VN (subtitle)
 - Khmer: Noto Sans Khmer, 22-26px, font-weight: 600, color: primary
 - Việt: 14-16px, font-weight: 400, color: text-secondary (opacity 0.6)
 - Line-height Khmer: 1.8+ (tránh cắt dấu chồng)
-- Lật trang: react-pageflip animation hoặc swipe gesture
+- ~~Lật trang: react-pageflip animation~~ — **SUPERSEDED bởi D50**; chỉ pager/keyboard/swipe.
 - Landscape layout, aspect ratio ảnh: 16:9 hoặc 3:2
 ```
 
@@ -297,7 +312,7 @@ Tiêu đề hiển thị: KM (primary) + VN (subtitle)
               ║  │                      │       từng trang ảnh,
               ║  └──────────┬───────────┘       gen lại 1 ảnh)
               ╚═════════════╪══════════════════════╝
-                            │ [Tất cả trang approved]
+                            │ [Tất cả page approved + explicit Complete review]
                             ▼
                     ┌──────────────────────┐
                     │                      │
@@ -330,3 +345,13 @@ Phần này thay thế mô tả image-flow chưa chốt hoặc cost cố định
 - **G4**: một in-process sequential runner với heartbeat; không dùng queue riêng hoặc WebSocket/SSE trong MVP.
 - **Cost**: CTA hiển thị số trang cần tạo/retry, không hiển thị mức giá cố định.
 - **Boundary**: nút manual “Tạo lại ảnh trang này” là action review Phase 5.
+
+## Phase 5 canonical flow (2026-07-26)
+
+1. `pending_review` mở `/review`; admin sửa Khmer, chạy lại validator, approve hoặc reject từng page.
+2. Page rejected có review note được tạo lại ảnh từng trang. UI nhận `202` với `already_running` + canonical `review` rồi poll `/review`; UUID claim không nằm trong response public và review mutation bị khóa trong lúc job chạy.
+3. Ảnh mới thành công reset quyết định page về pending; khi mọi page approved, complete-review chuyển story sang `approved`.
+4. Publish tạo active opaque token và chuyển `published`; revoke giữ content published nhưng inactive, re-share luôn token mới, archive revoke atomically theo status/share revision.
+5. Public reader chỉ nhận exact active token, không lộ ID/catalogue/search; Khmer mặc định, one-language toggle, ảnh 16:9 trên/text dưới và pager thay page-flip.
+6. Mobile compact vẫn xem progress/recovery/share; deep Khmer edit/review/regenerate decision cần canvas `>=768px` rộng và `>=600px` cao.
+5. Archive giữ dữ liệu. Draft archive không body; downstream archive dùng optimistic status/share revision. Direct `/images` ở bước review/publish redirect về `/review`.

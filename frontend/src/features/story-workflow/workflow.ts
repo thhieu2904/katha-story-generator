@@ -94,7 +94,6 @@ export function getWorkflowPresentation(
 
   const setupPath = `/admin/stories/${storyKey}/setup`;
   const editPath = `/admin/stories/${storyKey}/edit`;
-  const imagesPath = `/admin/stories/${storyKey}/images`;
 
   switch (status) {
     case 'draft':
@@ -158,7 +157,7 @@ export function getWorkflowPresentation(
             review: 'current',
           },
           canonicalHref,
-          allowedReadOnlyHrefs: [setupPath, editPath, imagesPath],
+          allowedReadOnlyHrefs: [setupPath, editPath],
           resumeLabel,
           showStepper: true,
         };
@@ -190,7 +189,7 @@ export function getWorkflowPresentation(
           review: 'current',
         },
         canonicalHref,
-        allowedReadOnlyHrefs: [setupPath, editPath, imagesPath],
+        allowedReadOnlyHrefs: [setupPath, editPath],
         resumeLabel,
         showStepper: true,
       };
@@ -206,7 +205,7 @@ export function getWorkflowPresentation(
           review: 'completed',
         },
         canonicalHref,
-        allowedReadOnlyHrefs: [setupPath, editPath, imagesPath],
+        allowedReadOnlyHrefs: [setupPath, editPath],
         resumeLabel,
         showStepper: true,
       };

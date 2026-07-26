@@ -39,6 +39,7 @@ def result_for(
         result.scalars.return_value.all.return_value = items
     if detail is not _UNSET:
         result.scalar_one_or_none.return_value = detail
+        result.scalar_one.return_value = detail
     return result
 
 
@@ -298,7 +299,8 @@ def test_archive_draft():
     story_res = result_for(detail=s1)
     chars_res = result_for(items=[1, 2])
 
-    session.execute.side_effect = [story_res, chars_res]
+    clock_res = result_for(detail=datetime.now(timezone.utc))
+    session.execute.side_effect = [story_res, chars_res, clock_res]
     install_overrides(session)
 
     with TestClient(app) as client:
@@ -539,7 +541,8 @@ def test_archive_keeps_character_ids():
     chars_res = result_for(items=[1, 2])
 
     # Archive call
-    session.execute.side_effect = [story_res, chars_res]
+    clock_res = result_for(detail=datetime.now(timezone.utc))
+    session.execute.side_effect = [story_res, chars_res, clock_res]
     install_overrides(session)
 
     with TestClient(app) as client:

@@ -45,7 +45,7 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-katha-surface shadow-2xl p-6">
         <h3 className="text-xl font-bold mb-2">Lưu trữ truyện</h3>
         <p className="text-sm text-white/70 mb-4">
-          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-white">&ldquo;{storyTitle}&rdquo;</span>? Truyện sẽ bị lưu trữ. Bạn có thể khôi phục sau.
+          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-white">“{storyTitle}”</span>? Truyện sẽ bị lưu trữ. Bạn có thể khôi phục sau.
         </p>
 
         {error && (

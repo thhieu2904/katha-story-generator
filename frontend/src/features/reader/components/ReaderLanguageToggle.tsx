@@ -9,7 +9,7 @@ interface ReaderLanguageToggleProps {
 export function ReaderLanguageToggle({ language, onChange }: ReaderLanguageToggleProps) {
   return (
     <div 
-      className="flex items-center bg-black/30 backdrop-blur-md rounded-full p-1 border border-white/10 mx-auto max-w-fit"
+      className="flex shrink-0 items-center bg-black/30 backdrop-blur-md rounded-full p-1 border border-white/10 max-w-fit"
       role="radiogroup"
       aria-label="Chọn ngôn ngữ"
     >

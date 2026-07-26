@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
+import { READER_CREDIT } from '../constants';
 
 interface ReaderControlsProps {
   currentPage: number;
@@ -114,6 +115,9 @@ export function ReaderControls({ currentPage, totalPages, onPageChange }: Reader
           )}
         </button>
       </div>
+      <p className="mx-auto mt-2 max-w-2xl text-center text-[11px] leading-relaxed text-white/30">
+        {READER_CREDIT}
+      </p>
     </div>
   );
 }

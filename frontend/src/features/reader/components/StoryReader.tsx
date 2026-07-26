@@ -35,11 +35,36 @@ export function StoryReader({ story }: StoryReaderProps) {
 
   return (
     <div className="min-h-screen bg-katha-surface text-gray-100 flex flex-col font-sans selection:bg-katha-primary/30">
-      <header className="sticky top-0 z-40 bg-katha-surface/80 backdrop-blur-sm border-b border-white/5 py-3 px-4">
-        <ReaderLanguageToggle language={language} onChange={handleLanguageChange} />
+      <header className="absolute inset-x-0 top-0 z-40 bg-gradient-to-b from-black/50 to-transparent">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="shrink-0 text-sm font-semibold tracking-wide text-white/85">
+              Katha{' '}
+              <span lang="km" className="font-khmer font-normal text-white/55">
+                កថា
+              </span>
+            </span>
+            {currentPage > 0 && storyTitle && (
+              <>
+                <span className="hidden text-white/25 sm:inline" aria-hidden>
+                  ·
+                </span>
+                <span
+                  lang={language}
+                  className={`hidden truncate text-sm text-white/60 sm:inline ${
+                    language === 'km' ? 'font-khmer' : ''
+                  }`}
+                >
+                  {storyTitle}
+                </span>
+              </>
+            )}
+          </div>
+          <ReaderLanguageToggle language={language} onChange={handleLanguageChange} />
+        </div>
       </header>
-      
-      <main className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-center transition-opacity duration-300 motion-reduce:transition-none">
+
+      <main className="flex-1 w-full max-w-4xl mx-auto px-4 pb-4 pt-20 md:px-6 lg:px-8 flex flex-col justify-center transition-opacity duration-300 motion-reduce:transition-none">
         {currentPage === 0 ? (
           <StoryCover story={story} language={language} />
         ) : activePage ? (

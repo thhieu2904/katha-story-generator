@@ -5,9 +5,10 @@ from __future__ import annotations
 import re
 import secrets
 import unicodedata
+from contextlib import suppress
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Sequence, cast
-from unittest.mock import Mock
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
@@ -17,7 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from katha.core.config import get_settings
+from katha.core.database import async_session_factory
+from katha.features.characters.models import Character
 from katha.features.stories.models import Story, StoryCharacter, StoryPage
+from katha.features.story_images.models import ImageDomainError, normalize_character_ids
+from katha.features.story_images.ports import StoryImageStorage
+from katha.features.story_images.runner import ReferenceUnavailable, _reference_urls
 from katha.features.story_review.prompts import EffectivePromptTooLongError, build_effective_prompt
 from katha.features.story_review.schemas import (
     ApprovePageRequest,
@@ -43,6 +49,13 @@ from katha.features.story_review.schemas import (
 
 TITLE_MAX_CHARS = 160
 PAGE_TEXT_MAX_CHARS = 1200
+
+
+@dataclass(frozen=True, slots=True)
+class StartRegenerationResult:
+    response: RegenerateImageResponse
+    claim_id: UUID
+    page_id: int
 
 
 async def get_review_state(session: AsyncSession, story_id: int) -> ReviewStateResponse:
@@ -315,22 +328,33 @@ async def start_regeneration(
     page_id: int,
     request: RegenerateImageRequest,
     admin_id: UUID,
-) -> RegenerateImageResponse:
+    storage: StoryImageStorage,
+) -> StartRegenerationResult:
     """Start image regeneration for a specific page."""
     story = await _locked_story_for_review(session, story_id, lock=True)
     db_now = await _database_now(session)
+    reclaiming_stale = False
 
     if story.status == "pending_review":
         pass
     elif story.status == "generating_images" and _has_active_regeneration(story):
         if _is_job_stale(story, db_now):
-            pass  # Reclaim stale job
+            if story.active_image_regeneration_page_id != page_id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Another regeneration job targets a different page",
+                )
+            reclaiming_stale = True
         elif story.active_image_regeneration_page_id == page_id:
             await session.rollback()
-            return RegenerateImageResponse(
-                job_id=str(story.image_generation_claim_id),
-                already_running=True,
-                active_page_id=page_id,
+            review_state = await get_review_state(session, story_id)
+            return StartRegenerationResult(
+                response=RegenerateImageResponse(
+                    already_running=True,
+                    review=review_state,
+                ),
+                claim_id=cast(UUID, story.image_generation_claim_id),
+                page_id=page_id,
             )
         else:
             raise HTTPException(
@@ -364,6 +388,10 @@ async def start_regeneration(
             detail="Page must be rejected to regenerate image",
         )
 
+    if reclaiming_stale and target_page.image_status in {"pending", "generating"}:
+        target_page.image_status = "failed"  # type: ignore[assignment]
+        target_page.image_error_code = "STALE_JOB_INTERRUPTED"  # type: ignore[assignment]
+
     image_usable = (
         target_page.image_status == "completed" or target_page.image_status == "failed"
     ) and bool(target_page.image_url)
@@ -394,20 +422,12 @@ async def start_regeneration(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Combined prompt and rejection notes exceed the limit",
         ) from exc
-
-    if (
-        story.status == "generating_images"
-        and _has_active_regeneration(story)
-        and _is_job_stale(story, db_now)
-    ):
-        old_target = next(
-            (p for p in pages if p.id == story.active_image_regeneration_page_id), None
-        )
-        if old_target and old_target.image_status == "generating":
-            old_target.image_status = "failed"  # type: ignore[assignment]
-            old_target.image_error_code = "STALE_JOB_INTERRUPTED"  # type: ignore[assignment]
-
-    target_page.image_status = "pending"  # type: ignore[assignment]
+    await _validate_regeneration_plan_and_references(
+        session,
+        story,
+        target_page,
+        storage,
+    )
 
     claim_id = uuid4()
     story.status = "generating_images"  # type: ignore[assignment]
@@ -415,14 +435,134 @@ async def start_regeneration(
     story.image_generation_heartbeat_at = db_now  # type: ignore[assignment]
     story.active_image_regeneration_page_id = page_id  # type: ignore[assignment]
     story.updated_at = db_now  # type: ignore[assignment]
+    target_page.image_status = "pending"  # type: ignore[assignment]
+    target_page.image_error_code = None  # type: ignore[assignment]
 
-    await session.commit()
+    # Build the accepted response before committing. A post-commit canonical
+    # read can fail after the claim is durable (for example, a lost commit ACK),
+    # which would otherwise leave the router with no chance to schedule or
+    # fenced-reset that exact claim.
+    review_state = _build_review_state(story, pages, db_now)
+    try:
+        await session.commit()
+    except Exception:
+        # The database may have committed even when the connection did not
+        # deliver the ACK. Never reuse the uncertain session: verify the exact
+        # UUID with a fresh session and only return a scheduleable pending claim.
+        with suppress(Exception):
+            await session.rollback()
+        try:
+            reconciled_state = await _reconcile_durable_regeneration_claim(
+                story_id, claim_id, page_id
+            )
+        except Exception:
+            # A claimed pending page must never be abandoned just because the
+            # reconciliation read failed. The reset is independently fenced.
+            with suppress(Exception):
+                await reset_regeneration_after_schedule_failure(story_id, claim_id, page_id)
+            raise
+        if reconciled_state is None:
+            raise
+        review_state = reconciled_state
 
-    return RegenerateImageResponse(
-        job_id=str(claim_id),
-        already_running=False,
-        active_page_id=page_id,
+    return StartRegenerationResult(
+        response=RegenerateImageResponse(
+            already_running=False,
+            review=review_state,
+        ),
+        claim_id=claim_id,
+        page_id=page_id,
     )
+
+
+async def _reconcile_durable_regeneration_claim(
+    story_id: int,
+    claim_id: UUID,
+    page_id: int,
+) -> ReviewStateResponse | None:
+    """Verify an uncertain commit with a fresh session and exact UUID fence."""
+    async with async_session_factory() as fresh_session:
+        try:
+            story = await _locked_story_for_review(fresh_session, story_id, lock=True)
+            if (
+                story.status != "generating_images"
+                or story.image_generation_claim_id != claim_id
+                or story.active_image_regeneration_page_id != page_id
+            ):
+                return None
+
+            page = (
+                await fresh_session.execute(
+                    select(StoryPage)
+                    .where(StoryPage.id == page_id, StoryPage.story_id == story_id)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            # Only a pending target is safe and necessary to schedule here. A
+            # later reclaim still fences this worker by the same exact UUID.
+            if page is None or page.image_status != "pending":
+                return None
+
+            pages = await _locked_pages(fresh_session, story_id, lock=False)
+            db_now = await _database_now(fresh_session)
+            return _build_review_state(story, pages, db_now)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_404_NOT_FOUND:
+                return None
+            raise
+        finally:
+            await fresh_session.rollback()
+
+
+async def reset_regeneration_after_schedule_failure(
+    story_id: int,
+    claim_id: UUID,
+    page_id: int,
+) -> bool:
+    """Fresh-session reset for an exact claim that could not be scheduled."""
+    async with async_session_factory() as fresh_session:
+        return await _fenced_reset_regeneration_after_schedule_failure(
+            fresh_session, story_id, claim_id, page_id
+        )
+
+
+async def _fenced_reset_regeneration_after_schedule_failure(
+    session: AsyncSession,
+    story_id: int,
+    claim_id: UUID,
+    page_id: int,
+) -> bool:
+    """Reset only a still-pending exact claim, preserving retry metadata."""
+    story = (
+        await session.execute(select(Story).where(Story.id == story_id).with_for_update())
+    ).scalar_one_or_none()
+    if (
+        story is None
+        or story.status != "generating_images"
+        or story.image_generation_claim_id != claim_id
+        or story.active_image_regeneration_page_id != page_id
+    ):
+        await session.rollback()
+        return False
+    page = (
+        await session.execute(
+            select(StoryPage)
+            .where(StoryPage.id == page_id, StoryPage.story_id == story_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if page is None or page.image_status != "pending":
+        await session.rollback()
+        return False
+    story.status = "pending_review"  # type: ignore[assignment]
+    story.image_generation_claim_id = None  # type: ignore[assignment]
+    story.image_generation_heartbeat_at = None  # type: ignore[assignment]
+    story.active_image_regeneration_page_id = None  # type: ignore[assignment]
+    story.updated_at = await _database_now(session)  # type: ignore[assignment]
+    page.image_status = "failed"  # type: ignore[assignment]
+    page.image_error_code = "SCHEDULE_FAILED"  # type: ignore[assignment]
+    await session.commit()
+    return True
 
 
 async def publish_story(
@@ -500,13 +640,14 @@ async def publish_story(
                 detail=f"Page {page.page_no} is not approved",
             )
 
+    next_share_revision = cast(int, story.public_share_revision) + 1
     for _ in range(3):
         token = secrets.token_urlsafe(32)
         savepoint = await session.begin_nested()
         try:
             story.status = "published"  # type: ignore[assignment]
             story.public_share_token = token  # type: ignore[assignment]
-            story.public_share_revision = cast(int, story.public_share_revision) + 1  # type: ignore[assignment]
+            story.public_share_revision = next_share_revision  # type: ignore[assignment]
             db_now = await _database_now(session)
             story.published_at = db_now  # type: ignore[assignment]
             story.public_share_activated_at = db_now  # type: ignore[assignment]
@@ -516,6 +657,8 @@ async def publish_story(
             break
         except IntegrityError:
             await savepoint.rollback()
+            # A nested rollback expires ORM state in AsyncSession. All values
+            # needed by the next candidate are deliberately local variables.
     else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -580,6 +723,7 @@ async def create_share_link(
             detail="Share revision mismatch",
         )
 
+    next_share_revision = cast(int, story.public_share_revision) + 1
     for _ in range(3):
         token = secrets.token_urlsafe(32)
         savepoint = await session.begin_nested()
@@ -588,12 +732,13 @@ async def create_share_link(
             story.public_share_token = token  # type: ignore[assignment]
             story.public_share_activated_at = db_now  # type: ignore[assignment]
             story.public_share_revoked_at = None  # type: ignore[assignment]
-            story.public_share_revision = cast(int, story.public_share_revision) + 1  # type: ignore[assignment]
+            story.public_share_revision = next_share_revision  # type: ignore[assignment]
             story.updated_at = db_now  # type: ignore[assignment]
             await savepoint.commit()
             break
         except IntegrityError:
             await savepoint.rollback()
+            # Do not read an expired ORM attribute before trying the next token.
     else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -625,8 +770,6 @@ async def archive_story_extended(
     )
     story.character_ids = list(chars_result.scalars().all())  # type: ignore[attr-defined]
 
-    db_now = await _database_now(session)
-
     if story.status == "archived":
         return story
 
@@ -637,7 +780,12 @@ async def archive_story_extended(
             detail=f"Cannot archive story in status: {story.status}",
         )
 
-    if request and request.expected_status is not None:
+    if story.status != "draft" and (request is None or request.expected_status is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="expected_status is required outside draft",
+        )
+    if request is not None and request.expected_status is not None:
         if story.status != request.expected_status:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -645,12 +793,20 @@ async def archive_story_extended(
             )
 
     if story.status == "published":
-        if request and request.expected_share_revision is not None:
-            if story.public_share_revision != request.expected_share_revision:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Share revision mismatch",
-                )
+        if request is None or request.expected_share_revision is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="expected_share_revision is required for published stories",
+            )
+        if story.public_share_revision != request.expected_share_revision:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Share revision mismatch",
+            )
+
+    db_now = await _database_now(session)
+
+    if story.status == "published":
         if story.public_share_token is not None:
             story.public_share_token = None  # type: ignore[assignment]
             story.public_share_revision = cast(int, story.public_share_revision) + 1  # type: ignore[assignment]
@@ -728,15 +884,63 @@ async def _locked_pages(session: AsyncSession, story_id: int, lock: bool) -> Seq
 
 
 async def _database_now(session: AsyncSession) -> datetime:
-    if isinstance(session, Mock) or getattr(session, "_is_mock", False):
-        return datetime.now(timezone.utc)
+    value = cast(datetime, (await session.execute(select(func.clock_timestamp()))).scalar_one())
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
+async def _validate_regeneration_plan_and_references(
+    session: AsyncSession,
+    story: Story,
+    page: StoryPage,
+    storage: StoryImageStorage,
+) -> None:
+    if story.image_plan_locked_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Image plan is not locked",
+        )
+    story_character_ids = set(
+        (
+            await session.execute(
+                select(StoryCharacter.character_id).where(StoryCharacter.story_id == story.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     try:
-        res = (await session.execute(select(func.clock_timestamp()))).scalar_one_or_none()
-        if isinstance(res, datetime):
-            return res
-    except Exception:
-        pass
-    return datetime.now(timezone.utc)
+        selected_ids = normalize_character_ids(
+            cast(list[int] | None, page.image_character_ids) or [],
+            allowed_character_ids=story_character_ids,
+        )
+    except ImageDomainError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Page character mapping is no longer valid",
+        ) from exc
+    characters: list[Character] = []
+    if selected_ids:
+        characters = list(
+            (
+                await session.execute(
+                    select(Character).where(Character.id.in_(selected_ids)).order_by(Character.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if {cast(int, item.id) for item in characters} != set(selected_ids):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Page character mapping is no longer valid",
+            )
+    try:
+        _reference_urls(characters, list(selected_ids), storage)
+    except ReferenceUnavailable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Selected character reference is unavailable",
+        ) from exc
 
 
 def _has_active_regeneration(story: Story) -> bool:

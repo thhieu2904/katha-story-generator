@@ -21,7 +21,7 @@
     - 3B: ✅ Text Generation — baseline `b99eb32`
     - 3C: ✅ Core P0 code-complete offline
 ✅ Phase 4:   Image generation MVP — offline source/unit/frontend gates pass; Docker/live/manual verification pending
-⬜ Phase 5:   Review, publish, reader
+🔨 Phase 5:   Corrective review đang thực hiện; chưa tuyên bố code-complete
 ⬜ Phase 6:   QA, deploy
 ⬜ Phase 7:   NCKH evaluation
 ```
@@ -135,6 +135,8 @@ API đọc config (backbones, genres, art styles), API đọc 7 nhân vật seed
 
 Flow tạo truyện → sinh text Việt → dịch Khmer → biên tập/đổi cấu trúc có kiểm soát → xác nhận khóa text.
 
+> D37 supersede “khóa text” theo nghĩa tuyệt đối: VI/EN/structure/setup/prompt/mapping vẫn khóa downstream, nhưng `title_km` và `text_km` được controlled edit ở `pending_review`.
+
 ### Phase 3A — Setup
 
 - [x] CRUD story draft, lựa chọn config/nhân vật, policy nhóm tuổi và số trang.
@@ -167,13 +169,13 @@ Flow tạo truyện → sinh text Việt → dịch Khmer → biên tập/đổi
 
 ### Deliverable
 
-Canonical bilingual editor đã auto-save từng mutation thành công, chống stale overwrite bằng revision, giữ Việt/Khmer atomic, và khóa text khi admin bấm **Xác nhận nội dung**.
+Canonical bilingual editor đã auto-save từng mutation thành công, chống stale overwrite bằng revision và giữ Việt/Khmer atomic. Khi admin bấm **Xác nhận nội dung**, VI/EN/structure bị khóa; D37 cho controlled Khmer-only edit ở `pending_review`.
 
 ---
 ## Phase 4 — Image Generation (3-4 ngày) — Offline source/unit/frontend gates pass
 
 ### Mục tiêu
-Sinh ảnh minh họa cho từng trang (text đã khóa ở Phase 3).
+Sinh ảnh minh họa cho từng trang (VI/EN/structure/image inputs đã khóa ở Phase 3; D37 Khmer-only review exception không rebuild ảnh).
 
 > ✅ **G2**: Persist mapping 0–3 character đã chọn cho từng trang, rồi khóa khi bắt đầu job.
 > ✅ **G4**: `BackgroundTasks` tuần tự, UUID claim + heartbeat, `GET /images` polling và retry/resume trang retryable.
@@ -215,41 +217,57 @@ Admin duyệt ảnh từng trang, sửa text KM, gen lại ảnh. Xuất bản. 
 > Reader public, không yêu cầu đăng nhập (D22).
 ### Việc cần làm
 
-- [ ] **5.1** API review
-  - `PUT /stories/:id/pages/:page_id/review` — approve/reject
-  - `PUT /stories/:id/pages/:page_id/text` — sửa text KM
-  - `POST /stories/:id/pages/:page_id/regenerate-image` — gen lại ảnh 1 trang
-  - `PUT /stories/:id/publish` — xuất bản
+- [~] **5.1** API review — corrective review đang mở; các method/path cũ đã superseded
+  - `GET /api/stories/{story_id}/review`
+  - `PATCH /api/stories/{story_id}/review/title-km`
+  - `PATCH /api/stories/{story_id}/pages/{page_id}/review/text-km`
+  - `POST /api/stories/{story_id}/validate-km`
+  - `PUT /api/stories/{story_id}/pages/{page_id}/review`
+  - `POST /api/stories/{story_id}/pages/{page_id}/regenerate-image` → `202 { already_running, review }`
+  - `POST /api/stories/{story_id}/complete-review`
+  - `POST /api/stories/{story_id}/publish`
+  - `POST /api/stories/{story_id}/share-link/revoke`
+  - `POST /api/stories/{story_id}/share-link`
+  - `POST /api/stories/{story_id}/archive`
+  - `GET /api/public/shared-stories/{share_token}`
 
-- [ ] **5.2** UI review
+- [~] **5.2** UI review
   - Từng trang: ảnh + text KM (editable) + text VN (đối chiếu)
-  - Highlight spellcheck flags
-  - Nút: approve, reject, sửa text, tạo lại ảnh
+  - Highlight spellcheck flags; CTA chạy lại validator khi còn flags dù đã có timestamp
+  - Approve warning/unvalidated cần explicit acknowledgement; regenerate chỉ rejected page có reason
+  - Stale active target có recovery CTA, kể cả mobile compact theo D51
   - Progress: x/n trang đã duyệt
 
-- [ ] **5.3** State machine
-  - Implement status transitions
-  - Validation: không cho publish nếu chưa approve hết
+- [~] **5.3** State machine
+  - `pending_review → complete-review → approved → publish → published`; all-pages-approved chỉ bật CTA, không tự transition
+  - Revoke giữ `published` inactive; re-share token mới; archive dùng expected status/share revision và revoke atomically
+
+### Phase 5 corrective status (2026-07-26)
+
+- Working tree đang sửa theo review; không dùng số test cũ để tuyên bố offline complete.
+- PostgreSQL migration/concurrency/full-flow chỉ được ghi pass sau khi suite integration chạy thật; collect-only là evidence riêng.
+- Live `gpt-image-2`/R2, browser/mobile matrix và native Khmer review vẫn chưa chạy.
 
 - [ ] **5.4** API reader
-  - `GET /public/stories` — danh sách published
-  - `GET /public/stories/:id` — chi tiết + pages
-  - Public route, không yêu cầu auth
+  - Chỉ `GET /api/public/shared-stories/{share_token}` cho exact active opaque token.
+  - Không có public list/catalogue và không dùng numeric story ID làm public locator.
+  - Public route không yêu cầu auth; invalid/inactive/revoked/archived đều cùng 404.
 
 - [ ] **5.5** UI reader
-  - Story list: card grid, ảnh bìa, title KM + VN
-  - Page flip: landscape, KM primary + VN subtitle
+  - Không có story list/catalogue; reader chỉ vào bằng `/stories/[shareToken]`.
+  - Mọi viewport dùng ảnh landscape 16:9 phía trên, body text phía dưới; không ép xoay.
+  - Toggle chỉ hiển thị Khmer hoặc Việt, mặc định Khmer; cover có cả hai title.
   - Noto Sans Khmer, 22-26px, line-height 1.8+
 
 - [ ] **5.6** Cross-browser test
   - Chrome, Firefox, Safari
-  - Tablet + mobile (xoay ngang)
+  - Tablet + mobile portrait/landscape; không ép xoay; mobile compact vẫn có progress/recovery/share nhưng deep mutation cần canvas usable
   - Font Khmer render
 
 ### Deliverable
 - Review flow hoàn chỉnh
 - Reader đẹp, responsive, font Khmer đúng
-- Admin xuất bản → reader thấy truyện
+- Admin xuất bản + tạo active opaque link → người có link đọc được; không có catalogue.
 
 ---
 

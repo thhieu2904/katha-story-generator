@@ -36,7 +36,7 @@ export function CompleteReviewDialog({
         </h3>
         
         <p className="text-sm text-gray-300 mb-6">
-          Bạn đã duyệt tất cả {progress.total} trang. Truyện sẽ được chuyển sang trạng thái &quot;Đã duyệt&quot; và sẵn sàng để xuất bản.
+          Bạn đã duyệt tất cả {progress.total} trang. Truyện sẽ được chuyển sang trạng thái “Đã duyệt” và sẵn sàng để xuất bản.
         </p>
 
         <div className="flex justify-center space-x-3">

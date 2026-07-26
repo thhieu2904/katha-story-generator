@@ -31,7 +31,7 @@ export function ShareLinkPanel({
     try {
       if (navigator.share) {
         await navigator.share({
-          title: storyTitle || 'Katha Story',
+          title: storyTitle || 'Truyện chưa đặt tên',
           url: shareUrl,
         });
       } else {

@@ -135,7 +135,7 @@ frontend/
     ├── app/                     ── Routes (App Router) ───────────
     │   ├── layout.tsx           # Root layout: fonts, providers, metadata
     │   ├── globals.css          # Tailwind directives + custom Khmer typography
-    │   ├── page.tsx             # Landing → redirect admin hoặc reader
+    │   ├── page.tsx             # Landing/admin entry; không fetch hoặc redirect tới public catalogue
     │   │
     │   ├── login/
     │   │   └── page.tsx         # Form đăng nhập
@@ -166,11 +166,9 @@ frontend/
     │   │           └── review/
     │   │               └── page.tsx # Bước 4: Review từng trang
     │   │
-    │   └── stories/             ── Reader routes (public) ───────
-    │       ├── layout.tsx       # Reader layout: clean, minimal
-    │       ├── page.tsx         # Danh sách truyện published
-    │       └── [id]/
-    │           └── page.tsx     # Đọc truyện — page flip, song ngữ
+    │   └── stories/             ── Reader exact-link (public) ───
+    │       └── [shareToken]/
+    │           └── page.tsx     # Opaque unlisted reader; pager + one-language toggle
     │
     ├── components/              ── Components theo feature ───────
     │   ├── ui/                  # Shared UI primitives
@@ -201,9 +199,9 @@ frontend/
     │   │   └── ReviewPage.tsx        # Review 1 trang (ảnh + text)
     │   │
     │   ├── reader/              # Reader-specific components
-    │   │   ├── PageFlip.tsx          # Lật trang animation
-    │   │   ├── BilingualText.tsx     # Text KM + VN
-    │   │   └── StoryGrid.tsx        # Grid truyện published
+    │   │   ├── StoryCover.tsx        # Code-template cover, hai title
+    │   │   ├── ReaderLanguageToggle.tsx # Khmer default, một body language
+    │   │   └── ReaderPager.tsx       # Previous/Next, keyboard, swipe
     │   │
     │   └── layout/              # Layout components
     │       ├── AdminSidebar.tsx
@@ -246,11 +244,12 @@ frontend/
 | `/admin/characters/[id]` | Sửa nhân vật | Admin |
 | `/admin/stories` | Danh sách truyện (admin) | Admin |
 | `/admin/stories/new` | Thiết lập truyện mới | Admin |
-| `/admin/stories/[id]/edit` | Text Phase — edit song ngữ | Admin |
-| `/admin/stories/[id]/generate` | Image Phase — progress | Admin |
-| `/admin/stories/[id]/review` | Review từng trang | Admin |
-| `/stories` | Danh sách truyện published | Public |
-| `/stories/[id]` | Đọc truyện page flip | Public |
+| `/admin/stories/[storyKey]/edit` | Text Phase — edit song ngữ | Admin |
+| `/admin/stories/[storyKey]/images` | Image Phase — plan/progress | Admin |
+| `/admin/stories/[storyKey]/review` | Review từng trang | Admin |
+| `/stories/[shareToken]` | Unlisted reader — Khmer default, one-language toggle | Public |
+
+Không có route catalogue `/stories` hoặc reader theo numeric story ID trong Phase 5.
 
 **Components:**
 - Mỗi component = 1 file `.tsx` — style viết bằng Tailwind classes trong JSX
@@ -274,8 +273,7 @@ frontend/
     "swr": "^2.x",
     "@supabase/supabase-js": "^2.x",
     "@dnd-kit/core": "^6.x",
-    "@dnd-kit/sortable": "^8.x",
-    "react-pageflip": "^2.x"
+    "@dnd-kit/sortable": "^8.x"
   },
   "devDependencies": {
     "typescript": "^5.x",
@@ -425,7 +423,7 @@ Backend (FastAPI / VPS)
 
 Backend dùng feature riêng `src/katha/features/story_editor/` gồm `router.py`, `schemas.py`, `service.py`, `ports.py`, `prompts.py`, `diff.py`; adapter Khmer ở `src/katha/integrations/khmer/`. OpenAI adapter dùng chung được mở rộng, không gọi provider trực tiếp từ router.
 
-Frontend dùng `src/features/story-editor/` gồm API/types/constants/hook và các component editor. Route `app/admin/stories/[id]/edit/page.tsx` chỉ parse ID rồi render feature. Dnd-kit là dependency UI mới duy nhất.
+Frontend dùng `src/features/story-editor/` gồm API/types/constants/hook và các component editor. Route hiện hành `app/admin/stories/[storyKey]/edit/page.tsx` resolve opaque admin key rồi render feature. Dnd-kit là dependency UI mới duy nhất.
 
 Migration 004 chỉ thêm `story_pages.khmer_validated_at`; không thêm bảng, edit log, history hay inline editor.
 ---
@@ -436,6 +434,12 @@ Phần này thay thế các placeholder `ai/`, `storage/` và ghi chú Gate G4 c
 
 - Backend: `src/katha/features/story_images/` chứa router, service, schemas, models, prompts, ports, dependencies và runner.
 - Integrations: `integrations/openai_story_images.py` và `integrations/r2_storage.py` là adapter cho plan/image và R2 safe reference/WebP output.
-- Frontend: `src/features/story-images/` và route `app/admin/stories/[id]/images/` hiển thị plan, mapping và polling progress.
+- Frontend: `src/features/story-images/` và route `app/admin/stories/[storyKey]/images/` hiển thị plan, mapping và polling progress.
 - Execution: `BackgroundTasks` chỉ schedule runner; runner lấy session riêng, chạy sequential và fencing bằng UUID claim/heartbeat.
 - Boundary: manual page regeneration là Phase 5; Docker/live provider smoke vẫn deferred.
+
+## 9. Phase 5 structure thực tế (2026-07-26)
+
+- Backend: `features/story_review/{router,schemas,service,runner,prompts}.py` sở hữu review, regeneration, publish/share; `features/public_stories/` sở hữu projection reader; migration `006_story_review_publish.py` là schema head.
+- Frontend: `features/story-review/` là admin workspace; `features/reader/` là public reader; routes canonical là `/admin/stories/[storyKey]/review` và `/stories/[shareToken]`.
+- Tests: `test_phase5_review_and_publish.py` giữ offline contract nhỏ; `test_phase5_integration.py` chứa PostgreSQL mutation/race/share/fencing. Hook specs nằm cạnh `useStoryReview` và `usePublicStory`.

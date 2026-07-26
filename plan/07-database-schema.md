@@ -180,11 +180,11 @@ CREATE TABLE stories (
                         'draft',                -- Vừa tạo, chưa gen text
                         'generating_text',      -- Request AI đang giữ claim sinh text
                         'text_draft',           -- Đã gen text, đang edit
-                        'text_confirmed',       -- Admin chốt text, khóa
+                        'text_confirmed',       -- Khóa VI/EN/structure; D37 có Khmer review exception
                         'generating_images',    -- Đang gen ảnh (background job)
                         'pending_review',       -- Ảnh xong, chờ duyệt
-                        'approved',             -- Tất cả trang approved
-                        'published',            -- Đã xuất bản, reader thấy
+                        'approved',             -- Chỉ explicit complete-review sau khi all pages approved
+                        'published',            -- Content finalized; reader chỉ thấy khi active opaque token
                         'archived'              -- Ẩn khỏi reader, giữ data
                     )),
     text_revision   int NOT NULL DEFAULT 0 CHECK (text_revision >= 0),
@@ -203,10 +203,10 @@ draft → generating_text → text_draft → text_confirmed → generating_image
                               ↘ edit loop                                                     ↘ archived
 ```
 
-- TEXT PHASE: draft → generating_text → text_draft ↔ (edit loop) → text_confirmed (text bị khóa)
+- TEXT PHASE: draft → generating_text → text_draft ↔ (edit loop) → text_confirmed (VI/EN/structure khóa; D37 cho controlled Khmer edit ở pending_review)
 - `text_revision`: 0 ở draft, 1 sau generation, tăng đúng một lần trên mỗi content mutation; validate-only không tăng.
 - `text_generation_claim_id`: UUID ownership khi generating; clear khi success/reset. `updated_at` chỉ dùng stale detection.
-- IMAGE PHASE: text_confirmed → generating_images → pending_review ↔ (review loop) → approved
+- IMAGE PHASE: text_confirmed → generating_images → pending_review ↔ (review loop); all pages approved chỉ bật complete-review, action riêng mới → approved (D38)
 - PUBLISH: approved → published hoặc archived
 
 ---
@@ -241,7 +241,7 @@ CREATE TABLE story_pages (
     -- Nội dung text (3 ngôn ngữ)
     text_vi         text,                       -- Bản gốc tiếng Việt (admin edit)
     text_en         text,                       -- Bản dịch tiếng Anh (dùng cho image prompt)
-    text_km         text,                       -- Bản dịch Khmer; sửa qua AI retranslate, không inline edit
+    text_km         text,                       -- Khmer; D37 cho controlled edit ở pending_review
 
     -- Ảnh minh họa
     image_prompt_en text,                       -- Prompt đã dùng sinh ảnh
@@ -322,7 +322,7 @@ Sau khi tạo bảng, insert seed data:
 
 ### 4. Quy tắc quan trọng
 - **KHÔNG XÓA dữ liệu** — truyện không ưng → `status = 'archived'`
-- **Text bị KHÓA** sau `text_confirmed` — không sửa text ở image phase
+- Sau `text_confirmed`, VI/EN/structure/setup/prompt/mapping bị khóa. D37 supersede khóa tuyệt đối bằng controlled edit `title_km`/`text_km` duy nhất ở `pending_review`; page edit clear validator/review metadata theo contract.
 - **Review từng trang** — không approve/reject cả truyện 1 lúc
 - Tối đa **2-3 nhân vật / truyện** cho consistency ảnh tốt nhất
 
@@ -338,3 +338,11 @@ Migration `005_story_image_generation` extends the existing seven-table schema; 
 - **Lifecycle**: plan revision changes during planning/mapping; mapping locks once generation starts; page state is `pending | generating | completed | failed`.
 - **Legacy safety**: upgrade stops before schema mutation when any legacy `story_pages.image_url` is nonblank, or when a story is already `pending_review`, `approved`, or `published` without Phase 4 state. Preserve/import, clear, normalize, or archive those rows explicitly before migration.
 - **Phase boundary**: Phase 4 retries incomplete pages only. Human-requested single-page regeneration is Phase 5.
+
+## Phase 5 migration extension — source of truth (006)
+
+- `stories`: thêm active regeneration page, publish timestamp, public share token/revision/activated/revoked timestamps; token unique nullable.
+- `story_pages`: thêm per-page review status, reviewer, reviewed timestamp và review note; review decision được reset khi Khmer/ảnh canonical thay đổi.
+- Manual regeneration tái sử dụng UUID claim/heartbeat nhưng bắt buộc `active_image_regeneration_page_id`; final write luôn fence cả claim và page.
+- Archive không xóa row/R2. Khi archive published story, share token bị revoke atomically và revision tăng.
+- Không thêm bảng mới; tổng số bảng vẫn là 7. Alembic graph có single head `006`.

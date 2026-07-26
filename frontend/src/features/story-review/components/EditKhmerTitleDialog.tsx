@@ -67,6 +67,13 @@ export function EditKhmerTitleDialog({
             placeholder="Nội dung tiêu đề tiếng Khmer"
             autoFocus
           />
+          <p
+            className={`mt-1 text-xs ${
+              titleKm.trim().length > 160 ? 'text-red-400' : 'text-gray-400'
+            }`}
+          >
+            {titleKm.trim().length} / 160
+          </p>
           {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
         </div>
 

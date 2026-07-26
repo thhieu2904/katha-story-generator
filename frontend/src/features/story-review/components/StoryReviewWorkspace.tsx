@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { StoryRouteKey } from '@/features/stories/types';
 import { useStoryByRouteKey } from '@/features/stories/useStory';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
@@ -81,7 +82,12 @@ export function StoryReviewWorkspace({
 
   if (error || !story || !story.id) {
     return (
-      <StoryWorkflowShell storyKey={storyKey}>
+      <StoryWorkflowShell
+        storyKey={storyKey}
+        storyTitle={story?.title_vi || undefined}
+        status={story?.status}
+        imageWorkflowKind={story?.image_workflow_kind}
+      >
         <WorkspaceMessage
           title="Không thể tải không gian duyệt truyện"
           detail={error || undefined}
@@ -92,17 +98,34 @@ export function StoryReviewWorkspace({
   }
 
   return (
-    <StoryReviewWorkspaceInner storyId={story.id} storyKey={storyKey} />
+    <StoryReviewWorkspaceInner
+      storyId={story.id}
+      storyKey={storyKey}
+      storyMeta={{
+        title: story.title_vi,
+        status: story.status,
+        imageWorkflowKind: story.image_workflow_kind,
+      }}
+    />
   );
+}
+
+interface StoryMetaFallback {
+  title: string | null;
+  status: string;
+  imageWorkflowKind: 'initial' | 'review_regeneration' | null;
 }
 
 function StoryReviewWorkspaceInner({
   storyId,
   storyKey,
+  storyMeta,
 }: {
   storyId: number;
   storyKey: StoryRouteKey;
+  storyMeta: StoryMetaFallback;
 }) {
+  const router = useRouter();
   const isMobileCompact = useIsMobileCompact();
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -134,11 +157,19 @@ function StoryReviewWorkspaceInner({
     handleRevokeShare,
     handleCreateShareLink,
     handleArchive,
+    handleRunKhmerValidator,
   } = useStoryReview(storyId);
+
+  const fallbackShellProps = {
+    storyKey,
+    storyTitle: storyMeta.title || 'Truyện chưa đặt tên',
+    status: storyMeta.status,
+    imageWorkflowKind: storyMeta.imageWorkflowKind,
+  };
 
   if (loading && !reviewState) {
     return (
-      <StoryWorkflowShell storyKey={storyKey}>
+      <StoryWorkflowShell {...fallbackShellProps}>
         <WorkspaceSkeleton />
       </StoryWorkflowShell>
     );
@@ -146,7 +177,7 @@ function StoryReviewWorkspaceInner({
 
   if (error && !reviewState) {
     return (
-      <StoryWorkflowShell storyKey={storyKey}>
+      <StoryWorkflowShell {...fallbackShellProps}>
         <WorkspaceMessage
           title="Lỗi tải dữ liệu duyệt truyện"
           detail={error}
@@ -158,13 +189,16 @@ function StoryReviewWorkspaceInner({
 
   if (!reviewState) {
     return (
-      <StoryWorkflowShell storyKey={storyKey}>
+      <StoryWorkflowShell {...fallbackShellProps}>
         <WorkspaceMessage title="Không có dữ liệu" onRetry={refresh} />
       </StoryWorkflowShell>
     );
   }
 
   const { story, pages, progress, capabilities, job } = reviewState;
+  const showKhmerValidatorCta =
+    capabilities.can_review_pages &&
+    pages.some((page) => !page.khmer_validated_at || page.spellcheck_flags.length > 0);
 
   const handleCompleteConfirm = async () => {
     try {
@@ -179,8 +213,10 @@ function StoryReviewWorkspaceInner({
   const handlePublishConfirm = async () => {
     try {
       setIsPublishing(true);
-      await handlePublish(story.text_revision, reviewState.share.revision);
-      setPublishDialogOpen(false);
+      const published = await handlePublish(story.text_revision, reviewState.share.revision);
+      if (published) {
+        setPublishDialogOpen(false);
+      }
     } finally {
       setIsPublishing(false);
     }
@@ -189,8 +225,10 @@ function StoryReviewWorkspaceInner({
   const handleRevokeConfirm = async () => {
     try {
       setIsRevoking(true);
-      await handleRevokeShare(reviewState.share.revision);
-      setRevokeDialogOpen(false);
+      const revoked = await handleRevokeShare(reviewState.share.revision);
+      if (revoked) {
+        setRevokeDialogOpen(false);
+      }
     } finally {
       setIsRevoking(false);
     }
@@ -199,8 +237,11 @@ function StoryReviewWorkspaceInner({
   const handleArchiveConfirm = async () => {
     try {
       setIsArchiving(true);
-      await handleArchive(story.status, reviewState.share.revision);
-      setArchiveDialogOpen(false);
+      const archived = await handleArchive(story.status, reviewState.share.revision);
+      if (archived) {
+        setArchiveDialogOpen(false);
+        router.replace('/admin/stories?notice=archived');
+      }
     } finally {
       setIsArchiving(false);
     }
@@ -235,7 +276,7 @@ function StoryReviewWorkspaceInner({
     page: ReviewPageData,
     acknowledgeKhmerWarnings: boolean,
   ) => {
-    await handleApprovePage(page.id, {
+    return handleApprovePage(page.id, {
       acknowledgeKhmerWarnings,
       expectedTextRevision: story.text_revision,
       expectedReviewStatus: page.review_status,
@@ -248,7 +289,7 @@ function StoryReviewWorkspaceInner({
     page: ReviewPageData,
     reason: string,
   ) => {
-    await handleRejectPage(page.id, {
+    return handleRejectPage(page.id, {
       reason,
       expectedTextRevision: story.text_revision,
       expectedReviewStatus: page.review_status,
@@ -258,7 +299,7 @@ function StoryReviewWorkspaceInner({
   };
 
   const handlePageRegenerate = async (page: ReviewPageData) => {
-    await handleRegenerateImage(page.id, {
+    return handleRegenerateImage(page.id, {
       expectedTextRevision: story.text_revision,
       expectedReviewStatus: page.review_status,
       expectedImageAttemptCount: page.image_attempt_count,
@@ -273,38 +314,82 @@ function StoryReviewWorkspaceInner({
     STATUS_BADGE_STYLES[story.status] || STATUS_BADGE_STYLES.pending_review;
 
   let actionBar = null;
-  if (story.status === 'pending_review' || story.status === 'generating_images') {
-    if (capabilities.can_complete_review) {
-      actionBar = (
-        <div className="flex justify-end w-full">
-          <button
-            onClick={() => setCompleteDialogOpen(true)}
-            disabled={mutating || isCompleting}
-            className="px-6 py-3 rounded-xl font-medium bg-katha-primary hover:bg-katha-primary-light text-white transition-colors disabled:opacity-50"
-          >
-            Hoàn tất duyệt truyện
-          </button>
+  if (story.status === 'generating_images') {
+    actionBar = (
+      <>
+        <div className="text-xs text-white/50">
+          Đang tạo bản thay thế ảnh. Các thao tác duyệt tạm bị tắt.
         </div>
-      );
-    }
+        <button
+          type="button"
+          disabled
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition disabled:opacity-40"
+        >
+          Hoàn tất duyệt truyện
+        </button>
+      </>
+    );
+  } else if (story.status === 'pending_review') {
+    actionBar = (
+      <>
+        <div className="text-xs text-white/50 hidden sm:block">
+          {capabilities.can_complete_review
+            ? 'Tất cả trang đã được duyệt.'
+            : `Còn ${progress.pending} trang chờ duyệt${
+                progress.rejected > 0 ? `, ${progress.rejected} trang bị từ chối` : ''
+              }.`}
+        </div>
+        <button
+          type="button"
+          onClick={() => setCompleteDialogOpen(true)}
+          disabled={!capabilities.can_complete_review || mutating || isCompleting}
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+        >
+          Hoàn tất duyệt truyện
+        </button>
+      </>
+    );
   } else if (story.status === 'approved') {
-    if (capabilities.can_publish) {
-      actionBar = (
-        <div className="flex justify-end w-full">
-          <button
-            onClick={() => setPublishDialogOpen(true)}
-            disabled={mutating || isPublishing}
-            className="px-6 py-3 rounded-xl font-medium bg-katha-primary hover:bg-katha-primary-light text-white transition-colors disabled:opacity-50"
-          >
-            Xuất bản và tạo liên kết
-          </button>
+    actionBar = (
+      <>
+        <div className="text-xs text-white/50 hidden sm:block">
+          Truyện đã được duyệt, sẵn sàng xuất bản.
         </div>
-      );
-    }
+        <button
+          type="button"
+          onClick={() => setPublishDialogOpen(true)}
+          disabled={!capabilities.can_publish || mutating || isPublishing}
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+        >
+          Xuất bản và tạo liên kết
+        </button>
+      </>
+    );
+  } else if (story.status === 'published') {
+    actionBar = (
+      <>
+        <div className="text-xs text-white/50">
+          Truyện đã xuất bản. Quản lý liên kết chia sẻ ở phía trên.
+        </div>
+        <button
+          type="button"
+          disabled
+          className="rounded-xl bg-katha-success/20 border border-katha-success/30 px-5 py-2.5 text-xs font-semibold text-emerald-200"
+        >
+          Đã xuất bản
+        </button>
+      </>
+    );
   }
 
   return (
-    <StoryWorkflowShell storyKey={storyKey} actionBar={actionBar}>
+    <StoryWorkflowShell
+      storyKey={storyKey}
+      storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
+      status={story.status}
+      imageWorkflowKind={job.kind}
+      actionBar={actionBar}
+    >
       {/* Poll error banner */}
       {pollError && (
         <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex items-center justify-between">
@@ -329,6 +414,20 @@ function StoryReviewWorkspaceInner({
             className="px-3 py-1.5 bg-katha-error/20 hover:bg-katha-error/30 rounded-lg text-xs font-medium"
           >
             Tải lại
+          </button>
+        </div>
+      )}
+
+      {showKhmerValidatorCta && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+          <span>Văn bản Khmer chưa được kiểm tra hoặc vẫn còn cảnh báo kỹ thuật.</span>
+          <button
+            type="button"
+            onClick={() => void handleRunKhmerValidator(story.text_revision)}
+            disabled={mutating || isJobRunning}
+            className="shrink-0 rounded-lg bg-amber-500/20 px-3 py-2 text-xs font-medium hover:bg-amber-500/30 disabled:opacity-50"
+          >
+            Chạy lại kiểm tra Khmer
           </button>
         </div>
       )}
@@ -366,8 +465,9 @@ function StoryReviewWorkspaceInner({
         <div className="bg-katha-surface-light rounded-2xl p-5 border border-white/5">
           <div className="flex items-center gap-3 mb-4">
             <span
-              className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${statusStyle}`}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusStyle}`}
             >
+              <span className="h-1.5 w-1.5 rounded-full bg-current" />
               {statusLabel}
             </span>
             {capabilities.read_only && (
@@ -395,7 +495,7 @@ function StoryReviewWorkspaceInner({
                 )}
               </div>
               <p className="text-sm text-gray-400">
-                {story.title_vi || 'Chưa có tiêu đề'}
+                {story.title_vi || 'Truyện chưa đặt tên'}
               </p>
             </div>
 

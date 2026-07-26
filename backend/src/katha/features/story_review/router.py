@@ -1,9 +1,8 @@
 """FastAPI router for story review endpoints."""
 
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Path, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from katha.core.dependencies import get_db
@@ -106,17 +105,28 @@ async def regenerate_page_image(
     storage: Annotated[StoryImageStorage, Depends(get_story_image_storage)],
 ) -> RegenerateImageResponse:
     """Regenerate a rejected page's image."""
-    response = await service.start_regeneration(session, story_id, page_id, request, admin.id)
-    if not response.already_running:
-        background_tasks.add_task(
-            runner.run_single_page_regeneration,
-            story_id,
-            UUID(response.job_id),
-            page_id,
-            provider,
-            storage,
-        )
-    return response
+    result = await service.start_regeneration(
+        session, story_id, page_id, request, admin.id, storage
+    )
+    if not result.response.already_running:
+        try:
+            background_tasks.add_task(
+                runner.run_single_page_regeneration,
+                story_id,
+                result.claim_id,
+                page_id,
+                provider,
+                storage,
+            )
+        except Exception as exc:
+            await service.reset_regeneration_after_schedule_failure(
+                story_id, result.claim_id, page_id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Image regeneration could not be scheduled; retry the request",
+            ) from exc
+    return result.response
 
 
 @router.post("/stories/{story_id}/publish", response_model=ReviewStateResponse)

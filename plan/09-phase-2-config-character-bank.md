@@ -5,6 +5,8 @@
 > Thời lượng dự kiến: 3–4 ngày phát triển + 0.5 ngày nghiệm thu live
 > Phụ thuộc: Phase 1 scaffold đã code-complete; migration/seed/R2 live có thể hoàn tất song song
 
+> **Supersession Phase 5**: D49–D51 thay mọi giả định tương lai trong tài liệu Phase 2 về public catalogue/login reader/layout/mobile. Public reader hiện chỉ qua opaque `/stories/[shareToken]`, không login/catalogue; D50 dùng one-language image-top reader; D51 giữ mobile admin quick/progress/recovery/share nhưng khóa deep mutation theo usable canvas.
+
 ---
 
 ## 1. Mục tiêu
@@ -26,7 +28,7 @@ Phase này hoàn thiện **auth + read-only application slice**, không phải t
 
 ### G1 — Reader public, khu vực admin bắt buộc đăng nhập
 
-- Reader sẽ đọc truyện public qua `/api/public/stories` ở Phase 5.
+- Phase 5 supersede ghi chú cũ này bằng D49: reader chỉ đọc exact opaque link qua `/api/public/shared-stories/{share_token}`; không có public catalogue/list endpoint.
 - Các endpoint Phase 2 phục vụ màn hình quản trị và tạo truyện về sau, nên yêu cầu tài khoản admin.
 - Frontend route `/admin/*` yêu cầu session hợp lệ và role `admin`.
 - Backend luôn là lớp enforcement cuối cùng; frontend guard chỉ phục vụ UX.
@@ -474,7 +476,7 @@ Thay màn hình scaffold ở `/` bằng điều hướng tối thiểu:
 
 - Admin session hợp lệ -> `/admin/characters`.
 - Chưa đăng nhập -> `/login`.
-- Reader public landing/story list sẽ thay thế ở Phase 5.
+- **SUPERSEDED bởi D49**: Root không trở thành public story list. Reader chỉ mở exact opaque `/stories/[shareToken]`; không có catalogue/search.
 
 Không xóa health endpoint backend; status UI Phase 1 không còn là landing chính của sản phẩm.
 

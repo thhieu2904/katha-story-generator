@@ -296,7 +296,9 @@ async def validate_khmer_snapshot(
     validator: KhmerValidator,
 ) -> StoryTextResponse:
     snapshot = await _load_snapshot_for_validation(session, story_id, request.expected_revision)
-    if all(page.khmer_validated_at is not None for page in snapshot.pages):
+    if all(
+        page.khmer_validated_at is not None and not page.spellcheck_flags for page in snapshot.pages
+    ):
         await session.rollback()
         return await generation_service.get_story_text(session, story_id)
     await session.rollback()

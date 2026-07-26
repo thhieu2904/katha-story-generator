@@ -34,7 +34,7 @@ export function ArchiveReviewDialog({
         <h3 className="text-xl font-bold mb-2 text-white">Lưu trữ truyện</h3>
         
         <p className="text-sm text-gray-300 mb-6">
-          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-white">&ldquo;{storyTitle || 'Không tên'}&rdquo;</span>? Truyện sẽ bị ẩn.
+          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-white">“{storyTitle || 'Truyện chưa đặt tên'}”</span>? Truyện sẽ bị ẩn.
         </p>
 
         <div className="flex justify-center gap-3">

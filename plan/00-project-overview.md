@@ -1,7 +1,7 @@
 # Katha Story Generator — Tổng quan dự án
 
-> Ngày cập nhật: 2026-07-21
-> Trạng thái: Phase 4 image-generation MVP code-complete offline; Docker/PostgreSQL migration và controlled OpenAI/R2 smoke pending
+> Ngày cập nhật: 2026-07-26
+> Trạng thái: Phase 5 corrective review đang mở; **chưa code-complete** và PostgreSQL/live/browser/native-Khmer verification chưa chạy
 
 ---
 
@@ -35,7 +35,7 @@ Giáo viên dạy tiếng Khmer cần truyện tranh minh họa để hỗ trợ
 | Role | Ai? | Làm gì? |
 |------|-----|---------|
 | **Admin / Giáo viên** | Người Việt biết tiếng Khmer | Chọn 7 nhân vật seed, tạo truyện, review/edit, xuất bản |
-| **User / Học sinh** | Người đang học Khmer | Đọc truyện, xem song ngữ |
+| **User / Học sinh** | Người đang học Khmer | Đọc qua opaque unlisted link; Khmer mặc định, chọn đúng một body language |
 
 ---
 
@@ -46,8 +46,9 @@ Giáo viên dạy tiếng Khmer cần truyện tranh minh họa để hỗ trợ
 - ✅ Tạo truyện (backbone + genre + AI sinh `title_vi` và full story pages trực tiếp theo D25)
 - ✅ Sinh ảnh minh họa (nhất quán nhân vật)
 - ✅ Dịch sang Khmer + baseline technical warnings (không tuyên bố spellcheck/grammar proof)
-- ✅ Review workflow (admin duyệt)
-- ✅ Web reader (landscape, lật trang, song ngữ KM/VN)
+- 🟡 Review/publish workflow Phase 5 — corrective review, chưa complete
+- 🟡 Web reader qua `/stories/[shareToken]`: không catalogue/search/numeric ID; ảnh 16:9 trên, Khmer default và one-language toggle/pager
+- 🟡 Mobile admin: quick/progress/recovery/share giữ được ở compact; deep review/edit chỉ khi canvas usable
 - ✅ Auth đơn giản (2-5 tài khoản tạo sẵn)
 - ✅ Phase đánh giá khoa học
 

@@ -29,7 +29,7 @@ export function KhmerTextEditor({
     }
   };
 
-  const isInvalid = !text.trim() || text.length > maxLength;
+  const isInvalid = !text.trim() || text.trim().length > maxLength;
 
   return (
     <div className="flex flex-col space-y-3 w-full">
@@ -44,10 +44,10 @@ export function KhmerTextEditor({
       <div className="flex items-center justify-between">
         <div
           className={`text-xs ${
-            text.length > maxLength ? 'text-red-400' : 'text-gray-400'
+            text.trim().length > maxLength ? 'text-red-400' : 'text-gray-400'
           }`}
         >
-          {text.length} / {maxLength}
+          {text.trim().length} / {maxLength}
         </div>
         <div className="flex items-center space-x-2">
           <button

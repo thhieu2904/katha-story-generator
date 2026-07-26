@@ -134,9 +134,8 @@ class RegenerateImageRequest(BaseModel):
 
 
 class RegenerateImageResponse(BaseModel):
-    job_id: str
     already_running: bool
-    active_page_id: int
+    review: ReviewStateResponse
 
 
 class PublishStoryRequest(BaseModel):

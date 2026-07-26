@@ -565,6 +565,34 @@ async def test_validate_race_rejects_stale_metadata_write() -> None:
 
 
 @pytest.mark.asyncio
+async def test_validate_reruns_pages_with_existing_timestamp_and_warnings() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    story, pages = make_story(status="pending_review")
+    pages[0].spellcheck_flags = [{"code": "old-warning"}]
+    validator = RecordingValidator()
+    session.execute.side_effect = [
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+        scalar_result(story),
+        scalars_result(pages),
+        scalar_result(story),
+        scalars_result(pages),
+        scalars_result([]),
+    ]
+
+    await service.validate_khmer_snapshot(
+        session,
+        story.id,
+        service.ValidateKhmerRequest(expected_revision=3),
+        validator,
+    )
+
+    assert validator.calls == [page.text_km for page in pages]
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_same_page_retranslation_refreshes_validation_without_revision_increment() -> None:
     session = AsyncMock(spec=AsyncSession)
     story, pages = make_story()

@@ -14,6 +14,7 @@ from katha.features.auth.dependencies import get_admin_user, get_current_user
 from katha.features.auth.schemas import TokenUser
 from katha.features.stories import generation_service
 from katha.features.stories.generation_dependencies import get_story_text_ai
+from katha.features.stories.models import Story, StoryPage
 from katha.features.stories.schemas import StoryTextResponse
 from katha.features.story_editor import service as editor_service
 from katha.features.story_editor.schemas import ChangeSummary, MutationResponse
@@ -312,3 +313,70 @@ def test_phase3_routes_dispatch_valid_contracts(
 
     assert response.status_code == status_code
     mocked.assert_awaited_once()
+
+
+def test_validate_km_api_reruns_timestamped_pages_that_still_have_warnings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = install_overrides()
+    now = datetime.now(timezone.utc)
+    story = Story(
+        id=10,
+        title_vi="Chuyến đi nhỏ",
+        title_km="ដំណើរតូច",
+        description_vi="Hai người bạn cùng tìm đường về nhà.",
+        target_age="preschool",
+        length_pref="short",
+        status="pending_review",
+        text_revision=3,
+    )
+    page = StoryPage(
+        id=101,
+        story_id=10,
+        page_no=1,
+        text_vi="Hai bạn cùng đi qua khu vườn.",
+        text_km="មិត្ត ពីរ នាក់ ដើរ កាត់ សួន។",
+        spellcheck_flags=[{"code": "old-warning"}],
+        khmer_validated_at=now,
+    )
+
+    def scalar(value):
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = value
+        return result
+
+    def scalars(values):
+        result = MagicMock()
+        result.scalars.return_value.all.return_value = values
+        return result
+
+    session.execute.side_effect = [
+        scalar(story),
+        scalars([page]),
+        scalars([]),
+        scalar(story),
+        scalars([page]),
+    ]
+
+    class RecordingValidator(BaselineKhmerValidator):
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def validate(self, text: str) -> list[dict]:
+            self.calls.append(text)
+            return []
+
+    validator = RecordingValidator()
+    app.dependency_overrides[get_khmer_validator] = lambda: validator
+    monkeypatch.setattr(
+        generation_service,
+        "get_story_text",
+        AsyncMock(return_value=canonical_text(status="pending_review")),
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/api/stories/10/validate-km", json={"expected_revision": 3})
+
+    assert response.status_code == 200
+    assert validator.calls == [page.text_km]
+    session.commit.assert_awaited_once()

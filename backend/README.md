@@ -25,6 +25,14 @@ The worker uses a UUID claim plus heartbeat, page states (`pending`, `generating
 images to R2. A retry resumes only retryable pages under the locked plan; manual
 per-page regeneration belongs to Phase 5.
 
+## Phase 5 review, publish, and public reader
+
+Admin review APIs expose canonical page decisions, Khmer edits/validation, single-page image regeneration, complete-review, publish, share rotation, and archive concurrency. Regeneration preflights the locked mapping/references before committing a DB-clock UUID claim; finalizers and schedule-failure reset are fenced by claim plus active page. A scheduling failure restores `pending_review` and marks the target `failed/SCHEDULE_FAILED` while retaining its old URL and rejection metadata, so the same page remains usable and retryable.
+
+The regeneration endpoint returns only `already_running` and canonical `review`; the internal UUID claim and active-target metadata are not exposed as mutation response fields.
+
+`GET /api/public/shared-stories/{share_token}` returns a minimal reader projection. Invalid, revoked, unpublished, or malformed tokens return the same 404 response with no-store/no-referrer/noindex headers. Migration `006_story_review_publish` is the current Alembic head.
+
 Set the Phase 4 variables in `.env` from `.env.example`: `OPENAI_IMAGE_*`,
 `IMAGE_PLAN_OPERATION_TIMEOUT_SECONDS`, `IMAGE_PAGE_OPERATION_TIMEOUT_SECONDS`,
 `IMAGE_GENERATION_STALE_SECONDS`, `IMAGE_MAX_CONCURRENT_JOBS`, and

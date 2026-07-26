@@ -37,9 +37,9 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
 
       <div className="w-full max-w-2xl mx-auto px-4 md:px-0">
         {language === 'km' ? (
-          <p 
-            lang="km" 
-            className="font-khmer text-[22px] md:text-[26px] leading-[1.8] text-gray-100 text-center"
+          <p
+            lang="km"
+            className="font-khmer-serif text-[22px] md:text-[26px] leading-[2] text-gray-100 text-center"
           >
             {page.text_km}
           </p>

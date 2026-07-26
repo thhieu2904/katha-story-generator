@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '@/lib/api';
+import { fetchStory } from '@/features/stories/api';
 import {
   fetchReviewState,
   editKhmerTitle,
@@ -14,6 +15,7 @@ import {
   revokeShare,
   createShareLink,
   archiveStory,
+  runKhmerValidator,
 } from './api';
 import { POLL_INTERVAL_MS } from './constants';
 import type { ReviewState } from './types';
@@ -138,6 +140,65 @@ export function useStoryReview(storyId: number) {
     setError('Dữ liệu không đồng bộ. Đang tải lại trạng thái mới nhất...');
     await refresh();
   };
+
+  const reconcileAfterUncertainMutation = useCallback(
+    async (
+      reason: unknown,
+      fallback: string,
+      wasApplied?: (canonical: ReviewState) => boolean,
+    ): Promise<ReviewState | null> => {
+      const seq = beginRequest();
+      try {
+        const canonical = await fetchReviewState(storyId);
+        if (!isCurrentRequest(seq)) return null;
+        setReviewState(canonical);
+        if (wasApplied?.(canonical)) {
+          setError(null);
+        } else {
+          setError(
+            `${messageFromReason(reason, fallback)} Trạng thái mới nhất đã được tải lại.`,
+          );
+        }
+        return canonical;
+      } catch {
+        if (!isCurrentRequest(seq)) return null;
+        setError(
+          'Chưa thể đối soát trạng thái mới nhất. Hãy kiểm tra lại trước khi gửi thao tác khác.',
+        );
+        return null;
+      }
+    },
+    [beginRequest, isCurrentRequest, storyId],
+  );
+
+  const reconcileArchiveAfterUncertainMutation = useCallback(
+    async (reason: unknown): Promise<boolean> => {
+      const seq = beginRequest();
+      try {
+        const canonicalStory = await fetchStory(storyId);
+        if (!isCurrentRequest(seq)) return false;
+        if (canonicalStory.status === 'archived') {
+          setError('Kết nối bị gián đoạn; đã xác nhận truyện được lưu trữ.');
+          return true;
+        }
+
+        const canonicalReview = await fetchReviewState(storyId);
+        if (!isCurrentRequest(seq)) return false;
+        setReviewState(canonicalReview);
+        setError(
+          `${messageFromReason(reason, 'Không thể lưu trữ.')} Trạng thái mới nhất đã được tải lại.`,
+        );
+        return false;
+      } catch {
+        if (!isCurrentRequest(seq)) return false;
+        setError(
+          'Chưa thể đối soát trạng thái lưu trữ. Hãy kiểm tra lại trước khi gửi thao tác khác.',
+        );
+        return false;
+      }
+    },
+    [beginRequest, isCurrentRequest, storyId],
+  );
 
   const handleEditKhmerTitle = async (textKm: string, expectedRevision: number) => {
     if (mutating) return false;
@@ -267,16 +328,36 @@ export function useStoryReview(storyId: number) {
     setMutating(true);
     setError(null);
     try {
-      await regeneratePageImage(storyId, pageId, params);
-      // After starting regeneration, refresh to get the new job state
+      const result = await regeneratePageImage(storyId, pageId, params);
       if (isCurrentRequest(seq)) {
-        await refresh();
+        setReviewState(result.review);
       }
       return true;
     } catch (reason) {
       if (!isCurrentRequest(seq)) return false;
       if (reason instanceof ApiError && reason.status === 409) {
         await handleConflict();
+      } else if (reason instanceof ApiError && reason.status === 0) {
+        const applied = (canonical: ReviewState) => {
+          if (canonical.job.is_running && canonical.job.active_page_id === pageId) {
+            return true;
+          }
+          // The job may have already finished before the reconcile read; a
+          // changed attempt count or image URL on the target page proves the
+          // regeneration was accepted.
+          const page = canonical.pages.find((p) => p.id === pageId);
+          if (!page) return false;
+          return (
+            page.image_attempt_count !== params.expectedImageAttemptCount ||
+            (page.image_url || '') !== params.expectedImageUrl
+          );
+        };
+        const canonical = await reconcileAfterUncertainMutation(
+          reason,
+          'Không thể tạo lại ảnh.',
+          applied,
+        );
+        return canonical ? applied(canonical) : false;
       } else if (reason instanceof ApiError && reason.status === 422) {
         setError('Prompt quá dài. Vui lòng rút ngắn lý do từ chối và thử lại.');
       } else {
@@ -324,6 +405,16 @@ export function useStoryReview(storyId: number) {
     } catch (reason) {
       if (!isCurrentRequest(seq)) return false;
       if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else if (reason instanceof ApiError && reason.status === 0) {
+        const applied = (canonical: ReviewState) =>
+          canonical.story.status === 'published' && canonical.share.active;
+        const canonical = await reconcileAfterUncertainMutation(
+          reason,
+          'Không thể xuất bản.',
+          applied,
+        );
+        return canonical ? applied(canonical) : false;
+      }
       else setError(messageFromReason(reason, 'Không thể xuất bản.'));
       return false;
     } finally {
@@ -343,6 +434,16 @@ export function useStoryReview(storyId: number) {
     } catch (reason) {
       if (!isCurrentRequest(seq)) return false;
       if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else if (reason instanceof ApiError && reason.status === 0) {
+        const applied = (canonical: ReviewState) =>
+          canonical.story.status === 'published' && !canonical.share.active;
+        const canonical = await reconcileAfterUncertainMutation(
+          reason,
+          'Không thể ngừng chia sẻ.',
+          applied,
+        );
+        return canonical ? applied(canonical) : false;
+      }
       else setError(messageFromReason(reason, 'Không thể ngừng chia sẻ.'));
       return false;
     } finally {
@@ -362,6 +463,16 @@ export function useStoryReview(storyId: number) {
     } catch (reason) {
       if (!isCurrentRequest(seq)) return false;
       if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else if (reason instanceof ApiError && reason.status === 0) {
+        const applied = (canonical: ReviewState) =>
+          canonical.story.status === 'published' && canonical.share.active;
+        const canonical = await reconcileAfterUncertainMutation(
+          reason,
+          'Không thể tạo liên kết.',
+          applied,
+        );
+        return canonical ? applied(canonical) : false;
+      }
       else setError(messageFromReason(reason, 'Không thể tạo liên kết.'));
       return false;
     } finally {
@@ -369,18 +480,39 @@ export function useStoryReview(storyId: number) {
     }
   };
 
+  const handleRunKhmerValidator = async (expectedTextRevision: number) => {
+    if (mutating) return false;
+    const seq = beginRequest();
+    setMutating(true);
+    setError(null);
+    try {
+      await runKhmerValidator(storyId, expectedTextRevision);
+      const state = await fetchReviewState(storyId);
+      if (isCurrentRequest(seq)) setReviewState(state);
+      return true;
+    } catch (reason) {
+      if (!isCurrentRequest(seq)) return false;
+      if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else setError(messageFromReason(reason, 'Không thể chạy kiểm tra Khmer.'));
+      return false;
+    } finally {
+      setMutating(false);
+    }
+  };
   const handleArchive = async (expectedStatus: string, expectedShareRevision: number) => {
     if (mutating) return false;
     const seq = beginRequest();
     setMutating(true);
     setError(null);
     try {
-      const result = await archiveStory(storyId, expectedStatus, expectedShareRevision);
-      if (isCurrentRequest(seq)) setReviewState(result);
+      await archiveStory(storyId, expectedStatus, expectedShareRevision);
       return true;
     } catch (reason) {
       if (!isCurrentRequest(seq)) return false;
       if (reason instanceof ApiError && reason.status === 409) await handleConflict();
+      else if (reason instanceof ApiError && reason.status === 0) {
+        return reconcileArchiveAfterUncertainMutation(reason);
+      }
       else setError(messageFromReason(reason, 'Không thể lưu trữ.'));
       return false;
     } finally {
@@ -406,6 +538,7 @@ export function useStoryReview(storyId: number) {
     handlePublish,
     handleRevokeShare,
     handleCreateShareLink,
+    handleRunKhmerValidator,
     handleArchive,
   };
 }

@@ -187,7 +187,7 @@ async def _snapshot_regen_page(
             .with_for_update()
         )
         page = page_result.scalar_one_or_none()
-        if page is None:
+        if page is None or page.image_status != "pending":
             await session.rollback()
             raise ClaimLost()
 

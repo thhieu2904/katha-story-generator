@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import type { Story } from '@/features/stories/types';
 import type { ReviewState } from './types';
 
 export function fetchReviewState(storyId: number, signal?: AbortSignal) {
@@ -116,7 +117,10 @@ export function regeneratePageImage(
     expectedImageUrl: string;
   },
 ) {
-  return apiFetch<{ job_id: string; already_running: boolean; active_page_id: number }>(
+  return apiFetch<{
+    already_running: boolean;
+    review: ReviewState;
+  }>(
     `/api/stories/${storyId}/pages/${pageId}/regenerate-image`,
     {
       method: 'POST',
@@ -152,8 +156,14 @@ export function createShareLink(storyId: number, expectedShareRevision: number) 
 }
 
 export function archiveStory(storyId: number, expectedStatus: string, expectedShareRevision: number) {
-  return apiFetch<ReviewState>(`/api/stories/${storyId}/archive`, {
+  return apiFetch<Story>(`/api/stories/${storyId}/archive`, {
     method: 'POST',
     body: JSON.stringify({ expected_status: expectedStatus, expected_share_revision: expectedShareRevision }),
+  });
+}
+export function runKhmerValidator(storyId: number, expectedTextRevision: number) {
+  return apiFetch<unknown>(`/api/stories/${storyId}/validate-km`, {
+    method: 'POST',
+    body: JSON.stringify({ expected_revision: expectedTextRevision }),
   });
 }

@@ -18,9 +18,10 @@
   - Chuẩn ngành cho truyện tranh thiếu nhi digital
   - Mô phỏng trải nghiệm sách giấy
   - Phù hợp tablet (target device chính)
-  - Mobile yêu cầu xoay ngang
+  - ~~Mobile yêu cầu xoay ngang~~ — **SUPERSEDED bởi D50**; reader không ép xoay.
 - **Nguồn**: BookBeam, WhimsyStudios, BookPrintingChina, SCBWI KiteTales
-- **Chi tiết**: Fixed-layout (không reflow), mỗi trang = 1 ảnh ngang + text
+- **Chi tiết cũ**: ~~Fixed-layout (không reflow)~~ — **SUPERSEDED bởi D50**; mỗi page vẫn có ảnh ngang nhưng reader responsive/scrollable.
+- **⚠️ SUPERSEDED một phần bởi D50**: Ảnh nội dung vẫn landscape 16:9, nhưng reader responsive một cột, cho phép vertical scroll và không ép xoay điện thoại/fixed-layout viewport.
 
 ### D03: Backbone — 3 loại cho MVP
 - **Quyết định**: Fable/Ngụ ngôn, Three-Act/Ba hồi, Cumulative/Lặp lại
@@ -55,22 +56,23 @@
 
 ### D07: Edit flow — Quick actions + Chat (không inline edit trong MVP)
 
-> Semantics/labels của quick actions và structural edit được D30 làm rõ.
+> Semantics/labels của quick actions và structural edit được D30 làm rõ. Quy tắc “không inline edit” được D37 supersede riêng cho controlled `title_km`/`text_km` edit ở `pending_review`; VI/EN/structure vẫn khóa downstream.
 - **Quyết định**: 
   - Quick actions: [Rút gọn nội dung] [Viết chi tiết hơn] [Kịch tính hơn] [Đơn giản hơn] + preset khác
   - Chat: nhập yêu cầu tùy ý ("xóa trang 3", "thêm nhân vật Dara vào trang 5")
   - Drag-drop: sortable list để đổi thứ tự trang (dnd-kit, đơn giản)
   - Thêm/xóa trang: nút [+ Thêm trang] và [🗑] trên mỗi trang
-  - Inline text edit: KHÔNG có trong MVP (future)
+  - ~~Inline text edit: KHÔNG có trong MVP~~ — **SUPERSEDED một phần bởi D37** cho Khmer-only review edit; các field còn lại vẫn khóa.
 - **Lý do**: Chat + quick actions bao phủ 95% use case mà code ít hơn inline editor rất nhiều. Drag-drop chỉ là sortable list (đơn giản).
 - **Thông báo thay đổi**: Khi AI điều chỉnh xong → toast báo thay đổi (trang nào thêm/xóa/gộp). Không có nút hoàn tác trong MVP.
 
 ### D08: Song ngữ Khmer/Việt
 - **Quyết định**: Truyện hiển thị song ngữ
-  - Trong **Reader** (học sinh): Khmer = primary (lớn, đậm), Việt = subtitle (nhỏ, nhạt hơn)
+  - ~~Trong Reader: Khmer primary, Việt subtitle đồng thời~~ — **SUPERSEDED bởi D50** bằng one-language toggle, Khmer mặc định.
   - Trong **Admin** (giáo viên): Việt = primary (vì giáo viên là người Việt)
 - **Lý do**: Mục đích là dạy Khmer → Khmer phải nổi bật nhất khi đọc
 - **Chi phí API**: KHÔNG tốn thêm — tiếng Việt là bản gốc (đã có sẵn từ bước sinh truyện), chỉ cần 1 lần dịch VN→KM
+- **⚠️ SUPERSEDED phần Reader bởi D50**: Reader không hiển thị Khmer và Việt đồng thời; mặc định Khmer và toggle chỉ đưa một body language vào accessibility tree tại một thời điểm.
 
 ### D09: Vocabulary — Future phase
 - **Quyết định**: KHÔNG nằm trong MVP
@@ -81,13 +83,15 @@
 - **Quyết định**: 2-5 tài khoản tạo sẵn qua Supabase Auth dashboard
 - **Roles**: Admin (tạo truyện, review) + User (đọc truyện)
 - **KHÔNG cần**: UI đăng ký, quên mật khẩu, multi-tenant
+- **Làm rõ bởi D49**: Role `reader` chỉ còn hữu ích để kiểm tra bị chặn khỏi admin API; unlisted public reader không yêu cầu login hoặc reader account.
 
 ### D14: Tách Text Phase / Image Phase
 - **Quyết định**: 
   - **Text Phase** (Bước 1-2): sinh text VN đầy đủ + dịch KM, admin edit thoải mái. Rẻ (~$0.005/lần edit)
   - **Image Phase** (Bước 3): chỉ chạy SAU KHI admin confirm text. Đắt (~$0.13/trang), chạy 1 lần
-  - Text bị KHÓA sau khi confirm → không sửa text ở image phase
+  - ~~Text bị khóa tuyệt đối sau confirm~~ — **SUPERSEDED một phần bởi D37**; chỉ Khmer review edit là ngoại lệ có kiểm soát.
 - **Lý do**: Admin thấy toàn bộ nội dung truyện (VN + KM) TRƯỚC khi tốn tiền ảnh. Sửa text 10 lần = $0.05, trong khi gen lại 8 ảnh = $1.04. Tách ra = tiết kiệm tiền khi iterate.
+- **⚠️ SUPERSEDED một phần bởi D37**: Sau confirm vẫn khóa VI/EN/structure/setup/prompt/mapping; Phase 5 cho controlled edit duy nhất đối với `title_km` và `text_km` khi story ở `pending_review`.
 
 ### D15: Auto-save + Version history ⚠️ SUPERSEDED 2026-07-11
 - **Quyết định gốc (đã thay thế)**:
@@ -102,6 +106,7 @@
 ### D16: Sửa ảnh từng trang riêng lẻ
 - **Quyết định**: Review ảnh từng trang, gen lại từng trang. KHÔNG gen lại hàng loạt.
 - **Lý do**: Gen lại 1 trang = $0.13 + 10 giây. Gen lại 8 trang = $1.04 + 80 giây. Phần lớn trường hợp chỉ 1-2 trang không ưng.
+- **⚠️ SUPERSEDED phần giá bởi D39**: Các số tiền trên chỉ là ước tính lịch sử, không phải runtime/UI contract; chi phí phụ thuộc model/size/quality/pricing hiện hành.
 
 ### D17: Archive thay vì Delete
 - **Quyết định**: Truyện không ưng → `status = 'archived'`, KHÔNG xóa khỏi DB/R2
@@ -113,6 +118,7 @@
 ### D18: Hiển thị song ngữ ở Text Phase (edit stage)
 - **Quyết định**: Ở bước edit, hiển thị VN (primary, sửa qua quick actions/chat — xem D07) + KM (subtitle, preview)
 - **Khác với Reader**: Ở Reader, KM là primary (đang học Khmer), VN là subtitle
+- **⚠️ SUPERSEDED phần Reader bởi D50**: Reader dùng one-language toggle, mặc định Khmer; Việt không còn subtitle hiển thị đồng thời.
 - **Lý do**: Admin là người Việt, cần đọc/edit VN. Nhưng cũng cần xem KM preview để biết bản dịch có ổn không trước khi commit.
 
 ---
@@ -281,55 +287,42 @@
 
 ## Quyết định đã chốt — Phase 5 Review & Public Reader (2026-07-24)
 
-### D36 — Phase 5 Review Contract & Single-Page Regeneration
-- **Ngày**: 2026-07-24
-- **Quyết định**:
-  - `POST /stories/{id}/review/regenerate-image` trả về `202 ACCEPTED` với `job_id`.
-  - Manual regeneration finalizer cập nhật page `completed`, chuyển story về `pending_review`, clear claim/heartbeat/active target. Không gọi lại Phase 4 whole-story finalizer.
-  - Claim lost fence failure trong candidate upload hủy candidate asset và ném `ClaimLost()` để dọn dẹp orphan asset.
+### D36 — Human review theo từng content page
+- **Quyết định**: Mỗi page được duyệt đồng thời trên ảnh và Khmer; Khmer là nội dung chính, Vietnamese dùng để đối chiếu. `review_status` gồm `pending | approved | rejected`. Approve page cuối không tự chuyển story sang `approved`.
 - **Trạng thái**: ✅ Chốt
 
-### D37 — Archive Story Extended Contract & Optimistic Concurrency
-- **Ngày**: 2026-07-24
-- **Quyết định**:
-  - Giữ `POST /stories/{id}/archive` không body cho draft list cũ, trả về `StoryResponse`.
-  - Hỗ trợ body tùy chọn `ArchiveStoryRequest` (expected_status, expected_share_revision) cho optimistic concurrency khi archive từ review/published.
-  - Loại bỏ hai owner riêng rẽ; route/service archive duy nhất nằm trong `stories/router.py` và `story_review/service.py`.
+### D37 — Controlled Khmer edit trong review
+- **Quyết định**: Chỉ `title_km` và `story_pages.text_km` được sửa ở `pending_review`. Sửa page tăng `text_revision` đúng một lần, clear validation và reset riêng page về `pending`; sửa title tăng revision nhưng không reset page. Validator warning-only và approve warning/unvalidated cần xác nhận tường minh.
 - **Trạng thái**: ✅ Chốt
 
-### D38 — Public Reader Projection & Token Security
-- **Ngày**: 2026-07-24
-- **Quyết định**:
-  - `Story` định nghĩa ORM relationship `pages = relationship("StoryPage", order_by="StoryPage.page_no", back_populates="story")`.
-  - Token public reader bắt buộc khớp regex `^[A-Za-z0-9_-]{43}$`. Trả về `404 Not Found` kèm security headers (`Cache-Control: private, no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow, noarchive`) nếu token sai/hết hạn/revoked.
-  - Không leak internal story/page IDs hoặc metadata trong PublicStoryResponse.
+### D38 — Explicit complete-review action
+- **Quyết định**: Tất cả page approved chỉ làm CTA **Hoàn tất duyệt truyện** khả dụng. Chỉ action riêng, sau khi backend lock và revalidate canonical state, mới chuyển `pending_review -> approved`.
 - **Trạng thái**: ✅ Chốt
 
-### D39 — Explicit Admin Confirmation for Spellcheck Warnings
-- **Ngày**: 2026-07-24
-- **Quyết định**:
-  - Phải có checkbox xác nhận tường minh khi duyệt trang có cảnh báo spellcheck/chưa validate Khmer (`acknowledge_khmer_warnings`).
-  - Nút Approve hiển thị modal confirm kèm checkbox trước khi gọi API approve.
+### D39 — Regenerate đúng một rejected page
+- **Quyết định**: Chỉ page `rejected` có lý do mới được regenerate. Effective prompt ghép prompt gốc đã khóa với rejection reason trong section cố định; không sửa prompt/mapping/reference. Mỗi story chỉ có một manual regeneration hoạt động và UI không hard-code giá.
 - **Trạng thái**: ✅ Chốt
 
-### D40 — Title Khmer Edit Capability & Header CTA
-- **Ngày**: 2026-07-24
-- **Quyết định**:
-  - Admin có `can_edit_khmer` capability được phép sửa tiêu đề tiếng Khmer khi ở `pending_review`.
-  - UI cung cấp `EditKhmerTitleDialog` kích hoạt từ nút bấm trên header workspace review.
+### D40 — Safe image replacement, không version history
+- **Quyết định**: URL cũ vẫn là canonical preview trong khi provider/upload chạy. Chỉ swap URL sau upload thành công và ownership còn hợp lệ; chỉ best-effort delete object cũ sau khi chứng minh DB đã commit URL mới. MVP không có image history, rollback hoặc undo.
 - **Trạng thái**: ✅ Chốt
 
-### D49 — Single Hook Abort Controller in Reader Lifecycles
-- **Ngày**: 2026-07-25
-- **Quyết định**: `usePublicStory` phụ thuộc strictly vào `[shareToken, load]`, quản lý AbortController tập trung để phòng ngừa fetch loop lặp vô hạn.
+### D41 — Cover code template
+- **Quyết định**: Cover là component React/Tailwind/SVG dùng chung cho admin preview và reader, ưu tiên ảnh trang 1 với deterministic fallback, hiển thị cả hai title bằng DOM. Không gọi AI, upload cover hoặc ghi `cover_image_url` trong Phase 5.
 - **Trạng thái**: ✅ Chốt
 
-### D50 — Unconditional Mutating State Cleanup
-- **Ngày**: 2026-07-25
-- **Quyết định**: Mọi async handler trong `useStoryReview` bắt buộc reset `setMutating(false)` trong khối `finally` không điều kiện để tránh đơ UI khi sequence bump.
+### D42 — Publish/public/archive lifecycle
+- **Quyết định**: Publish chuyển `approved -> published` và tạo active token atomically. Stop-sharing giữ `published` nhưng clear token; re-share luôn sinh token mới; archive revoke token atomically. Public reader chỉ trả exact published story có active token, mọi trạng thái/token không hợp lệ đều cùng 404.
 - **Trạng thái**: ✅ Chốt
 
-### D51 — Public Reader Simple Cover Contract
-- **Ngày**: 2026-07-25
-- **Quyết định**: Public cover hiển thị bằng ảnh trang 1 + fallback cố định + gradient + hai title DOM; không sinh hoặc upload thêm ảnh bìa riêng.
+### D49 — Unlisted opaque reader link
+- **Quyết định**: Reader không cần tài khoản và không có catalogue/search. Server sinh token bằng `secrets.token_urlsafe(32)`, route chuẩn `/stories/[shareToken]`; backend trả relative path và không ghi raw token vào application error/audit/report.
+- **Trạng thái**: ✅ Chốt
+
+### D50 — Reader ảnh ngang và chuyển ngôn ngữ
+- **Quyết định**: Mọi viewport dùng một cột với ảnh landscape 16:9 ở trên và text ở dưới. Reader mặc định Khmer; toggle `ខ្មែរ / Tiếng Việt` chỉ hiển thị một body language, giữ nguyên page. Cover luôn có cả hai title và đổi hierarchy theo language mode.
+- **Trạng thái**: ✅ Chốt
+
+### D51 — Mobile admin capability policy
+- **Quyết định**: Mobile compact khi `width < 768px` hoặc `height < 600px` vẫn giữ quick-create/list/progress/recovery/share. Deep text/image mapping/Khmer review/regeneration chỉ bật khi cả `width >= 768px` và `height >= 600px`; backend không device-gate và direct deep route trên mobile hiển thị canonical read-only guidance.
 - **Trạng thái**: ✅ Chốt
