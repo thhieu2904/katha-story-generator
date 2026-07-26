@@ -1,8 +1,16 @@
-# Katha backend — homeserver deployment (behind CGNAT, no public IP needed).
+# Katha backend — homeserver deployment.
 #
-# Public access via Cloudflare Tunnel: Cloudflare terminates HTTPS and routes
-# api.<your-domain> -> this tunnel -> api:8000. No open ports on the router.
-# Set TUNNEL_TOKEN in deploy/.env (from Cloudflare Zero Trust > Tunnels).
+# Default topology: host Caddy (bạn đã dựng sẵn) nhận HTTPS public và
+# reverse_proxy về 127.0.0.1:8000. Compose này chỉ chạy api, bind vào
+# loopback nên không lộ port ra ngoài — chỉ Caddy trên host thấy được.
+#
+#   api.<domain> {
+#       reverse_proxy 127.0.0.1:8000
+#   }
+#
+# Fallback khi không có IP public/CGNAT: bật thêm Cloudflare Tunnel:
+#   docker compose -f docker-compose.homeserver.yml --profile tunnel up -d
+#   (cần TUNNEL_TOKEN trong .env; xem plan/11-deploy-homeserver.md)
 #
 # Same rule as the VPS compose: exactly ONE api container (in-process
 # image-generation runner, D35).
@@ -18,8 +26,8 @@ services:
       context: ../backend
     env_file: .env
     restart: unless-stopped
-    expose:
-      - "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test:
         [
@@ -35,6 +43,7 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:

@@ -1,66 +1,93 @@
 # 11 — Deploy trên homeserver (thay VPS, tiết kiệm chi phí)
 
-> Biến thể của `10-deploy-vps.md` cho homeserver đã có Tailscale + SSH.
+> Biến thể của `10-deploy-vps.md` cho homeserver đã có sẵn: Caddy trên host
+> (nhận traffic public) + Tailscale/SSH (đường quản trị & deploy).
 > Frontend vẫn lên Vercel; chỉ backend chạy ở nhà.
 
 ---
 
-## 1. Vấn đề then chốt: reader là PUBLIC
+## 1. Topology
 
-Browser của **người đọc** gọi thẳng API (`NEXT_PUBLIC_API_URL`), nên backend
-phải truy cập được từ Internet công cộng — **Tailscale không đủ** (chỉ máy trong
-tailnet của bạn vào được). Homeserver ở VN thường sau CGNAT, không mở port được.
+```
+Người đọc/Admin ──HTTPS──> Caddy (host, IP nhà) ──> 127.0.0.1:8000 (container api)
+Máy dev ──Tailscale/SSH──> homeserver        ← chỉ để deploy & quản trị
+```
 
-**Giải pháp: Cloudflare Tunnel** (miễn phí, không cần IP public, không mở port
-router, HTTPS tự động — và bạn đã có tài khoản Cloudflare sẵn vì dùng R2):
+- `deploy/docker-compose.homeserver.yml` chạy **một** container `api`, bind
+  `127.0.0.1:8000` (không lộ port ra LAN/Internet — chỉ Caddy trên host thấy).
+- Thêm block vào Caddyfile **trên host** của bạn:
 
-1. Cloudflare Dashboard → **Zero Trust → Networks → Tunnels → Create tunnel**
-   (kiểu Cloudflared) → đặt tên `katha` → copy **token**.
-2. Trong tunnel, thêm **Public Hostname**: `api.<domain-của-bạn>` →
-   Service `HTTP` → URL `api:8000`.
-3. Trên homeserver: thêm dòng `TUNNEL_TOKEN=<token>` vào `deploy/.env`.
+  ```
+  api.<domain> {
+      reverse_proxy 127.0.0.1:8000
+  }
+  ```
 
-Tailscale + SSH giữ nguyên vai trò **quản trị** (vào server, xem log); tunnel
-chỉ lo phần public. Đánh đổi so với VPS: uptime phụ thuộc điện/mạng nhà — với
-2-5 admin và readership nhỏ của dự án NCKH thì chấp nhận được.
+- **DNS**: A record `api.<domain>` → IP public nhà. Lưu ý IP nhà thường là IP
+  động → dùng DDNS (Cloudflare API cập nhật A record) nếu ISP đổi IP.
+- **Đính chính một chi tiết**: Vercel không "trỏ về IP máy bạn" — frontend chỉ
+  cần build với `NEXT_PUBLIC_API_URL=https://api.<domain>`; **browser của người
+  đọc** gọi thẳng domain đó, DNS mới là thứ trỏ về IP nhà. Nhớ set
+  `CORS_ORIGINS` trong `.env` = domain Vercel.
+- **Fallback nếu ISP CGNAT/không mở port được**: bật profile Cloudflare Tunnel
+  (`--profile tunnel`, token trong `.env`) — miễn phí, không cần IP public;
+  khi đó không cần block Caddy phía trên.
 
-## 2. Chạy backend
+## 2. Chạy backend (lần đầu)
 
 ```bash
-# SSH vào homeserver qua Tailscale
+# SSH vào homeserver (qua Tailscale như bạn vẫn làm)
 git clone https://github.com/<user>/katha-story-generator.git
 cd katha-story-generator/deploy
-cp .env.example .env && nano .env    # điền giá trị thật + TUNNEL_TOKEN
+cp .env.example .env && nano .env    # điền giá trị thật
 docker compose -f docker-compose.homeserver.yml up -d --build
 docker compose -f docker-compose.homeserver.yml exec api alembic upgrade head
 curl -fsS https://api.<domain>/health   # {"status":"healthy",...}
 ```
 
-Vercel setup y hệt `10-deploy-vps.md` §3 (`NEXT_PUBLIC_API_URL=https://api.<domain>`,
-nhớ cập nhật `CORS_ORIGINS` trong `.env` = domain Vercel rồi recreate api).
+Vercel setup y hệt `10-deploy-vps.md` §3.
 
-## 3. scp hay CI/CD?
+## 3. Cập nhật phiên bản: scp vs GitHub Actions
 
-**Đừng scp.** Copy tay working directory = không có lịch sử, dễ drift so với
-repo, dễ lỡ tay copy cả `.env`/`node_modules`. Repo đã trên GitHub, dùng git.
+Hai hướng bạn cân nhắc, so sánh thẳng:
 
-Lộ trình khuyến nghị theo giai đoạn:
+| | scp qua Tailscale | GitHub Actions CD |
+|---|---|---|
+| Cái được copy | Working tree máy dev (kể cả thứ chưa commit) | Đúng commit trên `main` |
+| Lịch sử/rollback | Không — server không biết đang chạy bản nào | Có — mỗi deploy gắn với 1 commit |
+| Drift | Dễ (quên add file, build từ bản dở) | Không |
+| Setup thêm | Không | Secrets + workflow (một lần) |
 
-| Giai đoạn | Cách deploy | Khi nào |
-|-----------|-------------|---------|
-| **Bây giờ** | "Poor man's CD": `ssh` + `git pull` + `compose up --build` (alias bên dưới) | Đủ tốt cho 1 dev, deploy vài lần/tuần |
-| **Sau này** | GitHub Actions CI (đã có sẵn `.github/workflows/ci.yml`) chạy lint/test/build mỗi lần push — chưa auto-deploy | Ngay khi push lên GitHub là có |
-| **Nếu thấy cần** | CD thật: self-hosted runner trên homeserver, workflow deploy khi push `main` | Khi deploy tay bắt đầu phiền |
-
-Alias deploy một lệnh (chạy từ máy dev, thêm vào `~/.bashrc`/PowerShell profile):
+**Khuyến nghị: bỏ scp, giữ nguyên ý tưởng nhưng thay "copy file" bằng "git pull"** —
+vẫn là SSH qua Tailscale, vẫn một lệnh từ máy dev, nhưng server luôn chạy đúng
+một commit đã push:
 
 ```bash
-alias katha-deploy='ssh <homeserver-tailscale-name> "cd ~/katha-story-generator && git pull && cd deploy && docker compose -f docker-compose.homeserver.yml up -d --build && docker compose -f docker-compose.homeserver.yml exec -T api alembic upgrade head"'
+# alias trên máy dev — "poor man's CD", đủ dùng tới khi thấy phiền
+alias katha-deploy='ssh <homeserver> "cd ~/katha-story-generator && git pull && cd deploy && docker compose -f docker-compose.homeserver.yml up -d --build && docker compose -f docker-compose.homeserver.yml exec -T api alembic upgrade head"'
 ```
 
-Lưu ý nếu sau này dùng self-hosted runner: chỉ bật cho repo **private** và chỉ
-trigger trên push `main` — không bao giờ chạy workflow của PR người lạ trên
-máy nhà.
+Điểm mấu chốt: scp *nhanh hơn 0 giây* so với alias trên (cả hai là một lệnh),
+nhưng mất toàn bộ đảm bảo về version. Không có lý do kỹ thuật nào để chọn scp
+khi repo đã trên GitHub.
+
+**Khi nào nâng lên GitHub Actions CD**: khi bạn muốn "push main là tự deploy".
+Workflow mẫu đã có sẵn ở `.github/workflows/deploy.yml` (mặc định chỉ chạy tay
+qua nút Run workflow — chưa auto). Nó nối vào tailnet bằng Tailscale OAuth
+ephemeral node rồi SSH y hệt alias trên. Cần tạo 4 secrets trong repo Settings:
+
+| Secret | Lấy ở đâu |
+|--------|-----------|
+| `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` | Tailscale admin → OAuth clients (scope `auth_keys`, tag `tag:ci`) |
+| `HOMESERVER_HOST` | Tên máy trong tailnet (vd `homeserver`) |
+| `HOMESERVER_SSH_KEY` | Private key deploy riêng (tạo mới, add public key vào `authorized_keys`) |
+
+Muốn auto-deploy thật sự: đổi `workflow_dispatch` thành `push: branches: [main]`
+— nhưng nên để CI (`ci.yml`) xanh vài tuần trước đã.
+
+> Ghi chú: CI (`ci.yml`) đã chạy sẵn mỗi lần push — lint/type/test cả backend
+> (gồm 65 integration test bằng Testcontainers) lẫn frontend. CD chỉ là bước
+> "chở bản đã xanh lên server".
 
 ## 4. Giải thích Dockerfile 2 tầng (multi-stage)
 
@@ -86,7 +113,7 @@ Tại sao 2 tầng đáng giá:
    trung gian — chỉ có Python + venv + code. Kéo image nhanh, ít bề mặt tấn công.
 2. **Cache thông minh**: `pyproject.toml`/`uv.lock` được COPY *trước* source
    code, nên sửa code không làm cài lại toàn bộ dependencies — rebuild chỉ mất
-   vài giây (bạn đã thấy: build lại ~6s).
+   vài giây (đã đo thực tế: ~6s).
 3. **Reproducible**: `--frozen` cài đúng từng version trong lockfile, image
    build hôm nay và tháng sau giống hệt nhau.
 4. **An toàn**: stage runner chạy user `app` (uid 1000), không root; app chỉ

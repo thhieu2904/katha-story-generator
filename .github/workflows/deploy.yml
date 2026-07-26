@@ -1,0 +1,42 @@
+name: Deploy to homeserver
+
+# Manual-only by default (Run workflow button). Khi CI đã ổn định và muốn
+# auto-deploy mỗi lần push main, thay workflow_dispatch bằng:
+#   push:
+#     branches: [main]
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-homeserver
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Join tailnet (ephemeral node)
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy over SSH
+        env:
+          SSH_KEY: ${{ secrets.HOMESERVER_SSH_KEY }}
+          HOST: ${{ secrets.HOMESERVER_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=accept-new "deploy@$HOST" '
+            set -euo pipefail
+            cd ~/katha-story-generator
+            git fetch origin main
+            git checkout --detach origin/main
+            cd deploy
+            docker compose -f docker-compose.homeserver.yml up -d --build
+            docker compose -f docker-compose.homeserver.yml exec -T api alembic upgrade head
+            curl -fsS http://127.0.0.1:8000/health
+          '
