@@ -26,7 +26,14 @@ const notoSerifKhmer = Noto_Serif_Khmer({
 
 export const metadata: Metadata = {
   title: 'Katha — កថា',
-  description: 'AI-powered bilingual story generator for Cambodian children — Khmer & Vietnamese',
+  description: 'Truyện tranh song ngữ Khmer – Việt · Bilingual Khmer–Vietnamese picture stories',
+  openGraph: {
+    title: 'Katha — កថា',
+    description: 'Truyện tranh song ngữ Khmer – Việt · Bilingual Khmer–Vietnamese picture stories',
+    siteName: 'Katha',
+    type: 'website',
+    locale: 'vi_VN',
+  },
 };
 
 export default function RootLayout({
