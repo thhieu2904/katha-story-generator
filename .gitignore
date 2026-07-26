@@ -9,6 +9,9 @@ dist/
 build/
 .env*
 !.env*.example
+plan/
+old/
+
 
 # Node
 node_modules/

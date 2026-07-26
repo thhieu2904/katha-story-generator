@@ -1,172 +1,74 @@
-# Katha — កថា
+<div align="center">
+  <h1>📖 Katha — កថា</h1>
+  
+  <p><strong>Nền tảng AI tạo truyện tranh song ngữ (Khmer - Việt) dành riêng cho trẻ em</strong></p>
+  
+  <p>
+    <em>Mỗi đứa trẻ đều xứng đáng được lớn lên với những câu chuyện thần tiên mang đậm bản sắc văn hóa của riêng mình. Katha ra đời với sứ mệnh biến trí tưởng tượng của các em thành những trang sách đầy màu sắc chỉ trong vài phút.</em>
+  </p>
+</div>
 
-> AI-powered bilingual story generator for Cambodian children — Khmer & Vietnamese.
+---
 
-Katha giúp giáo viên và phụ huynh tạo truyện tranh song ngữ Khmer-Việt cho trẻ em, sử dụng AI để tạo nội dung và minh họa nhất quán.
+## 🌟 Vì sao Katha ra đời?
 
-## Tech Stack
+Việc tìm kiếm những cuốn truyện tranh song ngữ **Khmer - Việt** chất lượng cao, hình ảnh đẹp mắt và nội dung phù hợp cho trẻ em là một thử thách lớn đối với nhiều phụ huynh và giáo viên. 
 
-- **Frontend**: Next.js (TypeScript), Tailwind CSS v4
-- **Backend**: FastAPI (Python 3.11), SQLAlchemy (async)
-- **Database**: PostgreSQL (Supabase)
-- **Storage**: Cloudflare R2
-- **AI**: OpenAI (gpt-4o-mini, gpt-image-2)
+**Katha (កថា)** ra đời để giải quyết vấn đề đó. Bằng cách ứng dụng trí tuệ nhân tạo (AI) tiên tiến nhất, Katha giúp bất kỳ ai cũng có thể trở thành một "tác giả truyện tranh", tạo ra những tác phẩm nghệ thuật tuyệt đẹp, mang tính giáo dục cao và quan trọng nhất: **Gắn kết ngôn ngữ, bảo tồn văn hóa.**
 
-## Architecture
+---
 
-```
-Modular monolith, feature-based
+## ✨ Trải nghiệm Phép màu cùng Katha
 
-backend/src/katha/
-├── core/           # Config, database, dependencies
-├── db/             # Base model, registry
-├── features/       # Feature modules (config_data, characters, stories)
-└── integrations/   # External service adapters (R2, Supabase, OpenAI)
+Katha không chỉ là một công cụ, mà là một xưởng phim hoạt hình thu nhỏ ngay trên màn hình của bạn:
 
-frontend/src/
-├── app/            # Routes + layouts (Next.js App Router)
-├── features/       # Feature modules
-├── shared/         # Shared UI components
-└── lib/            # Utilities (API client, Supabase client)
-```
+- 🎭 **Sáng tạo không giới hạn**: Bạn chỉ cần đưa ra một ý tưởng nhỏ (ví dụ: *Một chú thỏ muốn học bơi*), AI của Katha sẽ dệt nên một cốt truyện hoàn chỉnh, giàu cảm xúc và bài học nhân văn.
+- 🎨 **Minh họa chuẩn Studio**: Không còn những hình ảnh chắp vá lộn xộn. Katha hiểu và giữ được sự nhất quán của bối cảnh, nhân vật từ trang đầu tiên đến trang cuối cùng.
+- 🌐 **Cầu nối Song ngữ**: Mỗi trang truyện đều được trình bày song song hai ngôn ngữ Khmer và Tiếng Việt. Trẻ em có thể vừa giải trí, vừa học ngôn ngữ một cách tự nhiên nhất.
+- 🛡️ **An toàn tuyệt đối**: Nội dung được sinh ra luôn được kiểm soát để đảm bảo 100% phù hợp và an toàn cho tâm hồn trẻ thơ.
 
-### Dependency Rules
+---
 
-```
-router → service → model/database
-                 → integration adapter
-```
+## 🎯 Katha dành cho ai?
 
-- Router: nhận request, validate input, trả response
-- Service: business logic, gọi model + integration
-- Integration: external services, không import router/feature
-- main.py: chỉ khởi tạo app, middleware, mount routers
+- 👨‍👩‍👧 **Phụ huynh**: Tự tay tạo ra những câu chuyện ru bé ngủ mỗi tối với nhân vật chính có thể lấy cảm hứng từ chính các con của mình.
+- 👩‍🏫 **Giáo viên & Trường học**: Nhanh chóng tạo ra các học liệu trực quan, sinh động phục vụ cho các bài giảng song ngữ trên lớp.
+- 🧒 **Trẻ em**: Khơi dậy niềm đam mê đọc sách, phát triển trí tưởng tượng và tình yêu với tiếng mẹ đẻ.
 
-## Prerequisites
+---
 
-- Python 3.11+
-- Node.js 20+
-- [uv](https://docs.astral.sh/uv/) (Python package manager)
-- Docker (for tests)
+## 🛠 Dành cho Nhà phát triển (For Developers)
 
-## Setup
+Katha là một dự án được xây dựng bằng những công nghệ hiện đại nhất (**Next.js, FastAPI, PostgreSQL, OpenAI**). Nếu bạn là lập trình viên và muốn chung tay phát triển hoặc cài đặt phiên bản Katha của riêng mình, hãy xem phần dưới đây:
 
-### Backend
+<details>
+<summary><strong>🚀 Bấm vào đây để xem hướng dẫn cài đặt kỹ thuật</strong></summary>
 
+### 1. Chuẩn bị
+- Python 3.11+, Node.js 20+, Docker
+- [uv](https://docs.astral.sh/uv/) (Trình quản lý thư viện Python cực nhanh)
+
+### 2. Khởi chạy Backend (FastAPI)
 ```bash
 cd backend
-uv sync                     # Install dependencies (including dev group)
-cp .env.example .env        # Configure environment variables
-uv run alembic upgrade head # Run migrations
-uv run python -m katha.features.config_data.seed  # Seed data
-uv run python -m katha.integrations.upload_refs    # Upload 7 ref images to R2
-uv run uvicorn katha.main:app --reload            # Start dev server
+uv sync                                          # Cài đặt thư viện
+cp .env.example .env                             # Cập nhật cấu hình (DB, OpenAI, R2...)
+uv run alembic upgrade head                      # Cập nhật Database
+uv run python -m katha.features.config_data.seed # Nạp dữ liệu mẫu ban đầu
+uv run uvicorn katha.main:app --reload           # Chạy server ở localhost:8000
 ```
 
-### Frontend
-
+### 3. Khởi chạy Frontend (Next.js)
 ```bash
 cd frontend
-npm install                 # Install dependencies
-cp .env.local.example .env.local  # Configure environment variables
-npm run dev                 # Start dev server
+npm install                       # Cài đặt thư viện
+cp .env.local.example .env.local  # Cập nhật cấu hình
+npm run dev                       # Chạy giao diện ở localhost:3000
 ```
+</details>
 
-## Environment Variables
-
-### Backend (`backend/.env`)
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | ✅ | PostgreSQL async connection string |
-| `SUPABASE_URL` | Phase 2 | Supabase project URL |
-| `R2_ENDPOINT_URL` | ✅ | Cloudflare R2 endpoint |
-| `R2_ACCESS_KEY_ID` | ✅ | R2 access key |
-| `R2_SECRET_ACCESS_KEY` | ✅ | R2 secret key |
-| `R2_BUCKET_NAME` | ✅ | R2 bucket name |
-| `R2_PUBLIC_URL` | ✅ | R2 public URL |
-| `OPENAI_API_KEY` | Phase 3+ | OpenAI API key |
-| `OPENAI_IMAGE_MODEL` | Phase 4 | Image model (default: `gpt-image-2`) |
-| `OPENAI_IMAGE_SIZE` | Phase 4 | Image size (default: `1536x864`) |
-| `OPENAI_IMAGE_QUALITY` | Phase 4 | Image quality (default: `high`) |
-| `CORS_ORIGINS` | ❌ | Allowed origins (default: localhost:3000) |
-
-See [`backend/README.md`](backend/README.md) and `backend/.env.example` for the full
-Phase 4–5 timeout, retry, concurrency, fencing, and output-validation settings.
-
-### Frontend (`frontend/.env.local`)
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `NEXT_PUBLIC_API_URL` | ✅ | Backend API URL |
-| `NEXT_PUBLIC_SUPABASE_URL` | Phase 2 | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Phase 2 | Supabase publishable key |
-
-## Testing
-
-### Backend
-
-```bash
-cd backend
-uv run ruff check src/ tests/ alembic/versions/
-uv run ruff format --check src/ tests/ alembic/versions/
-uv run mypy src/
-uv run pytest -m "not integration" tests/ -q  # Offline suite
-uv run pytest -m integration tests/ -q        # Requires Docker/Testcontainers
-docker build -t katha-backend .               # Docker build smoke test
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm run test -- --run  # Vitest UI-state specs
-npx eslint .           # Lint
-npx tsc --noEmit       # Type check
-npm run build          # Build
-```
-
-## Health Check
-
-```bash
-curl http://localhost:8000/health
-# {"status": "healthy", "checks": {"database": "ok", "r2": "ok"}, "version": "0.1.0"}
-```
-
-## Database
-
-7 tables across 2 groups:
-
-**Config** (seed data): `story_backbones`, `story_genres`, `art_styles`  
-**Core** (user data): `characters`, `stories`, `story_characters`, `story_pages`
-
-Schema: [`plan/07-database-schema.md`](plan/07-database-schema.md)
-Migration `005_story_image_generation` aborts before DDL if a populated database
-contains a non-empty legacy `story_pages.image_url` **or** a story already in
-`pending_review`, `approved`, or `published`. Choose an explicit preserve/import,
-clear, normalize, or archive path before upgrading; the migration never silently
-strands those states.
-
-Migration `006_story_review_publish` is the current head. It adds per-page review,
-single-page regeneration ownership, publish/share rotation, and public-reader state
-without adding a new table.
-
-
-## Seed Data
-
-Run idempotent (safe to run multiple times):
-
-```bash
-cd backend
-uv run python -m katha.features.config_data.seed
-# Seed complete: 3 backbones, 4 genres, 3 art_styles, 7 characters inserted
-```
-
-## Project Status
-
-- [x] Phase 1: Foundation — code-complete offline; Docker/Supabase/R2 live checks pending
-- [x] Phase 2: Auth + config APIs + Character Bank read-only — code-complete offline
-- [x] Phase 3A: Story setup/list — code-complete offline; Docker/live checks pending
-- [x] Phase 3B–3C: Text generation, editor, confirmation — code-complete offline sau corrective review; Docker/live/native Khmer checks pending
-- [x] Phase 4: Image plan + sequential page-image generation MVP — offline source/unit/frontend gates pass; Docker/PostgreSQL integration and controlled OpenAI/R2/browser verification remain pending (see `plan/PHASE_4_MANUAL_VERIFICATION.md`)
-- [ ] Phase 5: Review, publish, reader — corrective review đang thực hiện; chưa tuyên bố code-complete hoặc PostgreSQL verified
+---
+<div align="center">
+  <p><strong>Cùng Katha, chúng ta kiến tạo tương lai qua từng trang sách! 🌈</strong></p>
+  <p><em>Phát triển với ❤️</em></p>
+</div>

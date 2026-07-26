@@ -26,11 +26,12 @@ jobs:
         env:
           SSH_KEY: ${{ secrets.HOMESERVER_SSH_KEY }}
           HOST: ${{ secrets.HOMESERVER_HOST }}
+          SSH_USER: ${{ secrets.HOMESERVER_USER }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=accept-new "deploy@$HOST" '
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$HOST" '
             set -euo pipefail
             cd ~/katha-story-generator
             git fetch origin main
