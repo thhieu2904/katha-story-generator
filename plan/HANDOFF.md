@@ -183,6 +183,7 @@
 | `08-implementation-gates.md` | Quyết định chưa chốt — dev KHÔNG được tự ý quyết |
 | `10-deploy-vps.md` | Runbook deploy: FE Vercel + BE Docker/Caddy trên VPS |
 | `11-deploy-homeserver.md` | Biến thể homeserver: Cloudflare Tunnel, scp vs CI/CD, giải thích multi-stage Docker |
+| `12-giai-thich-kien-truc-deploy.md` | Giải thích TẠI SAO của toàn bộ kiến trúc deploy — đọc để hiểu, kèm sự cố đã gặp |
 | `old/PHASE_3B_TEXT_GENERATION_PLAN.md` | Source of truth triển khai generation + bilingual preview |
 | `old/PHASE_3C_STORY_EDITOR_CONFIRMATION_PLAN.md` | Source of truth editor + validation + confirm sau khi 3B accept |
 | `old/PHASE_5_HUMAN_REVIEW_PUBLISH_READER_PLAN.md` | Source of truth D36–D42, D49–D51 và API/public-reader contract Phase 5 |
