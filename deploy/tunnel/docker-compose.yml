@@ -1,0 +1,33 @@
+# Cloudflare Tunnel — hạ tầng CHUNG của homeserver, không thuộc app nào.
+# File này chỉ là bản mẫu nằm trong repo Katha cho tiện; nơi chạy thật là
+# /srv/tunnel trên server (plan/13 §3.3 + §7 giai đoạn A):
+#
+#   sudo mkdir -p /srv/tunnel
+#   cp /srv/apps/katha-story-generator/deploy/tunnel/docker-compose.yml /srv/tunnel/
+#   # Tạo /srv/tunnel/.env (chmod 600) với đúng 1 dòng:
+#   #   TUNNEL_TOKEN=<copy từ /srv/apps/katha-story-generator/deploy/.env>
+#   # KHÔNG tạo tunnel/token mới trên dashboard — token khác = tunnel khác.
+#   cd /srv/tunnel && docker compose up -d
+#   # Kiểm chứng: dashboard Zero Trust -> Tunnels phải hiện 2 connector.
+#
+# cloudflared nằm trong network `proxy` để gọi được caddy_proxy lẫn mọi
+# alias katha-api/<app>-api. Không cần limits (tiến trình rất nhẹ).
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest # cân nhắc pin version cụ thể (plan/13 §9)
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    networks:
+      - proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true

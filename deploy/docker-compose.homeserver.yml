@@ -27,6 +27,18 @@ services:
       proxy:
         aliases:
           - katha-api
+    # Trần tài nguyên (plan/13 §3.5): CPU chạm trần thì chậm lại, RAM chạm
+    # trần thì container này bị kill + tự restart — không lây sang app khác.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test:
         [
@@ -40,6 +52,9 @@ services:
       retries: 3
       start_period: 15s
 
+  # NOTE: cloudflared sẽ chuyển sang stack riêng /srv/tunnel khi migration
+  # multi-app (plan/13 §7 giai đoạn A) — đừng xoá ở đây trước khi stack mới
+  # chạy và dashboard hiện 2 connector.
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
@@ -50,6 +65,11 @@ services:
       default: {}
     depends_on:
       - api
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   proxy:
