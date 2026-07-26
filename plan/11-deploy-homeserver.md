@@ -6,40 +6,38 @@
 
 ---
 
-## 1. Topology
+## 1. Topology (đã khảo sát server thật 2026-07-26)
+
+Homeserver: Ubuntu, 16GB RAM, Docker 29 + Compose v5, apps theo convention
+`/srv/apps/<tên>` + Caddy container (`/srv/proxy`) với external network `proxy`.
+**Không có IPv4 public** (egress IPv6, IPv4 sau NAT/CGNAT VNPT) → không
+port-forward được → **Cloudflare Tunnel là đường public chính thức**:
 
 ```
-Người đọc/Admin ──HTTPS──> Caddy (host, IP nhà) ──> 127.0.0.1:8000 (container api)
-Máy dev ──Tailscale/SSH──> homeserver        ← chỉ để deploy & quản trị
+Người đọc/Admin ──HTTPS──> Cloudflare edge ──tunnel (outbound)──> cloudflared ──> api:8000
+Máy dev ──Tailscale/SSH──> homeserver                     ← chỉ để deploy & quản trị
+Caddy container (:80)                                     ← giữ nguyên cho app LAN khác
 ```
 
-- `deploy/docker-compose.homeserver.yml` chạy **một** container `api`, bind
-  `127.0.0.1:8000` (không lộ port ra LAN/Internet — chỉ Caddy trên host thấy).
-- Thêm block vào Caddyfile **trên host** của bạn:
-
-  ```
-  api.<domain> {
-      reverse_proxy 127.0.0.1:8000
-  }
-  ```
-
-- **DNS**: A record `api.<domain>` → IP public nhà. Lưu ý IP nhà thường là IP
-  động → dùng DDNS (Cloudflare API cập nhật A record) nếu ISP đổi IP.
-- **Đính chính một chi tiết**: Vercel không "trỏ về IP máy bạn" — frontend chỉ
-  cần build với `NEXT_PUBLIC_API_URL=https://api.<domain>`; **browser của người
-  đọc** gọi thẳng domain đó, DNS mới là thứ trỏ về IP nhà. Nhớ set
-  `CORS_ORIGINS` trong `.env` = domain Vercel.
-- **Fallback nếu ISP CGNAT/không mở port được**: bật profile Cloudflare Tunnel
-  (`--profile tunnel`, token trong `.env`) — miễn phí, không cần IP public;
-  khi đó không cần block Caddy phía trên.
+- Container `api` join thêm network `proxy` với alias `katha-api` — nếu muốn
+  truy cập nội bộ LAN qua Caddy thì thêm block `reverse_proxy katha-api:8000`.
+- Cần một **domain** đã đưa nameserver về Cloudflare (free plan đủ).
+- Setup tunnel: Cloudflare Zero Trust → Networks → Tunnels → Create (Cloudflared)
+  → copy token vào `deploy/.env` (`TUNNEL_TOKEN=...`) → trong tunnel thêm
+  Public Hostname `api.<domain>` → Service `HTTP://api:8000`.
+- **Đính chính mô hình**: Vercel không "trỏ về IP nhà" — frontend build với
+  `NEXT_PUBLIC_API_URL=https://api.<domain>`; browser người đọc gọi domain đó,
+  Cloudflare DNS route vào tunnel. `CORS_ORIGINS` trong `.env` = origin Vercel.
 
 ## 2. Chạy backend (lần đầu)
 
 ```bash
 # SSH vào homeserver (qua Tailscale như bạn vẫn làm)
-git clone https://github.com/<user>/katha-story-generator.git
+sudo mkdir -p /srv/apps && cd /srv/apps
+sudo git clone https://github.com/<user>/katha-story-generator.git
+sudo chown -R $USER: katha-story-generator
 cd katha-story-generator/deploy
-cp .env.example .env && nano .env    # điền giá trị thật
+# .env: scp từ máy dev (backend/.env) rồi sửa CORS_ORIGINS + thêm TUNNEL_TOKEN
 docker compose -f docker-compose.homeserver.yml up -d --build
 docker compose -f docker-compose.homeserver.yml exec api alembic upgrade head
 curl -fsS https://api.<domain>/health   # {"status":"healthy",...}

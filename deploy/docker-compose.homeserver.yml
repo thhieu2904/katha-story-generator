@@ -1,21 +1,17 @@
 # Katha backend — homeserver deployment.
 #
-# Default topology: host Caddy (bạn đã dựng sẵn) nhận HTTPS public và
-# reverse_proxy về 127.0.0.1:8000. Compose này chỉ chạy api, bind vào
-# loopback nên không lộ port ra ngoài — chỉ Caddy trên host thấy được.
+# Homeserver này không có IPv4 public (CGNAT) nên đường public chính thức là
+# Cloudflare Tunnel: cloudflared mở kết nối RA NGOÀI tới Cloudflare, Cloudflare
+# route api.<domain> -> tunnel -> api:8000. Không cần mở port router.
 #
-#   api.<domain> {
-#       reverse_proxy 127.0.0.1:8000
-#   }
-#
-# Fallback khi không có IP public/CGNAT: bật thêm Cloudflare Tunnel:
-#   docker compose -f docker-compose.homeserver.yml --profile tunnel up -d
-#   (cần TUNNEL_TOKEN trong .env; xem plan/11-deploy-homeserver.md)
+# Container api cũng join network `proxy` (external, của caddy_proxy có sẵn
+# trên server) với alias `katha-api` — nếu sau này muốn route nội bộ LAN qua
+# Caddy thì chỉ cần thêm block reverse_proxy katha-api:8000.
 #
 # Same rule as the VPS compose: exactly ONE api container (in-process
 # image-generation runner, D35).
 #
-# Usage:
+# Usage (đặt tại /srv/apps/katha-story-generator theo convention server):
 #   cd deploy
 #   docker compose -f docker-compose.homeserver.yml up -d --build
 #   docker compose -f docker-compose.homeserver.yml exec api alembic upgrade head
@@ -26,8 +22,11 @@ services:
       context: ../backend
     env_file: .env
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8000:8000"
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - katha-api
     healthcheck:
       test:
         [
@@ -43,10 +42,15 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    profiles: ["tunnel"]
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    networks:
+      default: {}
     depends_on:
       - api
+
+networks:
+  proxy:
+    external: true
