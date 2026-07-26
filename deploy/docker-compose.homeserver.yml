@@ -1,0 +1,43 @@
+# Katha backend — homeserver deployment (behind CGNAT, no public IP needed).
+#
+# Public access via Cloudflare Tunnel: Cloudflare terminates HTTPS and routes
+# api.<your-domain> -> this tunnel -> api:8000. No open ports on the router.
+# Set TUNNEL_TOKEN in deploy/.env (from Cloudflare Zero Trust > Tunnels).
+#
+# Same rule as the VPS compose: exactly ONE api container (in-process
+# image-generation runner, D35).
+#
+# Usage:
+#   cd deploy
+#   docker compose -f docker-compose.homeserver.yml up -d --build
+#   docker compose -f docker-compose.homeserver.yml exec api alembic upgrade head
+
+services:
+  api:
+    build:
+      context: ../backend
+    env_file: .env
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - api
