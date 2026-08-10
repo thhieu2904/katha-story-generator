@@ -20,6 +20,13 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </Head>
       )}
 
+      <h3
+        lang={language}
+        className={`shrink-0 text-center text-lg font-semibold text-white/80 md:text-xl lg:text-left ${language === 'km' ? 'font-khmer' : ''}`}
+      >
+        {storyTitle}
+      </h3>
+
       <div className="relative mx-auto flex w-full max-w-[896px] items-center justify-center lg:min-h-0 lg:max-w-none lg:flex-[3]">
         {page.image_url && (
           <div
@@ -41,12 +48,6 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
       </div>
 
       <div className="mx-auto w-full max-w-[896px] lg:min-h-0 lg:max-w-none lg:flex-1 lg:overflow-y-auto lg:px-4">
-        <p
-          lang={language}
-          className={`mb-2 text-center text-sm text-white/40 lg:text-left ${language === 'km' ? 'font-khmer' : ''}`}
-        >
-          {storyTitle}
-        </p>
         {language === 'km' ? (
           <p
             lang="km"
