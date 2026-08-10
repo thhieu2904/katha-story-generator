@@ -12,8 +12,8 @@ export function StoryCover({ story, language }: StoryCoverProps) {
   const secondaryTitle = language === 'km' ? story.title_vi || 'Tiêu đề' : story.title_km || 'ចំណងជើង';
   
   return (
-    <section className="mx-auto flex w-full max-w-[1200px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-katha-surface-light shadow-2xl shadow-black/20 lg:h-full lg:min-h-0">
-      <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-indigo-950 via-katha-surface to-purple-950 lg:min-h-0 lg:flex-[3] lg:aspect-auto">
+    <section className="mx-auto flex w-full max-w-[1200px] flex-col overflow-hidden lg:h-full lg:min-h-0">
+      <div className="relative aspect-video w-full overflow-hidden lg:min-h-0 lg:flex-[3] lg:aspect-auto">
         {bgUrl && (
           <div
             aria-hidden="true"

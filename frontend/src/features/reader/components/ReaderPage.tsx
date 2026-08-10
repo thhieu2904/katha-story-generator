@@ -20,7 +20,7 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </Head>
       )}
 
-      <div className="mx-auto w-full max-w-[896px] overflow-hidden rounded-xl bg-black/20 lg:min-h-0 lg:max-w-none lg:flex-[3]">
+      <div className="mx-auto w-full max-w-[896px] overflow-hidden lg:min-h-0 lg:max-w-none lg:flex-[3]">
         <div className="relative flex w-full aspect-video items-center justify-center lg:h-full lg:aspect-auto">
           {page.image_url && (
             <div
@@ -42,7 +42,7 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-prose lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:px-4">
+      <div className="mx-auto w-full max-w-[896px] lg:min-h-0 lg:max-w-none lg:flex-1 lg:overflow-y-auto lg:px-4">
         {language === 'km' ? (
           <p
             lang="km"
