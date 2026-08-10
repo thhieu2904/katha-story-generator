@@ -328,8 +328,8 @@ function PreviewInner() {
     const p = mockData.pages[pageNo - 1];
     const headerTitle = lang === 'km' ? mockData.story.title_km : mockData.story.title_vi;
     return (
-      <div className="min-h-screen bg-katha-surface text-gray-100 flex flex-col font-sans">
-        <header className="sticky top-0 z-40 border-b border-white/5 bg-katha-surface/90 backdrop-blur-md">
+      <div className="flex min-h-dvh flex-col bg-katha-surface font-sans text-gray-100 lg:h-dvh lg:overflow-hidden">
+        <header className="sticky top-0 z-40 shrink-0 border-b border-white/5 bg-katha-surface/90 backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
             <div className="flex min-w-0 items-center gap-2">
               <KathaLogo height={34} className="-my-1 sm:-my-2" />
@@ -351,7 +351,7 @@ function PreviewInner() {
             <ReaderLanguageToggle language={lang} onChange={() => {}} />
           </div>
         </header>
-        <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col justify-center px-4 py-6 md:px-6 md:py-8 lg:px-8 xl:flex-none xl:pb-8">
+        <main className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col px-4 py-6 md:px-6 md:py-8 lg:px-8 lg:py-4">
           <ReaderPage
             page={{ page_no: p.page_no, text_km: p.text_km, text_vi: p.text_vi, image_url: p.image_url }}
             language={lang}

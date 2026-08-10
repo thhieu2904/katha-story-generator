@@ -96,7 +96,7 @@ export function ReaderControls({ currentPage, totalPages, onPageChange }: Reader
   }, []);
 
   return (
-    <div className="relative z-40 bg-gradient-to-t from-katha-surface via-katha-surface to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 md:px-6 lg:px-8">
+    <div className="relative z-40 shrink-0 bg-gradient-to-t from-katha-surface via-katha-surface to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 md:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between">
         <button
           onClick={handlePrev}

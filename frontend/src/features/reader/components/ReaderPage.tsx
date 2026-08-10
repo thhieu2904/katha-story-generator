@@ -11,7 +11,7 @@ interface ReaderPageProps {
 
 export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderPageProps) {
   return (
-    <article className="mx-auto grid w-full max-w-[1400px] grid-cols-1 items-center gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(18rem,2fr)] xl:gap-8">
+    <article className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 lg:h-full lg:min-h-0 lg:gap-4">
       <h2 className="sr-only">Trang {page.page_no}</h2>
       
       {nextImageUrl && (
@@ -20,13 +20,20 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </Head>
       )}
 
-      <div className="mx-auto w-full max-w-[896px] overflow-hidden rounded-xl bg-black/20 xl:mx-0 xl:max-w-none">
-        <div className="relative w-full aspect-video flex items-center justify-center">
+      <div className="mx-auto w-full max-w-[896px] overflow-hidden rounded-xl bg-black/20 lg:min-h-0 lg:max-w-none lg:flex-[3]">
+        <div className="relative flex w-full aspect-video items-center justify-center lg:h-full lg:aspect-auto">
+          {page.image_url && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 hidden scale-110 bg-cover bg-center opacity-30 blur-2xl lg:block"
+              style={{ backgroundImage: `url(${page.image_url})` }}
+            />
+          )}
           {page.image_url ? (
             <img
               src={page.image_url}
               alt={`Minh họa trang ${page.page_no} của ${storyTitle}`}
-              className="w-full h-full object-contain"
+              className="relative h-full w-full object-contain"
               loading="lazy"
             />
           ) : (
@@ -35,18 +42,18 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-prose xl:max-w-[34rem] xl:justify-self-center">
+      <div className="mx-auto w-full max-w-prose lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:px-4">
         {language === 'km' ? (
           <p
             lang="km"
-            className="text-center font-khmer-serif text-[22px] leading-[2] text-gray-100 md:text-[26px] xl:text-left"
+            className="text-center font-khmer-serif text-[22px] leading-[2] text-gray-100 md:text-[26px] lg:text-left"
           >
             {page.text_km}
           </p>
         ) : (
           <p 
             lang="vi" 
-            className="text-center text-lg leading-relaxed text-gray-100 md:text-xl xl:text-left"
+            className="text-center text-lg leading-relaxed text-gray-100 md:text-xl lg:text-left"
           >
             {page.text_vi}
           </p>

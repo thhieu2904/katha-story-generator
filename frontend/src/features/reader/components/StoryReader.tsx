@@ -37,8 +37,8 @@ export function StoryReader({ story }: StoryReaderProps) {
   const storyTitle = language === 'km' ? (story.title_km || '') : (story.title_vi || '');
 
   return (
-    <div className="min-h-screen bg-katha-surface text-gray-100 flex flex-col font-sans selection:bg-katha-primary/30">
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-katha-surface/90 backdrop-blur-md">
+    <div className="flex min-h-dvh flex-col bg-katha-surface font-sans text-gray-100 selection:bg-katha-primary/30 lg:h-dvh lg:overflow-hidden">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-white/5 bg-katha-surface/90 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <KathaLogo height={34} priority className="-my-1 sm:-my-2" />
@@ -67,7 +67,7 @@ export function StoryReader({ story }: StoryReaderProps) {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col justify-center px-4 py-6 transition-opacity duration-300 motion-reduce:transition-none md:px-6 md:py-8 lg:px-8 xl:flex-none xl:pb-8">
+      <main className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col px-4 py-6 transition-opacity duration-300 motion-reduce:transition-none md:px-6 md:py-8 lg:px-8 lg:py-4">
         {currentPage === 0 ? (
           <StoryCover story={story} language={language} />
         ) : activePage ? (
