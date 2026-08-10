@@ -11,7 +11,7 @@ interface ReaderPageProps {
 
 export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderPageProps) {
   return (
-    <article className="w-full flex flex-col items-center">
+    <article className="mx-auto grid w-full max-w-[1400px] grid-cols-1 items-center gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(18rem,2fr)] xl:gap-8">
       <h2 className="sr-only">Trang {page.page_no}</h2>
       
       {nextImageUrl && (
@@ -20,7 +20,7 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </Head>
       )}
 
-      <div className="w-full max-w-2xl mx-auto mb-8 rounded-xl overflow-hidden bg-black/20">
+      <div className="mx-auto w-full max-w-[896px] overflow-hidden rounded-xl bg-black/20 xl:mx-0 xl:max-w-none">
         <div className="relative w-full aspect-video flex items-center justify-center">
           {page.image_url ? (
             <img
@@ -35,18 +35,18 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </div>
       </div>
 
-      <div className="w-full max-w-2xl mx-auto px-4 md:px-0">
+      <div className="mx-auto w-full max-w-prose xl:max-w-[34rem] xl:justify-self-center">
         {language === 'km' ? (
           <p
             lang="km"
-            className="font-khmer-serif text-[22px] md:text-[26px] leading-[2] text-gray-100 text-center"
+            className="text-center font-khmer-serif text-[22px] leading-[2] text-gray-100 md:text-[26px] xl:text-left"
           >
             {page.text_km}
           </p>
         ) : (
           <p 
             lang="vi" 
-            className="text-lg md:text-xl leading-relaxed text-gray-100 text-center"
+            className="text-center text-lg leading-relaxed text-gray-100 md:text-xl xl:text-left"
           >
             {page.text_vi}
           </p>

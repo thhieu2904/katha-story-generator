@@ -329,13 +329,12 @@ function PreviewInner() {
     const headerTitle = lang === 'km' ? mockData.story.title_km : mockData.story.title_vi;
     return (
       <div className="min-h-screen bg-katha-surface text-gray-100 flex flex-col font-sans">
-        <header className="absolute inset-x-0 top-0 z-40 bg-gradient-to-b from-black/50 to-transparent">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <header className="sticky top-0 z-40 border-b border-white/5 bg-katha-surface/90 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
             <div className="flex min-w-0 items-center gap-2">
-              <KathaLogo height={42} className="-my-2" />
+              <KathaLogo height={34} className="-my-1 sm:-my-2" />
               <span className="shrink-0 text-sm font-semibold tracking-wide text-white/85">
-                Katha{' '}
-                <span lang="km" className="font-khmer font-normal text-white/55">
+                Katha <span lang="km" className="hidden font-khmer font-normal text-white/55 sm:inline">
                   កថា
                 </span>
               </span>
@@ -352,7 +351,7 @@ function PreviewInner() {
             <ReaderLanguageToggle language={lang} onChange={() => {}} />
           </div>
         </header>
-        <main className="flex-1 w-full max-w-4xl mx-auto px-4 pb-4 pt-20 md:px-6 lg:px-8 flex flex-col justify-center">
+        <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col justify-center px-4 py-6 md:px-6 md:py-8 lg:px-8 xl:flex-none xl:pb-8">
           <ReaderPage
             page={{ page_no: p.page_no, text_km: p.text_km, text_vi: p.text_vi, image_url: p.image_url }}
             language={lang}

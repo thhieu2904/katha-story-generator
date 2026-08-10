@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { PublicStory, ReaderLanguage } from '../types';
 import { StoryCover } from './StoryCover';
 import { ReaderPage } from './ReaderPage';
@@ -12,13 +12,15 @@ interface StoryReaderProps {
 
 export function StoryReader({ story }: StoryReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [language, setLanguage] = useState<ReaderLanguage>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('katha-reader-lang');
-      if (saved === 'km' || saved === 'vi') return saved;
+  const [language, setLanguage] = useState<ReaderLanguage>('km');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('katha-reader-lang');
+    if (saved === 'km' || saved === 'vi') {
+      const restoreLanguage = window.setTimeout(() => setLanguage(saved), 0);
+      return () => window.clearTimeout(restoreLanguage);
     }
-    return 'km';
-  });
+  }, []);
 
   const handleLanguageChange = (newLang: ReaderLanguage) => {
     setLanguage(newLang);
@@ -36,13 +38,12 @@ export function StoryReader({ story }: StoryReaderProps) {
 
   return (
     <div className="min-h-screen bg-katha-surface text-gray-100 flex flex-col font-sans selection:bg-katha-primary/30">
-      <header className="absolute inset-x-0 top-0 z-40 bg-gradient-to-b from-black/50 to-transparent">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-katha-surface/90 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
-            <KathaLogo height={42} priority className="-my-2" />
+            <KathaLogo height={34} priority className="-my-1 sm:-my-2" />
             <span className="shrink-0 text-sm font-semibold tracking-wide text-white/85">
-              Katha{' '}
-              <span lang="km" className="font-khmer font-normal text-white/55">
+              Katha <span lang="km" className="hidden font-khmer font-normal text-white/55 sm:inline">
                 កថា
               </span>
             </span>
@@ -66,7 +67,7 @@ export function StoryReader({ story }: StoryReaderProps) {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 pb-4 pt-20 md:px-6 lg:px-8 flex flex-col justify-center transition-opacity duration-300 motion-reduce:transition-none">
+      <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col justify-center px-4 py-6 transition-opacity duration-300 motion-reduce:transition-none md:px-6 md:py-8 lg:px-8 xl:flex-none xl:pb-8">
         {currentPage === 0 ? (
           <StoryCover story={story} language={language} />
         ) : activePage ? (

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { READER_CREDIT } from '../constants';
 
 interface ReaderControlsProps {
@@ -8,7 +8,7 @@ interface ReaderControlsProps {
 }
 
 export function ReaderControls({ currentPage, totalPages, onPageChange }: ReaderControlsProps) {
-  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const gestureRef = useRef<{ x: number; y: number } | null>(null);
 
   const handlePrev = useCallback(() => {
     if (currentPage > 0) {
@@ -24,6 +24,12 @@ export function ReaderControls({ currentPage, totalPages, onPageChange }: Reader
     }
   }, [currentPage, totalPages, onPageChange]);
 
+  const navigationRef = useRef({ handlePrev, handleNext });
+
+  useEffect(() => {
+    navigationRef.current = { handlePrev, handleNext };
+  }, [handlePrev, handleNext]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,38 +39,51 @@ export function ReaderControls({ currentPage, totalPages, onPageChange }: Reader
       }
       
       if (e.key === 'ArrowLeft') {
-        handlePrev();
+        navigationRef.current.handlePrev();
       } else if (e.key === 'ArrowRight') {
-        handleNext();
+        navigationRef.current.handleNext();
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrev, handleNext]);
+  }, []);
 
   // Swipe navigation
   useEffect(() => {
+    const isInteractiveTarget = (target: EventTarget | null) => {
+      return target instanceof Element && Boolean(
+        target.closest('button, a, input, textarea, select, summary, [role="button"], [role="link"], [role="checkbox"], [role="radio"], [role="switch"], [role="menuitem"], [contenteditable="true"], [tabindex]:not([tabindex="-1"])'),
+      );
+    };
+
     const handleTouchStart = (e: TouchEvent) => {
-      setTouchStart(e.targetTouches[0].clientX);
+      if (isInteractiveTarget(e.target) || e.targetTouches.length === 0) {
+        gestureRef.current = null;
+        return;
+      }
+
+      const touch = e.targetTouches[0];
+      gestureRef.current = { x: touch.clientX, y: touch.clientY };
     };
     
     const handleTouchEnd = (e: TouchEvent) => {
-      if (!touchStart) return;
+      const gesture = gestureRef.current;
+      gestureRef.current = null;
+      if (!gesture || e.changedTouches.length === 0) return;
       
-      const touchEnd = e.changedTouches[0].clientX;
-      const distance = touchStart - touchEnd;
-      const isSwipe = Math.abs(distance) > 50;
+      const touchEnd = e.changedTouches[0];
+      const dx = gesture.x - touchEnd.clientX;
+      const dy = gesture.y - touchEnd.clientY;
+      const isHorizontalSwipe = Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.25;
       
-      if (isSwipe) {
-        if (distance > 0) {
-          handleNext(); // Swipe left -> next
+      if (isHorizontalSwipe) {
+        if (dx > 0) {
+          navigationRef.current.handleNext(); // Swipe left -> next
         } else {
-          handlePrev(); // Swipe right -> prev
+          navigationRef.current.handlePrev(); // Swipe right -> prev
         }
       }
-      
-      setTouchStart(null);
     };
     
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -74,11 +93,11 @@ export function ReaderControls({ currentPage, totalPages, onPageChange }: Reader
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [touchStart, handlePrev, handleNext]);
+  }, []);
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-katha-surface via-katha-surface to-transparent z-40">
-      <div className="max-w-2xl mx-auto flex items-center justify-between">
+    <div className="relative z-40 bg-gradient-to-t from-katha-surface via-katha-surface to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 md:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between">
         <button
           onClick={handlePrev}
           disabled={currentPage === 0}
@@ -115,7 +134,7 @@ export function ReaderControls({ currentPage, totalPages, onPageChange }: Reader
           )}
         </button>
       </div>
-      <p className="mx-auto mt-2 max-w-2xl text-center text-[11px] leading-relaxed text-white/30">
+      <p className="mx-auto mt-2 max-w-[1400px] text-center text-[11px] leading-relaxed text-white/30">
         {READER_CREDIT}
       </p>
     </div>

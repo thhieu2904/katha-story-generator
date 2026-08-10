@@ -8,42 +8,48 @@ interface StoryCoverProps {
 
 export function StoryCover({ story, language }: StoryCoverProps) {
   const bgUrl = story.cover.background_url || story.pages[0]?.image_url;
+  const primaryTitle = language === 'km' ? story.title_km || 'ចំណងជើង' : story.title_vi || 'Tiêu đề';
+  const secondaryTitle = language === 'km' ? story.title_vi || 'Tiêu đề' : story.title_km || 'ចំណងជើង';
   
   return (
-    <div className="relative w-full aspect-auto min-h-[60vh] flex flex-col justify-end bg-gradient-to-b from-katha-surface to-black/80 rounded-xl overflow-hidden">
-      {bgUrl ? (
-        <img
-          src={bgUrl}
-          alt="Bìa truyện"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      ) : (
-        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-900 to-purple-900" />
-      )}
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-      
-      <div className="relative z-10 p-6 md:p-8 space-y-4">
+    <section className="mx-auto w-full max-w-[1200px] overflow-hidden rounded-2xl border border-white/10 bg-katha-surface-light shadow-2xl shadow-black/20">
+      <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-indigo-950 via-katha-surface to-purple-950">
+        {bgUrl ? (
+          <img
+            src={bgUrl}
+            alt={`Bìa truyện: ${primaryTitle}`}
+            className="relative h-full w-full object-contain"
+          />
+        ) : (
+          <div
+            role="img"
+            aria-label="Chưa có ảnh bìa truyện"
+            className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-katha-surface to-purple-900"
+          />
+        )}
+      </div>
+
+      <div className="space-y-3 p-4 sm:p-6 md:p-8">
         {language === 'km' ? (
           <>
-            <h1 lang="km" className="font-khmer-serif text-3xl md:text-5xl text-white font-bold leading-snug drop-shadow-lg">
-              {story.title_km || 'ចំណងជើង'}
+            <h1 lang="km" className="font-khmer-serif text-3xl font-bold leading-snug text-white sm:text-4xl md:text-5xl">
+              {primaryTitle}
             </h1>
-            <p lang="vi" className="text-gray-300 text-lg md:text-xl">
-              {story.title_vi || 'Tiêu đề'}
+            <p lang="vi" className="text-base text-gray-300 sm:text-lg md:text-xl">
+              {secondaryTitle}
             </p>
           </>
         ) : (
           <>
-            <h1 lang="vi" className="text-3xl md:text-5xl text-white font-bold leading-tight">
-              {story.title_vi || 'Tiêu đề'}
+            <h1 lang="vi" className="text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl">
+              {primaryTitle}
             </h1>
-            <p lang="km" className="font-khmer-serif text-gray-300 text-lg md:text-xl">
-              {story.title_km || 'ចំណងជើង'}
+            <p lang="km" className="font-khmer-serif text-base text-gray-300 sm:text-lg md:text-xl">
+              {secondaryTitle}
             </p>
           </>
         )}
       </div>
-    </div>
+    </section>
   );
 }
