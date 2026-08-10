@@ -13,7 +13,7 @@ export function StoryCover({ story, language }: StoryCoverProps) {
   
   return (
     <section className="mx-auto flex w-full max-w-[1200px] flex-col overflow-hidden lg:h-full lg:min-h-0">
-      <div className="relative aspect-video w-full overflow-hidden lg:min-h-0 lg:flex-[3] lg:aspect-auto">
+      <div className="relative flex w-full items-center justify-center overflow-hidden lg:min-h-0 lg:flex-[3]">
         {bgUrl && (
           <div
             aria-hidden="true"
@@ -25,13 +25,13 @@ export function StoryCover({ story, language }: StoryCoverProps) {
           <img
             src={bgUrl}
             alt={`Bìa truyện: ${primaryTitle}`}
-            className="relative h-full w-full object-contain"
+            className="relative w-full h-auto rounded-xl lg:h-full lg:w-auto lg:max-w-full"
           />
         ) : (
           <div
             role="img"
             aria-label="Chưa có ảnh bìa truyện"
-            className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-katha-surface to-purple-900"
+            className="aspect-video w-full rounded-xl bg-gradient-to-br from-indigo-900 via-katha-surface to-purple-900"
           />
         )}
       </div>

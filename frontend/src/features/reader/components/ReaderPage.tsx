@@ -20,29 +20,33 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         </Head>
       )}
 
-      <div className="mx-auto w-full max-w-[896px] overflow-hidden lg:min-h-0 lg:max-w-none lg:flex-[3]">
-        <div className="relative flex w-full aspect-video items-center justify-center lg:h-full lg:aspect-auto">
-          {page.image_url && (
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 hidden scale-110 bg-cover bg-center opacity-30 blur-2xl lg:block"
-              style={{ backgroundImage: `url(${page.image_url})` }}
-            />
-          )}
-          {page.image_url ? (
-            <img
-              src={page.image_url}
-              alt={`Minh họa trang ${page.page_no} của ${storyTitle}`}
-              className="relative h-full w-full object-contain"
-              loading="lazy"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10" />
-          )}
-        </div>
+      <div className="relative mx-auto flex w-full max-w-[896px] items-center justify-center lg:min-h-0 lg:max-w-none lg:flex-[3]">
+        {page.image_url && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 hidden scale-110 bg-cover bg-center opacity-30 blur-2xl lg:block"
+            style={{ backgroundImage: `url(${page.image_url})` }}
+          />
+        )}
+        {page.image_url ? (
+          <img
+            src={page.image_url}
+            alt={`Minh họa trang ${page.page_no} của ${storyTitle}`}
+            className="relative w-full h-auto rounded-xl lg:h-full lg:w-auto lg:max-w-full"
+            loading="lazy"
+          />
+        ) : (
+          <div className="aspect-video w-full rounded-xl bg-[url('/pattern.svg')] opacity-10" />
+        )}
       </div>
 
       <div className="mx-auto w-full max-w-[896px] lg:min-h-0 lg:max-w-none lg:flex-1 lg:overflow-y-auto lg:px-4">
+        <p
+          lang={language}
+          className={`mb-2 text-center text-sm text-white/40 lg:text-left ${language === 'km' ? 'font-khmer' : ''}`}
+        >
+          {storyTitle}
+        </p>
         {language === 'km' ? (
           <p
             lang="km"

@@ -47,21 +47,6 @@ export function StoryReader({ story }: StoryReaderProps) {
                 កថា
               </span>
             </span>
-            {currentPage > 0 && storyTitle && (
-              <>
-                <span className="hidden text-white/25 sm:inline" aria-hidden>
-                  ·
-                </span>
-                <span
-                  lang={language}
-                  className={`hidden truncate text-sm text-white/60 sm:inline ${
-                    language === 'km' ? 'font-khmer' : ''
-                  }`}
-                >
-                  {storyTitle}
-                </span>
-              </>
-            )}
           </div>
           <ReaderLanguageToggle language={language} onChange={handleLanguageChange} />
         </div>
