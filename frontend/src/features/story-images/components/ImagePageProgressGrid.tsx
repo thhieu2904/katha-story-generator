@@ -10,8 +10,8 @@ export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-white">Tiến độ từng trang</h3>
-        <span className="text-xs text-white/50">{pages.length} trang</span>
+        <h3 className="text-base font-semibold text-katha-text">Tiến độ từng trang</h3>
+        <span className="text-xs text-katha-text/50">{pages.length} trang</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -31,11 +31,11 @@ export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
                     ? 'border-emerald-500/30 bg-emerald-500/5'
                     : isFailed
                       ? 'border-rose-500/30 bg-rose-500/5'
-                      : 'border-white/10 bg-white/[0.02]'
+                      : 'border-katha-text/10 bg-katha-text/[0.02]'
               }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-white">
+                <span className="text-xs font-semibold text-katha-text">
                   Trang {page.page_no}
                 </span>
                 <span
@@ -43,12 +43,12 @@ export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
                   aria-live="polite"
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
                     isGenerating
-                      ? 'bg-katha-primary text-white animate-pulse'
+                      ? 'bg-katha-primary text-katha-text animate-pulse'
                       : isCompleted
                         ? 'bg-emerald-500/20 text-emerald-300'
                         : isFailed
                           ? 'bg-rose-500/20 text-rose-300'
-                          : 'bg-white/10 text-white/50'
+                          : 'bg-katha-text/10 text-katha-text/50'
                   }`}
                 >
                   {isGenerating
@@ -78,13 +78,13 @@ export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                    <span className="text-xs text-white/30">Chờ tới lượt</span>
+                    <span className="text-xs text-katha-text/30">Chờ tới lượt</span>
                   </div>
                 )}
               </div>
 
               {(page.image_scene_en || page.text_vi) && (
-                <p className="mt-3 text-xs text-white/60 line-clamp-2">
+                <p className="mt-3 text-xs text-katha-text/60 line-clamp-2">
                   {page.image_scene_en || page.text_vi}
                 </p>
               )}

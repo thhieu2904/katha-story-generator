@@ -9,15 +9,15 @@ export function ReviewProgress({ progress }: ReviewProgressProps) {
   const isComplete = progress.approved === progress.total && progress.total > 0;
 
   return (
-    <div className="flex items-center space-x-4 bg-katha-surface-light border border-white/10 rounded-xl px-4 py-3">
+    <div className="flex items-center space-x-4 bg-katha-surface-light border border-katha-text/10 rounded-xl px-4 py-3">
       <div className="flex-1 flex items-center space-x-3">
-        <div className="w-full bg-white/10 rounded-full h-1.5 max-w-[120px]">
+        <div className="w-full bg-katha-text/10 rounded-full h-1.5 max-w-[120px]">
           <div
             className={`h-1.5 rounded-full ${isComplete ? 'bg-katha-success' : 'bg-katha-primary'}`}
             style={{ width: `${progress.total > 0 ? (progress.approved / progress.total) * 100 : 0}%` }}
           ></div>
         </div>
-        <span className="text-sm font-medium text-white">
+        <span className="text-sm font-medium text-katha-text">
           {progress.approved}/{progress.total} trang đã duyệt
         </span>
       </div>

@@ -22,14 +22,14 @@ export function ImagePlanCompactRow({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
+    <div className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.02] p-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-katha-text/10 text-xs font-bold text-katha-text">
             {page.page_no}
           </span>
           <div>
-            <h4 className="text-sm font-medium text-white line-clamp-1">
+            <h4 className="text-sm font-medium text-katha-text line-clamp-1">
               {page.image_scene_en || page.text_vi || `Trang ${page.page_no}`}
             </h4>
             <button
@@ -43,7 +43,7 @@ export function ImagePlanCompactRow({
         </div>
       </div>
 
-      <div className="border-t border-white/5 pt-3">
+      <div className="border-t border-katha-text/5 pt-3">
         <CharacterMapping
           pageNo={page.page_no}
           characters={characters}
@@ -54,27 +54,27 @@ export function ImagePlanCompactRow({
       </div>
 
       {expanded && (
-        <div className="rounded-xl bg-black/30 p-4 space-y-3 text-xs border border-white/5">
+        <div className="rounded-xl bg-katha-field p-4 space-y-3 text-xs border border-katha-text/5">
           <div>
-            <span className="font-semibold text-white/50 block mb-1">
+            <span className="font-semibold text-katha-text/50 block mb-1">
               Nội dung tiếng Việt:
             </span>
-            <p className="text-white/90">{page.text_vi}</p>
+            <p className="text-katha-text/90">{page.text_vi}</p>
           </div>
 
           <div>
-            <span className="font-semibold text-white/50 block mb-1">
+            <span className="font-semibold text-katha-text/50 block mb-1">
               Nội dung tiếng Khmer:
             </span>
-            <p className="text-khmer text-white/80">{page.text_km}</p>
+            <p className="text-khmer text-katha-text/80">{page.text_km}</p>
           </div>
 
           {page.image_prompt_en && (
-            <details className="text-white/40 pt-2 border-t border-white/5">
-              <summary className="cursor-pointer hover:text-white/70">
+            <details className="text-katha-text/40 pt-2 border-t border-katha-text/5">
+              <summary className="cursor-pointer hover:text-katha-text/70">
                 Chi tiết Prompt (English)
               </summary>
-              <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/60">
+              <p className="mt-2 font-mono text-[11px] leading-relaxed text-katha-text/60">
                 {page.image_prompt_en}
               </p>
             </details>

@@ -207,8 +207,8 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <div className="space-y-6 animate-pulse">
-          <div className="h-8 w-1/4 bg-white/[0.055] rounded mb-8" />
-          <div className="h-96 w-full bg-white/[0.055] rounded-2xl" />
+          <div className="h-8 w-1/4 bg-katha-text/[0.055] rounded mb-8" />
+          <div className="h-96 w-full bg-katha-text/[0.055] rounded-2xl" />
         </div>
       </StoryWorkflowShell>
     );
@@ -219,11 +219,11 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
       <StoryWorkflowShell storyKey={storyKey}>
         <section className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
           <h2 className="font-semibold text-red-100">Không thể tải thông tin truyện</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/50">{fetchError}</p>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">{fetchError}</p>
           <button
             type="button"
             onClick={retry}
-            className="mt-5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-white/90"
+            className="mt-5 rounded-xl bg-katha-text px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-katha-text/90"
           >
             Thử lại
           </button>
@@ -238,7 +238,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
 
   const actionBar = isDraft ? (
     <>
-      <div className="text-xs text-white/50 hidden sm:block">
+      <div className="text-xs text-katha-text/50 hidden sm:block">
         Thiết lập hiện tại sẽ được lưu trước khi tạo nội dung.
       </div>
       <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -253,7 +253,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
           type="button"
           onClick={handleSaveOnly}
           disabled={!isValid || isBusy}
-          className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-medium text-white transition hover:bg-white/10 disabled:opacity-40"
+          className="rounded-xl border border-katha-text/15 px-4 py-2.5 text-xs font-medium text-katha-text transition hover:bg-katha-text/10 disabled:opacity-40"
         >
           {isSubmitting ? 'Đang lưu…' : 'Lưu thay đổi'}
         </button>
@@ -261,7 +261,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
           type="button"
           onClick={handleSaveAndGenerate}
           disabled={!isValid || isBusy}
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           {isGenerating ? 'Đang sinh nội dung…' : 'Lưu và sinh nội dung'}
         </button>
@@ -269,12 +269,12 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
     </>
   ) : (
     <>
-      <div className="text-xs text-white/50">
+      <div className="text-xs text-katha-text/50">
         Thiết lập đã được khóa cho trạng thái hiện tại.
       </div>
       <Link
         href={canonicalHref}
-        className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light"
+        className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light"
       >
         Chuyển tới bước hiện tại →
       </Link>
@@ -298,10 +298,10 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-bold text-katha-text tracking-tight sm:text-3xl">
             Thiết lập ban đầu
           </h1>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1 text-sm text-katha-text/60">
             {story.title_vi || 'Truyện chưa đặt tên'}
           </p>
         </div>
@@ -320,7 +320,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
                 type="button"
                 onClick={handleReconcile}
                 disabled={isGenerating}
-                className="mt-3 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface disabled:opacity-50"
+                className="mt-3 rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface disabled:opacity-50"
               >
                 Kiểm tra lại trạng thái
               </button>
@@ -329,7 +329,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
         )}
 
         {isDraft ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 sm:p-8">
+          <div className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.02] p-6 sm:p-8">
             <StorySetupForm
               story={story}
               onFormChange={handleFormChange}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { KathaLogo } from '@/components/layout/KathaLogo';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 function requestedAdminPath() {
   if (typeof window === 'undefined') return '/admin/characters';
@@ -50,25 +51,28 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-katha-surface px-5 py-10">
+    <main className="katha-page-shell relative grid min-h-screen place-items-center overflow-hidden bg-katha-surface px-5 py-10">
+      <div className="absolute right-5 top-5 z-10 sm:right-8 sm:top-8">
+        <ThemeToggle />
+      </div>
       <div className="pointer-events-none absolute -left-32 -top-40 h-96 w-96 rounded-full bg-katha-primary/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-44 -right-24 h-96 w-96 rounded-full bg-katha-accent/15 blur-3xl" />
 
-      <section className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.045] p-7 shadow-2xl backdrop-blur-xl sm:p-9">
+      <section className="katha-ornament-card relative w-full max-w-md rounded-[2rem] border border-katha-gold/25 bg-katha-surface-light/90 p-7 shadow-2xl backdrop-blur-xl sm:p-9">
         <div className="mb-8 text-center">
           <KathaLogo width={224} priority className="mx-auto mb-1" />
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-katha-primary-light">
             Trang quản trị
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Chào mừng trở lại</h1>
-          <p className="mt-2 text-sm leading-6 text-white/50">
+          <p className="mt-2 text-sm leading-6 text-katha-text/50">
             Đăng nhập bằng tài khoản quản trị đã được cấp.
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit} noValidate>
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-white/75">Email</span>
+            <span className="mb-2 block text-sm font-medium text-katha-text/75">Email</span>
             <input
               type="email"
               autoComplete="email"
@@ -76,12 +80,12 @@ export default function LoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               placeholder="admin@example.com"
               disabled={submitting}
-              className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none transition placeholder:text-white/25 focus:border-katha-primary focus:ring-3 focus:ring-katha-primary/15 disabled:opacity-60"
+              className="w-full rounded-xl border border-katha-text/10 bg-katha-field px-4 py-3 text-sm outline-none transition placeholder:text-katha-text/25 focus:border-katha-primary focus:ring-3 focus:ring-katha-primary/15 disabled:opacity-60"
             />
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-white/75">Mật khẩu</span>
+            <span className="mb-2 block text-sm font-medium text-katha-text/75">Mật khẩu</span>
             <input
               type="password"
               autoComplete="current-password"
@@ -89,7 +93,7 @@ export default function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="••••••••"
               disabled={submitting}
-              className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none transition placeholder:text-white/25 focus:border-katha-primary focus:ring-3 focus:ring-katha-primary/15 disabled:opacity-60"
+              className="w-full rounded-xl border border-katha-text/10 bg-katha-field px-4 py-3 text-sm outline-none transition placeholder:text-katha-text/25 focus:border-katha-primary focus:ring-3 focus:ring-katha-primary/15 disabled:opacity-60"
             />
           </label>
 
@@ -102,10 +106,10 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-katha-surface transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-katha-primary px-4 py-3 text-sm font-bold text-katha-on-solid shadow-lg shadow-katha-primary/15 transition hover:bg-katha-primary-light disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting && (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-katha-surface/20 border-t-katha-surface" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-katha-on-solid/25 border-t-katha-on-solid" />
             )}
             {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
           </button>

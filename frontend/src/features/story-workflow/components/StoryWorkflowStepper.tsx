@@ -40,9 +40,9 @@ export function StoryWorkflowStepper({
   return (
     <nav aria-label="Tiến trình tạo truyện" className="mb-8">
       {/* Mobile compact stepper (width < 768px OR height < 600px) */}
-      <div className="show-only-on-mobile-compact flex items-center justify-between rounded-xl border border-white/10 bg-katha-surface/80 p-3 text-xs text-white">
+      <div className="show-only-on-mobile-compact flex items-center justify-between rounded-xl border border-katha-text/10 bg-katha-surface/80 p-3 text-xs text-katha-text">
         <div className="flex items-center gap-2 font-medium">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-katha-primary text-xs text-white">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-katha-primary text-xs text-katha-text">
             {currentStep}
           </span>
           <span>Bước {currentStep}/4 · {currentStepObj?.label}</span>
@@ -63,12 +63,12 @@ export function StoryWorkflowStepper({
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                   isCompleted
-                    ? 'bg-katha-success text-white'
+                    ? 'bg-katha-success text-katha-text'
                     : isCurrent
-                      ? 'bg-katha-primary text-white ring-4 ring-katha-primary/20'
+                      ? 'bg-katha-primary text-katha-text ring-4 ring-katha-primary/20'
                       : isLocked
-                        ? 'bg-white/10 text-white/40'
-                        : 'border border-white/20 text-white/40 bg-white/5'
+                        ? 'bg-katha-text/10 text-katha-text/40'
+                        : 'border border-katha-text/20 text-katha-text/40 bg-katha-text/5'
                 }`}
               >
                 {isCompleted ? (
@@ -86,10 +86,10 @@ export function StoryWorkflowStepper({
               <span
                 className={`text-sm font-medium ${
                   isCurrent
-                    ? 'text-white font-bold'
+                    ? 'text-katha-text font-bold'
                     : isCompleted
                       ? 'text-emerald-300'
-                      : 'text-white/40'
+                      : 'text-katha-text/40'
                 }`}
               >
                 {step.label}
@@ -108,7 +108,7 @@ export function StoryWorkflowStepper({
                   className={`absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 -z-0 ${
                     index < currentStep
                       ? 'bg-katha-success/60'
-                      : 'bg-white/10'
+                      : 'bg-katha-text/10'
                   }`}
                 />
               )}

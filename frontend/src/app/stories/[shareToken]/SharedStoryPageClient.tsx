@@ -12,7 +12,7 @@ export function SharedStoryPageClient({ shareToken }: { shareToken: string }) {
       <div className="min-h-screen bg-katha-surface flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 rounded-full border-2 border-katha-primary border-t-transparent animate-spin" />
-          <p className="text-gray-400">Đang tải truyện...</p>
+          <p className="text-katha-text/55">Đang tải truyện...</p>
         </div>
       </div>
     );
@@ -22,15 +22,15 @@ export function SharedStoryPageClient({ shareToken }: { shareToken: string }) {
     return (
       <div className="min-h-screen bg-katha-surface flex items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-md mx-auto">
-          <div className="w-16 h-16 mx-auto bg-white/5 rounded-full flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+          <div className="w-16 h-16 mx-auto bg-katha-text/5 rounded-full flex items-center justify-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-katha-text/55">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <h1 className="text-xl font-medium text-white">Không tìm thấy truyện</h1>
-          <p className="text-gray-400">Truyện này không tồn tại hoặc đã bị gỡ bỏ.</p>
+          <h1 className="text-xl font-medium text-katha-text">Không tìm thấy truyện</h1>
+          <p className="text-katha-text/55">Truyện này không tồn tại hoặc đã bị gỡ bỏ.</p>
         </div>
       </div>
     );
@@ -47,11 +47,11 @@ export function SharedStoryPageClient({ shareToken }: { shareToken: string }) {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <h1 className="text-xl font-medium text-white">Không thể tải truyện</h1>
-          <p className="text-gray-400">{error || 'Đã xảy ra lỗi không xác định.'}</p>
+          <h1 className="text-xl font-medium text-katha-text">Không thể tải truyện</h1>
+          <p className="text-katha-text/55">{error || 'Đã xảy ra lỗi không xác định.'}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+            className="mt-4 px-6 py-2 bg-katha-text/10 hover:bg-katha-text/20 rounded-full text-katha-text transition-colors"
           >
             Thử lại
           </button>
@@ -60,5 +60,5 @@ export function SharedStoryPageClient({ shareToken }: { shareToken: string }) {
     );
   }
 
-  return <StoryReader story={story} />;
+  return <StoryReader story={story} shareToken={shareToken} />;
 }

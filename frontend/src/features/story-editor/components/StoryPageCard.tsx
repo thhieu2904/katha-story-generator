@@ -33,7 +33,7 @@ export function StoryPageCard({
     <article
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-7 ${isDragging ? 'opacity-50' : ''}`}
+      className={`katha-card rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-5 sm:p-7 ${isDragging ? 'opacity-50' : ''}`}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -41,7 +41,7 @@ export function StoryPageCard({
             type="button"
             disabled={disabled}
             aria-label={`Kéo trang ${page.page_no}`}
-            className="cursor-grab rounded-lg border border-white/10 px-2 py-1 text-white/45 disabled:cursor-default"
+            className="cursor-grab rounded-lg border border-katha-text/10 px-2 py-1 text-katha-text/45 disabled:cursor-default"
             {...attributes}
             {...listeners}
           >
@@ -52,15 +52,15 @@ export function StoryPageCard({
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={disabled || index === 0} onClick={() => onMove(index, index - 1)} className="rounded-md border border-white/10 px-2 py-1 text-xs disabled:opacity-30" aria-label="Đưa trang lên">↑</button>
-          <button type="button" disabled={disabled || index === count - 1} onClick={() => onMove(index, index + 1)} className="rounded-md border border-white/10 px-2 py-1 text-xs disabled:opacity-30" aria-label="Đưa trang xuống">↓</button>
-          <button type="button" disabled={disabled} onClick={onRetranslate} className="rounded-md border border-white/10 px-2 py-1 text-xs disabled:opacity-30">Dịch lại Khmer</button>
+          <button type="button" disabled={disabled || index === 0} onClick={() => onMove(index, index - 1)} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30" aria-label="Đưa trang lên">↑</button>
+          <button type="button" disabled={disabled || index === count - 1} onClick={() => onMove(index, index + 1)} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30" aria-label="Đưa trang xuống">↓</button>
+          <button type="button" disabled={disabled} onClick={onRetranslate} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30">Dịch lại Khmer</button>
           <button type="button" disabled={disabled || !canDelete} onClick={onDelete} className="rounded-md border border-katha-error/30 px-2 py-1 text-xs text-red-200 disabled:opacity-30">Xóa</button>
         </div>
       </div>
-      <p className="text-[17px] font-medium leading-8 text-white/90">{page.text_vi}</p>
-      <div className="my-5 border-t border-white/10" />
-      <p className="text-khmer text-base leading-8 text-white/65">{page.text_km}</p>
+      <p className="text-[17px] font-medium leading-8 text-katha-text/90">{page.text_vi}</p>
+      <div className="my-5 border-t border-katha-text/10" />
+      <p className="text-khmer text-base leading-8 text-katha-text/65">{page.text_km}</p>
       <SpellcheckFlags flags={page.spellcheck_flags} validatedAt={page.khmer_validated_at} />
     </article>
   );

@@ -24,6 +24,21 @@ const notoSerifKhmer = Noto_Serif_Khmer({
   weight: ['400', '600', '700'],
 });
 
+const themeInitScript = `
+  (() => {
+    try {
+      const savedTheme = localStorage.getItem('katha-theme-v2');
+      const theme = savedTheme === 'light' || savedTheme === 'dark'
+        ? savedTheme
+        : 'light';
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    } catch {
+      document.documentElement.dataset.theme = 'light';
+    }
+  })();
+`;
+
 export const metadata: Metadata = {
   // Cần cho ảnh OpenGraph (src/app/opengraph-image.jpg) resolve ra URL tuyệt đối.
   metadataBase: process.env.NEXT_PUBLIC_SITE_URL
@@ -48,9 +63,13 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      suppressHydrationWarning
       className={`${beVietnamPro.variable} ${notoSansKhmer.variable} ${notoSerifKhmer.variable}`}
     >
-      <body className="font-sans antialiased bg-katha-surface text-white min-h-screen">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="min-h-screen bg-katha-surface font-sans text-katha-text antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

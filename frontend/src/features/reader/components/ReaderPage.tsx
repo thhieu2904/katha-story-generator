@@ -22,7 +22,7 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
 
       <h3
         lang={language}
-        className={`shrink-0 text-center text-lg font-semibold text-white/80 md:text-xl lg:text-left ${language === 'km' ? 'font-khmer' : ''}`}
+        className={`shrink-0 text-center text-lg font-semibold text-katha-text/80 md:text-xl lg:text-left ${language === 'km' ? 'font-khmer' : ''}`}
       >
         {storyTitle}
       </h3>
@@ -51,18 +51,19 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         {language === 'km' ? (
           <p
             lang="km"
-            className="text-center font-khmer-serif text-[22px] leading-[2] text-gray-100 md:text-[26px] lg:text-left"
+            className="text-center font-khmer-serif text-[22px] leading-[2] text-katha-text md:text-[26px] lg:text-left"
           >
             {page.text_km}
           </p>
         ) : (
           <p 
             lang="vi" 
-            className="text-center text-lg leading-relaxed text-gray-100 md:text-xl lg:text-left"
+            className="text-center text-lg leading-relaxed text-katha-text md:text-xl lg:text-left"
           >
             {page.text_vi}
           </p>
         )}
+
       </div>
     </article>
   );

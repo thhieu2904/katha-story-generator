@@ -102,11 +102,11 @@ export function StartImageGenerationDialog({
       onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-katha-surface p-6 shadow-2xl space-y-4">
-        <h2 id="start-image-generation-title" className="text-xl font-semibold text-white">
+      <div className="w-full max-w-lg rounded-2xl border border-katha-text/10 bg-katha-surface p-6 shadow-2xl space-y-4">
+        <h2 id="start-image-generation-title" className="text-xl font-semibold text-katha-text">
           {copy.title}
         </h2>
-        <p className="text-sm leading-6 text-white/65">
+        <p className="text-sm leading-6 text-katha-text/65">
           {isFinalizationOnly
             ? 'Tất cả ảnh nội dung đã được lưu. Xác nhận để đồng bộ kết quả; không tạo ảnh mới hoặc ảnh bìa.'
             : `Sẽ tạo ${pageCount} ảnh nội dung. Không tạo ảnh bìa trong bước này.`}
@@ -134,7 +134,7 @@ export function StartImageGenerationDialog({
             type="button"
             disabled={pending}
             onClick={onClose}
-            className="min-h-[44px] px-4 py-2 text-sm text-white/60 hover:text-white disabled:opacity-50 transition"
+            className="min-h-[44px] px-4 py-2 text-sm text-katha-text/60 hover:text-katha-text disabled:opacity-50 transition"
           >
             Hủy
           </button>
@@ -143,7 +143,7 @@ export function StartImageGenerationDialog({
             type="button"
             disabled={pending || (!blocked && !isFinalizationOnly && pageCount <= 0)}
             onClick={blocked ? onReconcile : onConfirm}
-            className="min-h-[44px] rounded-xl bg-katha-primary px-4 py-2 text-sm font-semibold text-white shadow-lg disabled:opacity-40 hover:bg-katha-primary-light transition"
+            className="min-h-[44px] rounded-xl bg-katha-primary px-4 py-2 text-sm font-semibold text-katha-text shadow-lg disabled:opacity-40 hover:bg-katha-primary-light transition"
           >
             {pending ? 'Đang gửi yêu cầu…' : blocked ? 'Kiểm tra lại trạng thái' : copy.action}
           </button>

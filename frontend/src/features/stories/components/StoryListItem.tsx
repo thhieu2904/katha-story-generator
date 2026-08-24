@@ -40,7 +40,7 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
       case 'archived':
         return 'bg-slate-500/15 text-slate-300 border-slate-500/20';
       default:
-        return 'bg-white/10 text-white/70 border-white/10';
+        return 'bg-katha-text/10 text-katha-text/70 border-katha-text/10';
     }
   };
 
@@ -54,7 +54,7 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
 
   return (
     <>
-      <div className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.035] transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] overflow-hidden">
+      <div className="katha-card flex flex-col overflow-hidden rounded-2xl border border-katha-text/10 bg-katha-text/[0.035] transition hover:-translate-y-1 hover:border-katha-text/20 hover:bg-katha-text/[0.055]">
         <div className="flex-1 p-5 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-semibold text-lg leading-tight line-clamp-1">{title}</h3>
@@ -63,35 +63,35 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
             </span>
           </div>
 
-          <p className="text-sm text-white/60 line-clamp-2 min-h-[2.5rem]">
+          <p className="text-sm text-katha-text/60 line-clamp-2 min-h-[2.5rem]">
             {story.description_vi || 'Chưa có mô tả'}
           </p>
 
-          <div className="flex flex-wrap gap-2 text-xs text-white/45">
-            <span className="rounded-md bg-white/[0.06] px-2 py-1">
+          <div className="flex flex-wrap gap-2 text-xs text-katha-text/45">
+            <span className="rounded-md bg-katha-text/[0.06] px-2 py-1">
               Tuổi: {ageLabel}
             </span>
-            <span className="rounded-md bg-white/[0.06] px-2 py-1">
+            <span className="rounded-md bg-katha-text/[0.06] px-2 py-1">
               Độ dài: {lengthLabel}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-white/10 p-4 bg-black/20">
-          <span className="text-xs text-white/40">{formattedDate}</span>
+        <div className="flex items-center justify-between border-t border-katha-text/10 p-4 bg-katha-field">
+          <span className="text-xs text-katha-text/40">{formattedDate}</span>
 
           <div className="flex gap-2">
             {story.status === 'draft' ? (
               <>
                 <button
                   onClick={() => setIsArchiveDialogOpen(true)}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-white/50 transition hover:bg-white/10 hover:text-white"
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-katha-text/50 transition hover:bg-katha-text/10 hover:text-katha-text"
                 >
                   Lưu trữ
                 </button>
                 <Link
                   href={workflowHref}
-                  className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-katha-primary-light"
+                  className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-katha-text transition hover:bg-katha-primary-light"
                 >
                   {workflowLabel}
                 </Link>
@@ -99,12 +99,12 @@ export function StoryListItem({ story, onArchiveSuccess }: StoryListItemProps) {
             ) : story.status !== 'archived' ? (
               <Link
                 href={workflowHref}
-                className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-katha-primary-light"
+                className="rounded-lg bg-katha-primary px-3 py-1.5 text-xs font-medium text-katha-text transition hover:bg-katha-primary-light"
               >
                 {workflowLabel}
               </Link>
             ) : (
-              <span className="text-xs text-white/50">{statusLabel}</span>
+              <span className="text-xs text-katha-text/50">{statusLabel}</span>
             )}
           </div>
         </div>

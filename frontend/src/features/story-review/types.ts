@@ -9,6 +9,10 @@ export interface ReviewPageData {
   image_status: string;
   image_attempt_count: number;
   image_error_code: string | null;
+  audio_status?: 'pending' | 'generating' | 'completed' | 'failed';
+  audio_url?: string | null;
+  audio_text_revision?: number | null;
+  audio_error_code?: string | null;
   review_status: 'pending' | 'approved' | 'rejected';
   review_notes: string | null;
   reviewed_at: string | null;

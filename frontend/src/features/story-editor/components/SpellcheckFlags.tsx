@@ -13,14 +13,14 @@ export function SpellcheckFlags({ flags, validatedAt }: {
       <summary className="cursor-pointer text-xs font-medium text-amber-200">
         {flags.length} từ/ký tự cần kiểm tra
       </summary>
-      <ul className="mt-2 space-y-1 text-xs text-white/55">
+      <ul className="mt-2 space-y-1 text-xs text-katha-text/55">
         {flags.map((flag, index) => (
           <li key={`${String(flag.kind)}-${String(flag.start)}-${index}`}>
             {String(flag.kind)} · vị trí {String(flag.start)}–{String(flag.end)}
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[11px] text-white/35">Cảnh báo hỗ trợ review, không phải kết luận sai chính tả/ngữ pháp.</p>
+      <p className="mt-2 text-[11px] text-katha-text/35">Cảnh báo hỗ trợ review, không phải kết luận sai chính tả/ngữ pháp.</p>
     </details>
   );
 }

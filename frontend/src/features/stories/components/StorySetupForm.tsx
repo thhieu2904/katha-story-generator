@@ -52,7 +52,7 @@ function Thumbnail({ src, alt, kind }: ThumbnailProps) {
 
   return kind === 'character' ? (
     <svg
-      className="h-8 w-8 text-white/20"
+      className="h-8 w-8 text-katha-text/20"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -68,7 +68,7 @@ function Thumbnail({ src, alt, kind }: ThumbnailProps) {
     </svg>
   ) : (
     <svg
-      className="h-8 w-8 text-white/20"
+      className="h-8 w-8 text-katha-text/20"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -221,9 +221,9 @@ export function StorySetupForm({
   if (!fetched) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-32 bg-white/[0.055] rounded-2xl w-full" />
-        <div className="h-40 bg-white/[0.055] rounded-2xl w-full" />
-        <div className="h-20 bg-white/[0.055] rounded-2xl w-full" />
+        <div className="h-32 bg-katha-text/[0.055] rounded-2xl w-full" />
+        <div className="h-40 bg-katha-text/[0.055] rounded-2xl w-full" />
+        <div className="h-20 bg-katha-text/[0.055] rounded-2xl w-full" />
       </div>
     );
   }
@@ -232,11 +232,11 @@ export function StorySetupForm({
     return (
       <div className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
         <h2 className="font-semibold text-red-100">Không thể tải dữ liệu cấu hình</h2>
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/50">{error}</p>
+        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">{error}</p>
         <button
           type="button"
           onClick={retryLoadConfigs}
-          className="mt-5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-white/90"
+          className="mt-5 rounded-xl bg-katha-text px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-katha-text/90"
         >
           Thử lại
         </button>
@@ -267,7 +267,7 @@ export function StorySetupForm({
           onChange={(e) => setForm({ ...form, description_vi: e.target.value })}
           disabled={controlsDisabled}
           placeholder="Nhập mô tả ngắn gọn cho câu chuyện của bạn..."
-          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-white/30 transition focus:border-katha-primary focus:outline-none focus:ring-1 focus:ring-katha-primary disabled:opacity-50 min-h-[120px]"
+          className="w-full rounded-xl border border-katha-text/10 bg-katha-text/[0.03] px-4 py-3 text-sm text-katha-text placeholder-white/30 transition focus:border-katha-primary focus:outline-none focus:ring-1 focus:ring-katha-primary disabled:opacity-50 min-h-[120px]"
         />
         {validationErrors.description_vi && (
           <p id="err-description_vi" className="mt-2 text-xs text-katha-error">
@@ -282,10 +282,10 @@ export function StorySetupForm({
           <label className="block text-sm font-medium">
             Nhân vật <span className="text-katha-error">*</span>
           </label>
-          <span className="text-xs text-white/50">Đã chọn {form.character_ids.length}/3</span>
+          <span className="text-xs text-katha-text/50">Đã chọn {form.character_ids.length}/3</span>
         </div>
         {configs.characters.length === 0 && (
-          <p className="text-sm text-white/40 italic py-8 text-center">
+          <p className="text-sm text-katha-text/40 italic py-8 text-center">
             Chưa có nhân vật.{' '}
             <a href="/admin/characters" className="text-katha-primary hover:underline">
               Quản lý nhân vật →
@@ -307,7 +307,7 @@ export function StorySetupForm({
                     ${
                       isSelected
                         ? 'border-katha-primary bg-katha-primary/10 ring-1 ring-katha-primary'
-                        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                        : 'border-katha-text/10 bg-katha-text/[0.02] hover:border-katha-text/20'
                     }
                     ${isDisabled && !isSelected ? 'opacity-40 cursor-not-allowed' : ''}
                   `}
@@ -319,7 +319,7 @@ export function StorySetupForm({
                     disabled={isDisabled}
                     className="sr-only"
                   />
-                  <div className="aspect-[3/4] w-full bg-white/5 flex items-center justify-center">
+                  <div className="aspect-[3/4] w-full bg-katha-text/5 flex items-center justify-center">
                     <Thumbnail
                       key={char.ref_image_urls?.[0] || 'no-character-image'}
                       src={char.ref_image_urls?.[0]}
@@ -349,7 +349,7 @@ export function StorySetupForm({
             Cấu trúc truyện <span className="text-katha-error">*</span>
           </label>
           {configs.backbones.length === 0 && (
-            <p className="text-sm text-white/40 italic py-4 text-center">
+            <p className="text-sm text-katha-text/40 italic py-4 text-center">
               Chưa có cấu trúc truyện.
             </p>
           )}
@@ -362,7 +362,7 @@ export function StorySetupForm({
                     ${
                       form.backbone_id === bb.id
                         ? 'border-katha-primary bg-katha-primary/10'
-                        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
+                        : 'border-katha-text/10 bg-katha-text/[0.03] hover:bg-katha-text/[0.05]'
                     }
                     ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                   `}
@@ -376,11 +376,11 @@ export function StorySetupForm({
                       !controlsDisabled && setForm({ ...form, backbone_id: bb.id })
                     }
                     disabled={controlsDisabled}
-                    className="mt-1 h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
+                    className="mt-1 h-4 w-4 border-katha-text/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                   />
                   <div>
                     <p className="font-medium text-sm">{bb.name_vi}</p>
-                    <p className="mt-1 text-xs text-white/50">{bb.description_vi}</p>
+                    <p className="mt-1 text-xs text-katha-text/50">{bb.description_vi}</p>
                   </div>
                 </label>
               ))}
@@ -397,7 +397,7 @@ export function StorySetupForm({
             Thể loại <span className="text-katha-error">*</span>
           </label>
           {configs.genres.length === 0 && (
-            <p className="text-sm text-white/40 italic py-4 text-center">
+            <p className="text-sm text-katha-text/40 italic py-4 text-center">
               Chưa có thể loại.
             </p>
           )}
@@ -410,7 +410,7 @@ export function StorySetupForm({
                     ${
                       form.genre_id === genre.id
                         ? 'border-katha-primary bg-katha-primary/10'
-                        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
+                        : 'border-katha-text/10 bg-katha-text/[0.03] hover:bg-katha-text/[0.05]'
                     }
                     ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                   `}
@@ -424,11 +424,11 @@ export function StorySetupForm({
                       !controlsDisabled && setForm({ ...form, genre_id: genre.id })
                     }
                     disabled={controlsDisabled}
-                    className="mt-1 h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
+                    className="mt-1 h-4 w-4 border-katha-text/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                   />
                   <div>
                     <p className="font-medium text-sm">{genre.name_vi}</p>
-                    <p className="mt-1 text-xs text-white/50">{genre.description_vi}</p>
+                    <p className="mt-1 text-xs text-katha-text/50">{genre.description_vi}</p>
                   </div>
                 </label>
               ))}
@@ -446,7 +446,7 @@ export function StorySetupForm({
           Phong cách ảnh <span className="text-katha-error">*</span>
         </label>
         {configs.artStyles.length === 0 && (
-          <p className="text-sm text-white/40 italic py-4 text-center">
+          <p className="text-sm text-katha-text/40 italic py-4 text-center">
             Chưa có phong cách ảnh.
           </p>
         )}
@@ -461,7 +461,7 @@ export function StorySetupForm({
                     ${
                       isSelected
                         ? 'border-katha-primary bg-katha-primary/10 ring-1 ring-katha-primary'
-                        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                        : 'border-katha-text/10 bg-katha-text/[0.02] hover:border-katha-text/20'
                     }
                     ${controlsDisabled ? 'opacity-70 cursor-default' : ''}
                   `}
@@ -478,7 +478,7 @@ export function StorySetupForm({
                     disabled={controlsDisabled}
                     className="sr-only"
                   />
-                  <div className="aspect-[4/3] w-full bg-white/5 flex items-center justify-center">
+                  <div className="aspect-[4/3] w-full bg-katha-text/5 flex items-center justify-center">
                     <Thumbnail
                       key={style.sample_image_url || 'no-art-style-image'}
                       src={style.sample_image_url}
@@ -517,7 +517,7 @@ export function StorySetupForm({
                     !controlsDisabled && setForm({ ...form, target_age: opt.value })
                   }
                   disabled={controlsDisabled}
-                  className="h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
+                  className="h-4 w-4 border-katha-text/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
                 <span className="text-sm">{opt.label}</span>
               </label>
@@ -542,7 +542,7 @@ export function StorySetupForm({
                     !controlsDisabled && setForm({ ...form, length_pref: opt.value })
                   }
                   disabled={controlsDisabled}
-                  className="h-4 w-4 border-white/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
+                  className="h-4 w-4 border-katha-text/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
                 <span className="text-sm">{opt.label}</span>
               </label>
@@ -552,7 +552,7 @@ export function StorySetupForm({
       </div>
 
       {!isReadOnly && !hideFooterButtons && (
-        <div className="border-t border-white/10 pt-4">
+        <div className="border-t border-katha-text/10 pt-4">
           {isGenerating && (
             <p className="mb-4 text-right text-sm text-katha-primary-light">
               Đang sinh nội dung song ngữ…
@@ -562,7 +562,7 @@ export function StorySetupForm({
             <button
               type="submit"
               disabled={isBusy}
-              className="rounded-lg border border-white/15 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-50"
+              className="rounded-lg border border-katha-text/15 px-6 py-2.5 text-sm font-medium text-katha-text transition hover:bg-katha-text/10 disabled:opacity-50"
             >
               {isSubmitting
                 ? 'Đang cập nhật...'
@@ -575,7 +575,7 @@ export function StorySetupForm({
                 type="button"
                 onClick={() => validate() && onGenerate(form)}
                 disabled={isBusy}
-                className="rounded-lg bg-katha-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-katha-primary-light disabled:opacity-50"
+                className="rounded-lg bg-katha-primary px-6 py-2.5 text-sm font-medium text-katha-text transition hover:bg-katha-primary-light disabled:opacity-50"
               >
                 {isGenerating ? 'Đang sinh nội dung…' : 'Sinh nội dung truyện'}
               </button>

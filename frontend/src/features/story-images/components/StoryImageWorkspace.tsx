@@ -216,7 +216,7 @@ function StoryImageWorkspaceInner({
         <button
           type="button"
           onClick={() => void handleCheckStatus()}
-          className="rounded-xl bg-white px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-white/90"
+          className="rounded-xl bg-katha-text px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-katha-text/90"
         >
           Kiểm tra lại trạng thái
         </button>
@@ -232,7 +232,7 @@ function StoryImageWorkspaceInner({
         <button
           type="button"
           onClick={() => void images.discardAndReload()}
-          className="rounded-xl bg-white px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-white/90"
+          className="rounded-xl bg-katha-text px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-katha-text/90"
         >
           Tải trạng thái mới nhất
         </button>
@@ -241,12 +241,12 @@ function StoryImageWorkspaceInner({
   } else if (!state.image_plan_ready && images.canPreparePlan) {
     actionBar = (
       <>
-        <div className="text-xs text-white/50">Nội dung đã xác nhận.</div>
+        <div className="text-xs text-katha-text/50">Nội dung đã xác nhận.</div>
         <button
           type="button"
           disabled={actionsDisabled}
           onClick={() => void images.preparePlan()}
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           {images.pending === 'prepare'
             ? 'Đang chuẩn bị minh họa…'
@@ -257,7 +257,7 @@ function StoryImageWorkspaceInner({
   } else if (isGeneratingMode) {
     actionBar = (
       <>
-        <div className="text-xs text-white/60 font-medium">
+        <div className="text-xs text-katha-text/60 font-medium">
           {images.activePage
             ? `Đang tạo trang ${images.activePage.page_no} · ${state.progress.completed}/${state.progress.total} ảnh hoàn tất`
             : `Đang xử lý · ${state.progress.completed}/${state.progress.total} ảnh hoàn tất`}
@@ -279,7 +279,7 @@ function StoryImageWorkspaceInner({
 
     actionBar = (
       <>
-        <div className="text-xs text-white/50 hidden sm:block">
+        <div className="text-xs text-katha-text/50 hidden sm:block">
           {images.mappingDirty
             ? 'Lựa chọn nhân vật sẽ được lưu trước khi bắt đầu.'
             : state.can_resume
@@ -294,7 +294,7 @@ function StoryImageWorkspaceInner({
               type="button"
               disabled={actionsDisabled}
               onClick={() => void handleSaveMappingOnly()}
-              className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-medium text-white transition hover:bg-white/10 disabled:opacity-40"
+              className="rounded-xl border border-katha-text/15 px-4 py-2.5 text-xs font-medium text-katha-text transition hover:bg-katha-text/10 disabled:opacity-40"
             >
               {images.pending === 'save_mapping' ? 'Đang lưu…' : 'Lưu thay đổi'}
             </button>
@@ -303,7 +303,7 @@ function StoryImageWorkspaceInner({
             type="button"
             disabled={generationDisabled}
             onClick={() => setDialogOpen(true)}
-            className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+            className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
           >
             {isStartingOrSaving ? 'Đang khởi chạy…' : primaryLabel}
           </button>
@@ -313,7 +313,7 @@ function StoryImageWorkspaceInner({
   } else if (isReadOnly) {
     actionBar = (
       <>
-        <div className="text-xs text-white/50">
+        <div className="text-xs text-katha-text/50">
           Tất cả ảnh đã hoàn tất.
         </div>
         <button
@@ -339,25 +339,25 @@ function StoryImageWorkspaceInner({
       <div className="space-y-6">
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+            <h1 className="text-2xl font-bold text-katha-text tracking-tight sm:text-3xl">
               Minh họa truyện
             </h1>
             <span
               className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
                 STATUS_STYLES[state.status] ||
-                'border-white/10 bg-white/[0.04] text-white/60'
+                'border-katha-text/10 bg-katha-text/[0.04] text-katha-text/60'
               }`}
             >
               {STATUS_LABELS[state.status] || state.status}
             </span>
           </div>
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-katha-text/60">
             {state.title_vi || 'Truyện chưa đặt tên'}
           </p>
         </div>
 
         {isMobileCompact && images.canEditMapping && (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-white/60">
+          <div className="rounded-xl border border-katha-text/10 bg-katha-text/5 p-4 text-xs text-katha-text/60">
             💡 Mở trên tablet hoặc máy tính (tối thiểu 768×600) để tùy chỉnh phân bổ nhân vật theo từng trang.
           </div>
         )}
@@ -376,7 +376,7 @@ function StoryImageWorkspaceInner({
             <button
               type="button"
               onClick={() => void images.discardAndReload()}
-              className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface"
+              className="rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface"
             >
               Tải trạng thái mới nhất
             </button>
@@ -400,7 +400,7 @@ function StoryImageWorkspaceInner({
                     if (result.ok) setIsBlocked(false);
                   });
                 }}
-                className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface"
+                className="rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface"
               >
                 Kiểm tra lại trạng thái
               </button>
@@ -425,11 +425,11 @@ function StoryImageWorkspaceInner({
 
         {/* Missing plan view */}
         {!state.image_plan_ready && (
-          <section className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center sm:p-12 space-y-4">
-            <h2 className="text-xl font-semibold text-white">
+          <section className="rounded-2xl border border-dashed border-katha-text/15 bg-katha-text/[0.02] p-8 text-center sm:p-12 space-y-4">
+            <h2 className="text-xl font-semibold text-katha-text">
               Chưa chuẩn bị kế hoạch minh họa
             </h2>
-            <p className="mx-auto max-w-xl text-sm text-white/60 leading-relaxed">
+            <p className="mx-auto max-w-xl text-sm text-katha-text/60 leading-relaxed">
               Kế hoạch minh họa sẽ tự động phân tích từng trang, đề xuất các cảnh quay và gán nhân vật xuất hiện.
             </p>
           </section>
@@ -456,8 +456,8 @@ function StoryImageWorkspaceInner({
             {/* Non-generating or Recovery modes: Mapping review / plan display */}
             {!isGeneratingMode && (
               <section className="space-y-6">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <h2 className="text-lg font-semibold text-white">
+                <div className="flex items-center justify-between border-b border-katha-text/10 pb-4">
+                  <h2 className="text-lg font-semibold text-katha-text">
                     Kiểm tra nhân vật từng trang
                   </h2>
                   <button
@@ -533,9 +533,9 @@ function StoryImageWorkspaceInner({
 function WorkspaceSkeleton() {
   return (
     <div className="space-y-6 animate-pulse" aria-label="Đang tải không gian minh họa">
-      <div className="h-28 rounded-2xl bg-white/[0.05]" />
-      <div className="h-36 rounded-2xl bg-white/[0.04]" />
-      <div className="h-80 rounded-2xl bg-white/[0.035]" />
+      <div className="h-28 rounded-2xl bg-katha-text/[0.05]" />
+      <div className="h-36 rounded-2xl bg-katha-text/[0.04]" />
+      <div className="h-80 rounded-2xl bg-katha-text/[0.035]" />
     </div>
   );
 }
@@ -550,10 +550,10 @@ function WorkspaceMessage({
   onRetry?: () => void;
 }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-10 text-center">
-      <h1 className="text-xl font-semibold text-white">{title}</h1>
+    <section className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-10 text-center">
+      <h1 className="text-xl font-semibold text-katha-text">{title}</h1>
       {detail && (
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-white/55">
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-katha-text/55">
           {detail}
         </p>
       )}
@@ -561,7 +561,7 @@ function WorkspaceMessage({
         <button
           type="button"
           onClick={onRetry}
-          className="mt-5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-katha-surface"
+          className="mt-5 rounded-lg bg-katha-text px-4 py-2 text-sm font-semibold text-katha-surface"
         >
           Thử lại
         </button>

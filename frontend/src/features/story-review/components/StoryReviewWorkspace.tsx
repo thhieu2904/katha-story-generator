@@ -21,10 +21,10 @@ import { EditKhmerTitleDialog } from './EditKhmerTitleDialog';
 function WorkspaceSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="h-16 bg-white/5 rounded-2xl w-full" />
+      <div className="h-16 bg-katha-text/5 rounded-2xl w-full" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-96 bg-white/5 rounded-2xl" />
+          <div key={i} className="h-96 bg-katha-text/5 rounded-2xl" />
         ))}
       </div>
     </div>
@@ -41,13 +41,13 @@ function WorkspaceMessage({
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center bg-katha-surface-light rounded-2xl border border-white/5">
-      <h3 className="text-xl font-medium text-white mb-2">{title}</h3>
-      {detail && <p className="text-gray-400 mb-6">{detail}</p>}
+    <div className="flex flex-col items-center justify-center p-12 text-center bg-katha-surface-light rounded-2xl border border-katha-text/5">
+      <h3 className="text-xl font-medium text-katha-text mb-2">{title}</h3>
+      {detail && <p className="text-katha-text/55 mb-6">{detail}</p>}
       {onRetry && (
         <button
           onClick={onRetry}
-          className="px-6 py-2.5 bg-white/10 hover:bg-white/15 text-white rounded-xl font-medium transition-colors"
+          className="px-6 py-2.5 bg-katha-text/10 hover:bg-katha-text/15 text-katha-text rounded-xl font-medium transition-colors"
         >
           Thử lại
         </button>
@@ -317,13 +317,13 @@ function StoryReviewWorkspaceInner({
   if (story.status === 'generating_images') {
     actionBar = (
       <>
-        <div className="text-xs text-white/50">
+        <div className="text-xs text-katha-text/50">
           Đang tạo bản thay thế ảnh. Các thao tác duyệt tạm bị tắt.
         </div>
         <button
           type="button"
           disabled
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition disabled:opacity-40"
         >
           Hoàn tất duyệt truyện
         </button>
@@ -332,7 +332,7 @@ function StoryReviewWorkspaceInner({
   } else if (story.status === 'pending_review') {
     actionBar = (
       <>
-        <div className="text-xs text-white/50 hidden sm:block">
+        <div className="text-xs text-katha-text/50 hidden sm:block">
           {capabilities.can_complete_review
             ? 'Tất cả trang đã được duyệt.'
             : `Còn ${progress.pending} trang chờ duyệt${
@@ -343,7 +343,7 @@ function StoryReviewWorkspaceInner({
           type="button"
           onClick={() => setCompleteDialogOpen(true)}
           disabled={!capabilities.can_complete_review || mutating || isCompleting}
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           Hoàn tất duyệt truyện
         </button>
@@ -352,14 +352,14 @@ function StoryReviewWorkspaceInner({
   } else if (story.status === 'approved') {
     actionBar = (
       <>
-        <div className="text-xs text-white/50 hidden sm:block">
+        <div className="text-xs text-katha-text/50 hidden sm:block">
           Truyện đã được duyệt, sẵn sàng xuất bản.
         </div>
         <button
           type="button"
           onClick={() => setPublishDialogOpen(true)}
           disabled={!capabilities.can_publish || mutating || isPublishing}
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           Xuất bản và tạo liên kết
         </button>
@@ -368,7 +368,7 @@ function StoryReviewWorkspaceInner({
   } else if (story.status === 'published') {
     actionBar = (
       <>
-        <div className="text-xs text-white/50">
+        <div className="text-xs text-katha-text/50">
           Truyện đã xuất bản. Quản lý liên kết chia sẻ ở phía trên.
         </div>
         <button
@@ -462,7 +462,7 @@ function StoryReviewWorkspaceInner({
 
       {/* Header section */}
       <div className="mb-8 space-y-6">
-        <div className="bg-katha-surface-light rounded-2xl p-5 border border-white/5">
+        <div className="bg-katha-surface-light rounded-2xl p-5 border border-katha-text/5">
           <div className="flex items-center gap-3 mb-4">
             <span
               className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusStyle}`}
@@ -471,21 +471,21 @@ function StoryReviewWorkspaceInner({
               {statusLabel}
             </span>
             {capabilities.read_only && (
-              <span className="text-xs text-gray-400">Chỉ đọc</span>
+              <span className="text-xs text-katha-text/55">Chỉ đọc</span>
             )}
           </div>
 
           <div className="space-y-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-xl font-khmer text-white">
+                <h2 className="text-xl font-khmer text-katha-text">
                   {story.title_km || 'Chưa có tiêu đề Khmer'}
                 </h2>
                 {capabilities.can_edit_khmer && !isMobileCompact && (
                   <button
                     onClick={() => setEditTitleDialogOpen(true)}
                     disabled={mutating}
-                    className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                    className="p-1.5 text-katha-text/55 hover:text-katha-text bg-katha-text/5 hover:bg-katha-text/10 rounded-lg transition-colors disabled:opacity-50"
                     title="Sửa tiêu đề Khmer"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -494,7 +494,7 @@ function StoryReviewWorkspaceInner({
                   </button>
                 )}
               </div>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-katha-text/55">
                 {story.title_vi || 'Truyện chưa đặt tên'}
               </p>
             </div>

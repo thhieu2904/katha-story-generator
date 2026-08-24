@@ -42,10 +42,10 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-katha-surface shadow-2xl p-6">
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-katha-text/10 bg-katha-surface shadow-2xl p-6">
         <h3 className="text-xl font-bold mb-2">Lưu trữ truyện</h3>
-        <p className="text-sm text-white/70 mb-4">
-          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-white">“{storyTitle}”</span>? Truyện sẽ bị lưu trữ. Bạn có thể khôi phục sau.
+        <p className="text-sm text-katha-text/70 mb-4">
+          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-katha-text">“{storyTitle}”</span>? Truyện sẽ bị lưu trữ. Bạn có thể khôi phục sau.
         </p>
 
         {error && (
@@ -59,7 +59,7 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-katha-text/70 transition hover:bg-katha-text/10 hover:text-katha-text disabled:opacity-50"
           >
             Hủy
           </button>
@@ -67,7 +67,7 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
             type="button"
             onClick={() => void handleArchive()}
             disabled={isSubmitting}
-            className="rounded-lg bg-katha-error px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+            className="rounded-lg bg-katha-error px-4 py-2 text-sm font-medium text-katha-text transition hover:bg-red-500 disabled:opacity-50"
           >
             {isSubmitting ? 'Đang lưu trữ...' : 'Lưu trữ'}
           </button>

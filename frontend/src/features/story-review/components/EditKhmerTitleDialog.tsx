@@ -50,12 +50,12 @@ export function EditKhmerTitleDialog({
       />
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-katha-surface p-6 shadow-2xl space-y-4"
+        className="relative w-full max-w-md rounded-2xl border border-katha-text/10 bg-katha-surface p-6 shadow-2xl space-y-4"
       >
-        <h2 className="text-lg font-bold text-white">Chỉnh sửa tiêu đề tiếng Khmer</h2>
+        <h2 className="text-lg font-bold text-katha-text">Chỉnh sửa tiêu đề tiếng Khmer</h2>
 
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-katha-text/55 mb-1">
             Tiêu đề tiếng Khmer (tối đa 160 ký tự)
           </label>
           <input
@@ -63,13 +63,13 @@ export function EditKhmerTitleDialog({
             value={titleKm}
             onChange={(e) => setTitleKm(e.target.value)}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white font-khmer text-base focus:outline-none focus:border-katha-primary"
+            className="w-full px-3 py-2 rounded-xl bg-katha-text/5 border border-katha-text/10 text-katha-text font-khmer text-base focus:outline-none focus:border-katha-primary"
             placeholder="Nội dung tiêu đề tiếng Khmer"
             autoFocus
           />
           <p
             className={`mt-1 text-xs ${
-              titleKm.trim().length > 160 ? 'text-red-400' : 'text-gray-400'
+              titleKm.trim().length > 160 ? 'text-red-400' : 'text-katha-text/55'
             }`}
           >
             {titleKm.trim().length} / 160
@@ -82,14 +82,14 @@ export function EditKhmerTitleDialog({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium text-katha-text/70 hover:text-katha-text hover:bg-katha-text/5 transition-colors disabled:opacity-50"
           >
             Hủy
           </button>
           <button
             type="submit"
             disabled={isSubmitting || !titleKm.trim()}
-            className="px-4 py-2 rounded-xl text-sm font-medium bg-katha-primary hover:bg-katha-primary-light text-white transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-katha-primary hover:bg-katha-primary-light text-katha-text transition-colors disabled:opacity-50"
           >
             {isSubmitting ? 'Đang lưu...' : 'Lưu tiêu đề'}
           </button>

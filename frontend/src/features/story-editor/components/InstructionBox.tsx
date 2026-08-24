@@ -15,7 +15,7 @@ export function InstructionBox({ disabled, onSubmit }: {
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <label htmlFor="story-instruction" className="block text-sm font-semibold text-white/70">
+      <label htmlFor="story-instruction" className="block text-sm font-semibold text-katha-text/70">
         Yêu cầu chỉnh sửa
       </label>
       <textarea
@@ -26,10 +26,10 @@ export function InstructionBox({ disabled, onSubmit }: {
         maxLength={1000}
         onChange={(event) => setInstruction(event.target.value)}
         placeholder="Ví dụ: Làm cao trào rõ hơn nhưng giữ kết thúc hiện tại"
-        className="min-h-24 w-full rounded-xl border border-white/10 bg-black/20 p-4 text-sm outline-none focus:border-katha-primary disabled:opacity-50"
+        className="min-h-24 w-full rounded-xl border border-katha-text/10 bg-katha-field p-4 text-sm outline-none focus:border-katha-primary disabled:opacity-50"
       />
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs text-white/35">{instruction.length}/1000 · Không lưu lịch sử chat</span>
+        <span className="text-xs text-katha-text/35">{instruction.length}/1000 · Không lưu lịch sử chat</span>
         <button
           type="submit"
           disabled={disabled || instruction.trim().length < 5}

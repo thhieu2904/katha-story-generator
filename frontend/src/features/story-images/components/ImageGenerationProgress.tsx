@@ -26,19 +26,19 @@ export function ImageGenerationProgress({
 
   return (
     <section
-      className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6 space-y-4"
+      className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-5 sm:p-6 space-y-4"
       aria-labelledby="image-progress-heading"
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="image-progress-heading" className="text-base font-semibold text-white">
+          <h2 id="image-progress-heading" className="text-base font-semibold text-katha-text">
             Tiến độ tạo ảnh
           </h2>
-          <p role="status" aria-live="polite" className="mt-1 text-sm text-white/60">
+          <p role="status" aria-live="polite" className="mt-1 text-sm text-katha-text/60">
             {statusText}
           </p>
         </div>
-        <span className="text-lg font-bold text-white">
+        <span className="text-lg font-bold text-katha-text">
           {completed}/{progress.total}
         </span>
       </div>
@@ -52,27 +52,27 @@ export function ImageGenerationProgress({
       />
 
       <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-        <div className="rounded-lg bg-white/[0.035] px-3 py-2">
-          <dt className="text-white/40">Đang chờ</dt>
-          <dd className="mt-1 font-semibold text-white/80">{progress.pending}</dd>
+        <div className="rounded-lg bg-katha-text/[0.035] px-3 py-2">
+          <dt className="text-katha-text/40">Đang chờ</dt>
+          <dd className="mt-1 font-semibold text-katha-text/80">{progress.pending}</dd>
         </div>
         <div className="rounded-lg bg-katha-primary/10 px-3 py-2">
-          <dt className="text-white/40">Đang tạo</dt>
+          <dt className="text-katha-text/40">Đang tạo</dt>
           <dd className="mt-1 font-semibold text-katha-primary-light">
             {progress.generating}
           </dd>
         </div>
         <div className="rounded-lg bg-katha-success/10 px-3 py-2">
-          <dt className="text-white/40">Hoàn tất</dt>
+          <dt className="text-katha-text/40">Hoàn tất</dt>
           <dd className="mt-1 font-semibold text-emerald-200">{progress.completed}</dd>
         </div>
         <div className="rounded-lg bg-katha-error/10 px-3 py-2">
-          <dt className="text-white/40">Cần thử lại</dt>
+          <dt className="text-katha-text/40">Cần thử lại</dt>
           <dd className="mt-1 font-semibold text-red-200">{progress.failed}</dd>
         </div>
       </dl>
 
-      <p className="text-xs text-white/45 pt-1">
+      <p className="text-xs text-katha-text/45 pt-1">
         Mỗi ảnh có thể mất vài phút. Bạn có thể quay lại xem sau; các ảnh đã hoàn tất sẽ được giữ lại.
       </p>
     </section>

@@ -34,7 +34,7 @@ export function KhmerTextEditor({
   return (
     <div className="flex flex-col space-y-3 w-full">
       <textarea
-        className="w-full bg-katha-surface-light border border-white/10 rounded-xl p-3 text-white font-khmer resize-y min-h-[100px] focus:outline-none focus:border-katha-primary transition-colors"
+        className="w-full bg-katha-surface-light border border-katha-text/10 rounded-xl p-3 text-katha-text font-khmer resize-y min-h-[100px] focus:outline-none focus:border-katha-primary transition-colors"
         value={text}
         onChange={(e) => setText(e.target.value)}
         disabled={disabled || isSaving}
@@ -44,7 +44,7 @@ export function KhmerTextEditor({
       <div className="flex items-center justify-between">
         <div
           className={`text-xs ${
-            text.trim().length > maxLength ? 'text-red-400' : 'text-gray-400'
+            text.trim().length > maxLength ? 'text-red-400' : 'text-katha-text/55'
           }`}
         >
           {text.trim().length} / {maxLength}
@@ -54,7 +54,7 @@ export function KhmerTextEditor({
             type="button"
             onClick={onCancel}
             disabled={disabled || isSaving}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium text-katha-text/70 hover:bg-katha-text/5 transition-colors disabled:opacity-50"
           >
             Hủy
           </button>
@@ -62,7 +62,7 @@ export function KhmerTextEditor({
             type="button"
             onClick={handleSave}
             disabled={disabled || isSaving || isInvalid}
-            className="px-4 py-2 rounded-xl text-sm font-medium bg-katha-primary hover:bg-katha-primary-light text-white transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-katha-primary hover:bg-katha-primary-light text-katha-text transition-colors disabled:opacity-50"
           >
             {isSaving ? 'Đang lưu...' : 'Lưu'}
           </button>

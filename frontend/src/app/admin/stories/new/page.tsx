@@ -75,14 +75,14 @@ export default function NewStoryPage() {
       </div>
       <Link
         href="/admin/stories"
-        className="rounded-xl bg-white px-5 py-2.5 text-xs font-semibold text-katha-surface transition hover:bg-white/90"
+        className="rounded-xl bg-katha-text px-5 py-2.5 text-xs font-semibold text-katha-surface transition hover:bg-katha-text/90"
       >
         Kiểm tra danh sách truyện →
       </Link>
     </>
   ) : (
     <>
-      <div className="text-xs text-white/50 hidden sm:block">
+      <div className="text-xs text-katha-text/50 hidden sm:block">
         {isGenerating
           ? 'Đang tạo câu chuyện và khởi chạy sinh nội dung…'
           : isSubmitting
@@ -94,7 +94,7 @@ export default function NewStoryPage() {
           type="button"
           onClick={handleSaveDraftOnly}
           disabled={!isValid || isBusy}
-          className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-medium text-white transition hover:bg-white/10 disabled:opacity-40"
+          className="rounded-xl border border-katha-text/15 px-4 py-2.5 text-xs font-medium text-katha-text transition hover:bg-katha-text/10 disabled:opacity-40"
         >
           {isSubmitting ? 'Đang lưu…' : 'Chỉ lưu nháp'}
         </button>
@@ -102,7 +102,7 @@ export default function NewStoryPage() {
           type="button"
           onClick={handleCreateAndGenerate}
           disabled={!isValid || isBusy}
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           {isGenerating ? 'Đang tạo & sinh nội dung…' : 'Tạo và sinh nội dung'}
         </button>
@@ -114,10 +114,10 @@ export default function NewStoryPage() {
     <StoryWorkflowShell actionBar={actionBar}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-bold text-katha-text tracking-tight sm:text-3xl">
             Tạo truyện mới
           </h1>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1 text-sm text-katha-text/60">
             Bước 1: Thiết lập ý tưởng, nhân vật và phong cách nghệ thuật cho cuốn sách.
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function NewStoryPage() {
             {isBlocked && (
               <Link
                 href="/admin/stories"
-                className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface"
+                className="rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface"
               >
                 Danh sách truyện
               </Link>
@@ -136,7 +136,7 @@ export default function NewStoryPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 sm:p-8">
+        <div className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.02] p-6 sm:p-8">
           <StorySetupForm
             onFormChange={handleFormChange}
             isSubmitting={isSubmitting}

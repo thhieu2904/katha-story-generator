@@ -28,8 +28,8 @@ export function StoryTextEditor({ storyKey }: { storyKey: StoryRouteKey }) {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <div className="space-y-6 animate-pulse">
-          <div className="h-40 rounded-2xl bg-white/[0.05]" />
-          <div className="h-72 rounded-2xl bg-white/[0.04]" />
+          <div className="h-40 rounded-2xl bg-katha-text/[0.05]" />
+          <div className="h-72 rounded-2xl bg-katha-text/[0.04]" />
         </div>
       </StoryWorkflowShell>
     );
@@ -83,8 +83,8 @@ function StoryTextEditorInner({
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <div className="space-y-6 animate-pulse">
-          <div className="h-40 rounded-2xl bg-white/[0.05]" />
-          <div className="h-72 rounded-2xl bg-white/[0.04]" />
+          <div className="h-40 rounded-2xl bg-katha-text/[0.05]" />
+          <div className="h-72 rounded-2xl bg-katha-text/[0.04]" />
         </div>
       </StoryWorkflowShell>
     );
@@ -121,7 +121,7 @@ function StoryTextEditorInner({
   if (editor.story.status === 'draft') {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
-        <div className="h-40 animate-pulse rounded-2xl bg-white/[0.05]" />
+        <div className="h-40 animate-pulse rounded-2xl bg-katha-text/[0.05]" />
       </StoryWorkflowShell>
     );
   }
@@ -181,7 +181,7 @@ function StoryTextEditorInner({
 
   const actionBar = editable ? (
     <>
-      <div className="text-xs text-white/50 hidden sm:block">
+      <div className="text-xs text-katha-text/50 hidden sm:block">
         {text.pages.length} trang · {LENGTH_LABELS[text.length_pref] || text.length_pref}
       </div>
       <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -189,7 +189,7 @@ function StoryTextEditorInner({
           type="button"
           disabled={disabled}
           onClick={() => setConfirmOpen(true)}
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           {isConfirmingAndPreparing
             ? 'Đang chuẩn bị minh họa…'
@@ -198,7 +198,7 @@ function StoryTextEditorInner({
       </div>
     </>
   ) : (
-    <div className="text-xs text-white/50">
+    <div className="text-xs text-katha-text/50">
       Nội dung đã được xác nhận và ở chế độ chỉ đọc.
     </div>
   );
@@ -212,11 +212,11 @@ function StoryTextEditorInner({
       actionBar={actionBar}
     >
       <div className="space-y-6">
-        <header className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 sm:p-8">
+        <header className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/45">
-                <span className="rounded-full border border-white/10 px-2.5 py-1">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-katha-text/45">
+                <span className="rounded-full border border-katha-text/10 px-2.5 py-1">
                   {STATUS_LABELS[text.status] || text.status}
                 </span>
                 <span>{text.pages.length} trang</span>
@@ -226,7 +226,7 @@ function StoryTextEditorInner({
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 {text.title_vi}
               </h1>
-              <p className="text-khmer mt-3 text-xl leading-9 text-white/65">
+              <p className="text-khmer mt-3 text-xl leading-9 text-katha-text/65">
                 {text.title_km}
               </p>
             </div>
@@ -235,7 +235,7 @@ function StoryTextEditorInner({
                 type="button"
                 disabled={disabled}
                 onClick={() => void editor.retranslate('title')}
-                className="rounded-lg border border-white/15 px-3 py-2 text-xs font-medium text-white/80 hover:text-white transition disabled:opacity-40"
+                className="rounded-lg border border-katha-text/15 px-3 py-2 text-xs font-medium text-katha-text/80 hover:text-katha-text transition disabled:opacity-40"
               >
                 Dịch lại tiêu đề Khmer
               </button>
@@ -246,14 +246,14 @@ function StoryTextEditorInner({
           {text.pages.length > 1 && (
             <nav
               aria-label="Điều hướng nhanh trang"
-              className="mt-6 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4"
+              className="mt-6 flex flex-wrap items-center gap-2 border-t border-katha-text/10 pt-4"
             >
-              <span className="text-xs text-white/45 mr-1">Chuyển nhanh:</span>
+              <span className="text-xs text-katha-text/45 mr-1">Chuyển nhanh:</span>
               {text.pages.map((p) => (
                 <a
                   key={p.id}
                   href={`#page-${p.page_no}`}
-                  className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/70 hover:bg-white/15 hover:text-white transition"
+                  className="rounded-md border border-katha-text/10 bg-katha-text/5 px-2.5 py-1 text-xs text-katha-text/70 hover:bg-katha-text/15 hover:text-katha-text transition"
                 >
                   Trang {p.page_no}
                 </a>
@@ -269,7 +269,7 @@ function StoryTextEditorInner({
         )}
 
         {isMobileCompact && editable && (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-white/60">
+          <div className="rounded-xl border border-katha-text/10 bg-katha-text/5 p-4 text-xs text-katha-text/60">
             💡 Mở trên tablet hoặc máy tính (tối thiểu 768×600) để sử dụng các công cụ biên tập AI và sắp xếp trang chi tiết.
           </div>
         )}
@@ -303,7 +303,7 @@ function StoryTextEditorInner({
                     ? () => void editor.refresh()
                     : editor.retryKhmerValidation
                 }
-                className="mt-3 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-katha-surface"
+                className="mt-3 rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface"
               >
                 {editor.blocked ? 'Kiểm tra lại trạng thái' : 'Thử lại kiểm tra Khmer'}
               </button>
@@ -312,7 +312,7 @@ function StoryTextEditorInner({
         )}
 
         {editable && !isMobileCompact && (
-          <section className="grid gap-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-7 lg:grid-cols-2">
+          <section className="grid gap-6 rounded-2xl border border-katha-text/10 bg-katha-text/[0.02] p-5 sm:p-7 lg:grid-cols-2">
             <QuickActions
               disabled={disabled}
               onAction={(action) => void editor.runQuickAction(action)}
@@ -395,14 +395,14 @@ function EditorMessage({
   onRetry?: () => void;
 }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-10 text-center">
-      <h1 className="text-xl font-semibold text-white">{title}</h1>
-      {detail && <p className="mt-3 text-sm text-white/50">{detail}</p>}
+    <section className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-10 text-center">
+      <h1 className="text-xl font-semibold text-katha-text">{title}</h1>
+      {detail && <p className="mt-3 text-sm text-katha-text/50">{detail}</p>}
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="mt-5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-katha-surface"
+          className="mt-5 rounded-lg bg-katha-text px-4 py-2 text-sm font-semibold text-katha-surface"
         >
           Thử lại
         </button>

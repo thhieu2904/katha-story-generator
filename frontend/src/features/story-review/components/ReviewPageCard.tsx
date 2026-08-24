@@ -111,21 +111,21 @@ export function ReviewPageCard({
 
   return (
     <div
-      className={`flex flex-col rounded-2xl border bg-katha-surface-light transition-all ${
+      className={`katha-card flex flex-col rounded-2xl border bg-katha-surface-light transition-all ${
         isRegenerating
           ? 'border-katha-primary/30 ring-1 ring-katha-primary/20'
-          : 'border-white/8'
+          : 'border-katha-text/8'
       } ${isMobileCompact ? 'p-3' : 'p-4 sm:p-5'}`}
     >
       {/* Page number */}
       <div className="flex items-center justify-between mb-3 text-sm">
-        <span className="font-semibold text-gray-400">
+        <span className="font-semibold text-katha-text/55">
           Trang {page.page_no}
         </span>
       </div>
 
       {/* Image with status badge */}
-      <div className="relative rounded-xl overflow-hidden aspect-video bg-white/5 border border-white/5 mb-4 group">
+      <div className="relative rounded-xl overflow-hidden aspect-video bg-katha-text/5 border border-katha-text/5 mb-4 group">
         {page.image_url ? (
           <>
             <img
@@ -138,7 +138,7 @@ export function ReviewPageCard({
             />
             {isRegenerating && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-white text-sm font-medium">
+                <div className="flex items-center gap-2 text-katha-text text-sm font-medium">
                   <svg
                     className="w-5 h-5 animate-spin"
                     fill="none"
@@ -164,7 +164,7 @@ export function ReviewPageCard({
             )}
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-white/5 to-transparent text-gray-500">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-katha-text/5 to-transparent text-gray-500">
             <svg
               className="w-8 h-8 mb-2 opacity-50"
               fill="none"
@@ -202,14 +202,14 @@ export function ReviewPageCard({
           />
         ) : (
           <div className="group relative">
-            <p className="text-white font-khmer text-lg leading-relaxed pr-8">
+            <p className="text-katha-text font-khmer text-lg leading-relaxed pr-8">
               {page.text_km}
             </p>
             {canEdit && !isMobileCompact && (
               <button
                 onClick={onEditStart}
                 disabled={disabled}
-                className="absolute top-0 right-0 p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
+                className="absolute top-0 right-0 p-1.5 text-katha-text/55 hover:text-katha-text bg-katha-text/5 hover:bg-katha-text/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
                 title="Chỉnh sửa văn bản Khmer"
               >
                 <svg
@@ -238,8 +238,8 @@ export function ReviewPageCard({
         )}
 
         {/* Vietnamese text (read-only) */}
-        <div className="pt-3 border-t border-white/5">
-          <p className="text-sm text-gray-400 italic">{page.text_vi}</p>
+        <div className="pt-3 border-t border-katha-text/5">
+          <p className="text-sm text-katha-text/55 italic">{page.text_vi}</p>
         </div>
 
         {/* Rejection reason */}

@@ -147,7 +147,7 @@ function MockReviewWorkspace({
   if (story.status === 'pending_review') {
     actionBar = (
       <>
-        <div className="text-xs text-white/50 hidden sm:block">
+        <div className="text-xs text-katha-text/50 hidden sm:block">
           {capabilities.can_complete_review && progress.pending === 0 && progress.rejected === 0
             ? 'Tất cả trang đã được duyệt.'
             : `Còn ${progress.pending} trang chờ duyệt${
@@ -157,7 +157,7 @@ function MockReviewWorkspace({
         <button
           type="button"
           disabled={progress.pending > 0 || progress.rejected > 0}
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           Hoàn tất duyệt truyện
         </button>
@@ -166,12 +166,12 @@ function MockReviewWorkspace({
   } else if (story.status === 'approved') {
     actionBar = (
       <>
-        <div className="text-xs text-white/50 hidden sm:block">
+        <div className="text-xs text-katha-text/50 hidden sm:block">
           Truyện đã được duyệt, sẵn sàng xuất bản.
         </div>
         <button
           type="button"
-          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-katha-primary-light"
+          className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light"
         >
           Xuất bản và tạo liên kết
         </button>
@@ -180,7 +180,7 @@ function MockReviewWorkspace({
   } else if (story.status === 'published') {
     actionBar = (
       <>
-        <div className="text-xs text-white/50">
+        <div className="text-xs text-katha-text/50">
           Truyện đã xuất bản. Quản lý liên kết chia sẻ ở phía trên.
         </div>
         <button
@@ -222,20 +222,20 @@ function MockReviewWorkspace({
       )}
 
       <div className="mb-8 space-y-6">
-        <div className="bg-katha-surface-light rounded-2xl p-5 border border-white/5">
+        <div className="bg-katha-surface-light rounded-2xl p-5 border border-katha-text/5">
           <div className="flex items-center gap-3 mb-4">
             <span className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusStyle}`}>
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
               {statusLabel}
             </span>
-            {capabilities.read_only && <span className="text-xs text-gray-400">Chỉ đọc</span>}
+            {capabilities.read_only && <span className="text-xs text-katha-text/55">Chỉ đọc</span>}
           </div>
           <div className="space-y-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-xl font-khmer text-white">{story.title_km || 'Chưa có tiêu đề Khmer'}</h2>
+                <h2 className="text-xl font-khmer text-katha-text">{story.title_km || 'Chưa có tiêu đề Khmer'}</h2>
               </div>
-              <p className="text-sm text-gray-400">{story.title_vi || 'Truyện chưa đặt tên'}</p>
+              <p className="text-sm text-katha-text/55">{story.title_vi || 'Truyện chưa đặt tên'}</p>
             </div>
             <ReviewProgressBar progress={progress} />
           </div>
@@ -328,22 +328,22 @@ function PreviewInner() {
     const p = mockData.pages[pageNo - 1];
     const headerTitle = lang === 'km' ? mockData.story.title_km : mockData.story.title_vi;
     return (
-      <div className="flex min-h-dvh flex-col bg-katha-surface font-sans text-gray-100 lg:h-dvh lg:overflow-hidden">
-        <header className="sticky top-0 z-40 shrink-0 border-b border-white/5 bg-katha-surface/90 backdrop-blur-md">
+      <div className="flex min-h-dvh flex-col bg-katha-surface font-sans text-katha-text lg:h-dvh lg:overflow-hidden">
+        <header className="sticky top-0 z-40 shrink-0 border-b border-katha-text/5 bg-katha-surface/90 backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
             <div className="flex min-w-0 items-center gap-2">
               <KathaLogo height={34} className="-my-1 sm:-my-2" />
-              <span className="shrink-0 text-sm font-semibold tracking-wide text-white/85">
-                Katha <span lang="km" className="hidden font-khmer font-normal text-white/55 sm:inline">
+              <span className="shrink-0 text-sm font-semibold tracking-wide text-katha-text/85">
+                Katha <span lang="km" className="hidden font-khmer font-normal text-katha-text/55 sm:inline">
                   កថា
                 </span>
               </span>
-              <span className="hidden text-white/25 sm:inline" aria-hidden>
+              <span className="hidden text-katha-text/25 sm:inline" aria-hidden>
                 ·
               </span>
               <span
                 lang={lang}
-                className={`hidden truncate text-sm text-white/60 sm:inline ${lang === 'km' ? 'font-khmer' : ''}`}
+                className={`hidden truncate text-sm text-katha-text/60 sm:inline ${lang === 'km' ? 'font-khmer' : ''}`}
               >
                 {headerTitle}
               </span>

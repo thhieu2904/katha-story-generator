@@ -7,7 +7,7 @@ import type { Character } from '../types';
 function CharacterPlaceholder() {
   return (
     <div className="grid h-full w-full place-items-center bg-gradient-to-br from-katha-primary/15 to-katha-accent/10">
-      <div className="text-center text-white/35">
+      <div className="text-center text-katha-text/35">
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
@@ -30,8 +30,8 @@ export function CharacterCard({ character }: { character: Character }) {
   const imageUrl = character.ref_image_urls[0];
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] hover:shadow-2xl">
-      <div className="relative aspect-[4/3] overflow-hidden bg-black/20">
+    <article className="katha-card group overflow-hidden rounded-2xl border border-katha-text/10 bg-katha-text/[0.035] transition duration-300 hover:-translate-y-1 hover:border-katha-text/20 hover:bg-katha-text/[0.055] hover:shadow-2xl">
+      <div className="relative aspect-[4/3] overflow-hidden bg-katha-field">
         {imageUrl && !imageFailed ? (
           <Image
             src={imageUrl}
@@ -47,7 +47,7 @@ export function CharacterCard({ character }: { character: Character }) {
         )}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 to-transparent" />
         {character.age !== null && (
-          <span className="absolute bottom-3 right-3 rounded-full border border-white/15 bg-black/45 px-2.5 py-1 text-xs font-medium text-white/80 backdrop-blur">
+          <span className="absolute bottom-3 right-3 rounded-full border border-katha-text/15 bg-black/45 px-2.5 py-1 text-xs font-medium text-katha-text/80 backdrop-blur">
             {character.age} tuổi
           </span>
         )}
@@ -55,7 +55,7 @@ export function CharacterCard({ character }: { character: Character }) {
 
       <div className="p-5">
         <h2 className="text-lg font-bold tracking-tight">{character.name}</h2>
-        <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-white/55">
+        <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-katha-text/55">
           {character.personality_vi || 'Chưa có mô tả tính cách.'}
         </p>
       </div>

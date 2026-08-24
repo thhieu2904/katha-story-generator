@@ -9,12 +9,12 @@ export function WorkflowHeader({ storyTitle }: WorkflowHeaderProps) {
     <div className="mb-6 flex items-center justify-between">
       <Link
         href="/admin/stories"
-        className="text-sm font-medium text-white/70 hover:text-white transition-colors"
+        className="text-sm font-medium text-katha-text/70 hover:text-katha-text transition-colors"
       >
         ← Quay lại danh sách
       </Link>
       {storyTitle && (
-        <h1 className="text-lg font-semibold text-white truncate max-w-md">
+        <h1 className="text-lg font-semibold text-katha-text truncate max-w-md">
           {storyTitle}
         </h1>
       )}

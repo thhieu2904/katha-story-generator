@@ -25,7 +25,7 @@ export function StoryCover({ story, language }: StoryCoverProps) {
           <img
             src={bgUrl}
             alt={`Bìa truyện: ${primaryTitle}`}
-            className="relative w-full h-auto rounded-xl lg:h-full lg:w-auto lg:max-w-full"
+            className="relative h-auto w-full rounded-xl object-contain lg:h-full lg:w-auto lg:max-w-full"
           />
         ) : (
           <div
@@ -39,19 +39,19 @@ export function StoryCover({ story, language }: StoryCoverProps) {
       <div className="space-y-3 p-4 sm:p-6 md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5">
         {language === 'km' ? (
           <>
-            <h1 lang="km" className="font-khmer-serif text-3xl font-bold leading-snug text-white sm:text-4xl md:text-5xl">
+            <h1 lang="km" className="font-khmer-serif text-3xl font-bold leading-snug text-katha-text sm:text-4xl md:text-5xl">
               {primaryTitle}
             </h1>
-            <p lang="vi" className="text-base text-gray-300 sm:text-lg md:text-xl">
+            <p lang="vi" className="text-base text-katha-text/70 sm:text-lg md:text-xl">
               {secondaryTitle}
             </p>
           </>
         ) : (
           <>
-            <h1 lang="vi" className="text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl">
+            <h1 lang="vi" className="text-3xl font-bold leading-tight text-katha-text sm:text-4xl md:text-5xl">
               {primaryTitle}
             </h1>
-            <p lang="km" className="font-khmer-serif text-base text-gray-300 sm:text-lg md:text-xl">
+            <p lang="km" className="font-khmer-serif text-base text-katha-text/70 sm:text-lg md:text-xl">
               {secondaryTitle}
             </p>
           </>

@@ -15,6 +15,700 @@
   --color-katha-success: oklch(0.72 0.15 155);
   --color-katha-warning: oklch(0.79 0.14 75);
   --color-katha-error: oklch(0.66 0.19 25);
+  --color-katha-text: oklch(0.985 0.004 286);
+  --color-katha-field: oklch(0.12 0.018 286);
+  --color-katha-on-solid: oklch(0.985 0.004 286);
+  --color-katha-gold: oklch(0.8 0.13 85);
+  --color-katha-heritage: oklch(0.62 0.14 38);
+}
+
+:root {
+  color-scheme: light;
+  /* Warm ivory, temple blue, Angkor gold and a restrained lacquer-red note. */
+  --color-katha-surface: oklch(0.965 0.022 82);
+  --color-katha-surface-light: oklch(0.995 0.009 82);
+  --color-katha-text: oklch(0.27 0.045 52);
+  --color-katha-field: oklch(0.995 0.009 82);
+  --color-katha-primary: oklch(0.46 0.085 226);
+  --color-katha-primary-light: oklch(0.39 0.08 226);
+  --color-katha-accent: oklch(0.62 0.14 74);
+  --color-katha-gold: oklch(0.7 0.14 78);
+  --color-katha-heritage: oklch(0.52 0.13 38);
+  --color-red-100: oklch(0.45 0.14 25);
+  --color-red-200: oklch(0.48 0.16 25);
+  --color-red-300: oklch(0.51 0.18 25);
+  --color-amber-100: oklch(0.43 0.1 72);
+  --color-amber-200: oklch(0.47 0.12 72);
+  --color-amber-300: oklch(0.5 0.13 72);
+  --color-emerald-200: oklch(0.43 0.11 155);
+  --color-emerald-300: oklch(0.46 0.13 155);
+  --color-blue-200: oklch(0.48 0.14 255);
+  --color-blue-300: oklch(0.5 0.16 255);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-katha-primary: oklch(0.63 0.16 268);
+  --color-katha-primary-light: oklch(0.72 0.13 268);
+  --color-katha-surface: oklch(0.165 0.022 290);
+  --color-katha-surface-light: oklch(0.205 0.026 290);
+  --color-katha-accent: oklch(0.8 0.13 85);
+  --color-katha-text: oklch(0.985 0.004 286);
+  --color-katha-field: oklch(0.12 0.018 286);
+  --color-katha-gold: oklch(0.8 0.13 85);
+  --color-katha-heritage: oklch(0.62 0.14 38);
+  --color-red-100: oklch(0.936 0.032 17.7);
+  --color-red-200: oklch(0.885 0.062 18.3);
+  --color-red-300: oklch(0.808 0.114 19.6);
+  --color-amber-100: oklch(0.962 0.059 95.6);
+  --color-amber-200: oklch(0.924 0.12 95.7);
+  --color-amber-300: oklch(0.879 0.169 91.6);
+  --color-emerald-200: oklch(0.905 0.093 164.2);
+  --color-emerald-300: oklch(0.845 0.143 164.9);
+  --color-blue-200: oklch(0.882 0.059 254.1);
+  --color-blue-300: oklch(0.809 0.105 251.8);
+}
+
+/* Chữ trên nút màu đặc luôn có độ tương phản cao. */
+:root :is(
+  [class~="bg-katha-primary"],
+  [class~="bg-katha-error"],
+  [class~="bg-katha-success"],
+  [class~="bg-emerald-600"]
+) {
+  --color-katha-text: var(--color-katha-on-solid);
+}
+
+/* Badge nằm trực tiếp trên ảnh tối vẫn giữ chữ trắng. */
+:root [class~="bg-black/45"][class~="text-katha-text/80"] {
+  color: rgb(255 255 255 / 0.8);
+}
+
+:root [class~="bg-black/60"][class~="text-katha-text"] {
+  color: rgb(255 255 255);
+}
+
+.katha-theme-switch,
+.katha-theme-switch *,
+.katha-theme-switch *::before,
+.katha-theme-switch *::after {
+  box-sizing: border-box;
+}
+
+.katha-theme-switch .toggle__backdrop:first-of-type .clouds path:first-of-type {
+	fill: var(--ray);
+}
+
+.katha-theme-switch {
+  --slide-ease: cubic-bezier(.4,-0.3,.6,1.3);
+  --easing: var(--slide-ease);
+  --speed: 0.5s;
+  --width: clamp(75px, 45vmin, 125px);
+  --ar: 8 / 3;
+  --ray: hsl(0 0% 100% / 0.5);
+  --sun: hsl(47, 91%, 58%);
+  --moon: hsl(212, 13%, 82%);
+  --crater: hsl(221, 16%, 68%);
+  --bear-speed: 10s;
+  -webkit-tap-highlight-color: transparent;
+	width: var(--width);
+  z-index: 10;
+  will-change: transform;
+  isolation: isolate;
+  transform: translate3d(0, 0, 0);
+	aspect-ratio: var(--ar);
+	border-radius: 100vh;
+	border: 0;
+	position: relative;
+	padding: 0;
+	overflow: hidden;
+	cursor: pointer;
+	transition: background var(--speed) var(--easing);
+	--sky: hsl(204, 53%, 47%);
+	--night: hsl(229, 25%, 16%);
+	outline-color: transparent;
+	background: hsl(
+		calc(204 + (var(--dark, 0) * 25))
+		calc((53 - (var(--dark, 0) * 28)) * 1%)
+		calc((47 - (var(--dark, 0) * 31)) * 1%)
+	);
+	box-shadow:
+		calc(var(--width) * 0) calc(var(--width) * 0.02) calc(var(--width) * 0.01) calc(var(--width) * -0.0025) hsl(210 10% 100% / 0.95),
+		calc(var(--width) * 0) calc(var(--width) * -0.02) calc(var(--width) * 0.01) calc(var(--width) * -0.0025) hsl(210 10% 10% / 0.2),
+		calc(var(--width) * 0) calc(var(--width) * 0.02) calc(var(--width) * 0.5) 0 hsl(210 10% 100% / 0.15);
+}
+
+.katha-theme-switch::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	box-shadow:
+		calc(var(--width) * 0) calc(var(--width) * -0.025) calc(var(--width) * 0.025) 0 hsl(210 10% 10% / 0.15) inset,
+		calc(var(--width) * 0) calc(var(--width) * 0.025) calc(var(--width) * 0.025) 0 hsl(210 10% 10% / 0.65) inset;
+	border-radius: 100vh;
+}
+
+.katha-theme-switch .toggle__content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-radius: 100vh;
+  display: block;
+  clip-path: inset( 0 0 0 0 round 100vh);
+  container-type: inline-size;
+}
+
+.katha-theme-switch .toggle__backdrop {
+  overflow: visible !important;
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	left: 0;
+	transition: transform var(--speed) var(--easing);
+	translate: none;
+	transform: translateY(calc(
+		var(--dark, 0) * (100% - (3 / 8 * var(--width)))
+	));
+}
+
+.katha-theme-switch[aria-pressed="false"] .toggle__backdrop:last-of-type {
+	transition-timing-function: cubic-bezier(.2,-0.6,.7,1.6);
+}
+.katha-theme-switch[aria-pressed="false"] .stars path {
+	transition-delay: 0s;
+}
+
+.katha-theme-switch .stars path {
+	transform-box: fill-box;
+	transform-origin: 25% 50%;
+	scale: none;
+	transform: scale(calc(0.25 + (var(--dark, 0) * 0.75)));
+	transition: transform var(--speed) calc(var(--speed) * 0.5) var(--easing);
+}
+
+.katha-theme-switch .toggle__indicator {
+	height: 100%;
+	aspect-ratio: 1;
+	border-radius: 0%;
+	display: grid;
+	place-items: center;
+	padding: 3%;
+  transition: transform var(--speed) var(--slide-ease);
+  translate: none;
+  transform: translateX(calc(var(--dark, 0) * (100cqi - 100%)));
+}
+
+.katha-theme-switch .pilot-bear {
+	position: absolute;
+	width: 25%;
+}
+
+.katha-theme-switch .toggle__star {
+	height: 100%;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	position: relative;
+	transition: transform var(--speed) var(--easing);
+	translate: none;
+	transform: translateX(calc((var(--dark, 0) * -10%) + 5%));
+/* 	translate: calc((var(--dark, 0) * -18%) + 5%) 0; */
+}
+
+.katha-theme-switch .sun {
+	background: var(--sun);
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	overflow: hidden;
+	box-shadow:
+		calc(var(--width) * 0.01) calc(var(--width) * 0.01) calc(var(--width) * 0.02) 0 hsl(210 10% 100% / 0.95) inset,
+		calc(var(--width) * -0.01) calc(var(--width) * -0.01) calc(var(--width) * 0.02) 0 hsl(210 10% 20% / 0.5) inset;
+}
+.katha-theme-switch .moon {
+	position: absolute;
+	inset: -1%;
+	border-radius: 50%;
+	background: var(--moon);
+  transition: transform var(--speed) ease-in-out;
+	translate: none;
+	transform: translateX(calc((100 - (var(--dark, 0) * 100)) * 1%));
+	box-shadow:
+		calc(var(--width) * 0.01) calc(var(--width) * 0.01) calc(var(--width) * 0.02) 0 hsl(210 10% 100% / 0.95) inset,
+		calc(var(--width) * -0.01) calc(var(--width) * -0.01) calc(var(--width) * 0.02) 0 hsl(210 10% 10% / 0.95) inset;
+}
+
+.katha-theme-switch .moon__crater {
+	position: absolute;
+	background: var(--crater);
+	border-radius: 50%;
+	width: calc(var(--size, 10) * 1%);
+	aspect-ratio: 1;
+	left: calc(var(--x) * 1%);
+	top: calc(var(--y) * 1%);
+	box-shadow:
+		calc(var(--width) * 0.01) calc(var(--width) * 0.01) calc(var(--width) * 0.01) 0 hsl(210 10% 6% / 0.25) inset,
+		0 calc(var(--width) * 0.005) calc(var(--width) * 0.01) 0 hsl(210 10% 100% / 0.25);
+}
+
+.katha-theme-switch .moon__crater:nth-of-type(1) {
+	--size: 18;
+	--x: 40;
+	--y: 15;
+}
+.katha-theme-switch .moon__crater:nth-of-type(2) {
+	--size: 20;
+	--x: 65;
+	--y: 58;
+}
+.katha-theme-switch .moon__crater:nth-of-type(3) {
+	--size: 34;
+	--x: 18;
+	--y: 40;
+}
+
+.katha-theme-switch .toggle__star:before {
+	content: "";
+	z-index: -1;
+	width: 356%;
+	background:
+		radial-gradient(hsl(0 0% 100% / 0.25) 40%, transparent 40.5%),
+		radial-gradient(hsl(0 0% 100% / 0.25) 56%, transparent 56.5%)
+	  hsl(0 0% 100% / 0.25);
+	border-radius: 50%;
+	aspect-ratio: 1;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transition: transform var(--speed) var(--easing);
+	translate: none;
+	transform: translate(
+		calc(
+		(50 - (var(--dark, 0) * 4)) *
+		-1%
+		),
+		-50%
+	);
+}
+
+.katha-theme-switch .toggle__star:after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	display: block;
+	background: hsl(0 0% 0% / 0.5);
+	filter: blur(4px);
+	translate: 2% 4%;
+	border-radius: 50%;
+	z-index: -1;
+}
+
+.katha-theme-switch .toggle__indicator-wrapper {
+	position: absolute;
+	inset: 0;
+}
+
+.katha-theme-switch[aria-pressed="true"] {
+	--dark: 1;
+	background: hsl(229, 25%, 16%);
+}
+
+.katha-theme-switch[aria-pressed="false"] {
+	background: hsl(204, 53%, 47%);
+}
+
+.katha-theme-switch[aria-pressed="false"] .toggle__backdrop {
+	transform: translateY(0);
+}
+
+.katha-theme-switch[aria-pressed="true"] .toggle__backdrop {
+	transform: translateY(calc(100% - (3 / 8 * var(--width))));
+}
+
+.katha-theme-switch[aria-pressed="false"] .stars path {
+	transform: scale(0.25);
+}
+
+.katha-theme-switch[aria-pressed="true"] .stars path {
+	transform: scale(1);
+}
+
+.katha-theme-switch[aria-pressed="false"] .toggle__indicator {
+	transform: translateX(0);
+	animation: katha-toggle-indicator-light var(--speed) var(--slide-ease) both;
+}
+
+.katha-theme-switch[aria-pressed="true"] .toggle__indicator {
+	transform: translateX(calc(100cqi - 100%));
+	animation: katha-toggle-indicator-dark var(--speed) var(--slide-ease) both;
+}
+
+.katha-theme-switch[aria-pressed="false"] .toggle__star {
+	transform: translateX(5%);
+}
+
+.katha-theme-switch[aria-pressed="true"] .toggle__star {
+	transform: translateX(-5%);
+}
+
+.katha-theme-switch[aria-pressed="false"] .moon {
+	transform: translateX(100%);
+	animation: katha-toggle-moon-light var(--speed) ease-in-out both;
+}
+
+.katha-theme-switch[aria-pressed="true"] .moon {
+	transform: translateX(0);
+	animation: katha-toggle-moon-dark var(--speed) ease-in-out both;
+}
+
+.katha-theme-switch[aria-pressed="false"] .toggle__star::before {
+	transform: translate(-50%, -50%);
+}
+
+.katha-theme-switch[aria-pressed="true"] .toggle__star::before {
+	transform: translate(-46%, -50%);
+}
+
+.katha-theme-switch[aria-pressed="false"] .pilot__container {
+	opacity: 1;
+	translate: 0 0;
+}
+
+.katha-theme-switch[aria-pressed="true"] .pilot__container {
+	opacity: 0;
+	translate: 0 200%;
+}
+
+.katha-theme-switch[aria-pressed="false"] .astrobear__container {
+	opacity: 0;
+	translate: 0 -200%;
+}
+
+.katha-theme-switch[aria-pressed="true"] .astrobear__container {
+	opacity: 1;
+	translate: 0 0;
+}
+
+.katha-theme-switch[aria-pressed="false"] .astrobear svg {
+	scale: 0;
+}
+
+.katha-theme-switch[aria-pressed="true"] .astrobear svg {
+	scale: 1;
+}
+
+/* Fun stuff! */
+
+/* We have 11 stars */
+
+.katha-theme-switch .stars g {
+	transform-box: fill-box;
+	transform-origin: 50% 50%;
+}
+.katha-theme-switch .stars g:nth-of-type(3) {
+	animation: katha-toggle-twinkle 4s -2s infinite;
+}
+
+.katha-theme-switch .stars g:nth-of-type(11) {
+	animation: katha-toggle-twinkle 6s -2s infinite;
+}
+
+.katha-theme-switch .stars g:nth-of-type(9) {
+	animation: katha-toggle-twinkle 4s -1s infinite;
+}
+
+@keyframes katha-toggle-twinkle {
+	0%, 40%, 60%, 100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(0);
+	}
+}
+
+.katha-theme-switch .astrobear {
+	width: 12%;
+	position: absolute;
+	top: 100%;
+	left: 0%;
+	transition: translate calc(var(--speed) + (var(--dark, 0) * (var(--bear-speed) - var(--speed))))
+		calc(var(--bear-speed) * (0.4 * var(--dark, 0))) linear;
+	translate: calc(var(--dark, 0) * 400%) calc(var(--dark, 0) * -350%);
+}
+
+.katha-theme-switch .astrobear svg {
+	transform-origin: 50% 75%;
+	scale: var(--dark, 0);
+	rotate: calc(var(--dark, 0) * 360deg);
+	transition: rotate calc(var(--speed) + (var(--dark, 0) * (var(--bear-speed) - var(--speed)))) calc(var(--bear-speed) * 0.4) linear, scale var(--speed) ease-in-out;
+}
+
+
+.katha-theme-switch .astrobear__container {
+	position: absolute;
+	overflow: hidden;
+	inset: 0;
+	clip-path: inset(0 0 0 0);
+	opacity: var(--dark, 0);
+	translate: 0 calc(-200% + (var(--dark, 0) * 200%));
+	transition: opacity var(--speed) var(--easing), translate var(--speed) var(--easing);
+}
+
+.katha-theme-switch .pilot__container {
+	position: absolute;
+	overflow: hidden;
+	inset: 0;
+	clip-path: inset(0 0 0 0);
+	opacity: calc(1 - var(--dark, 0));
+	translate: 0 calc(var(--dark, 0) * 200%);
+	transition: opacity var(--speed) var(--easing), translate var(--speed) var(--easing);
+}
+
+.katha-theme-switch .pilot-bear {
+	width: 18%;
+	position: absolute;
+	top: 70%;
+	left: 100%;
+	transition:
+		translate
+			calc(
+				var(--speed) + ((1 - var(--dark, 0)) *
+					((var(--bear-speed) * 0.5) - var(--speed))))
+			calc((var(--bear-speed) * 0.5) * ((1 - var(--dark, 0)) * 0.4)) linear;
+	translate:
+		calc(
+			(0 - (1 - var(--dark, 0))) * (var(--width) + 100%)
+		) calc(
+		(0 - (1 - var(--dark, 0))) * (200%)
+	);
+}
+
+.katha-theme-switch .pilot {
+	rotate: 12deg;
+	animation: katha-toggle-fly 4s infinite ease-in-out;
+}
+
+@keyframes katha-toggle-fly {
+	50% { translate: 0 -25%; }
+}
+
+
+.katha-theme-switch:focus-visible {
+  outline: 3px solid var(--color-katha-primary);
+  outline-offset: 3px;
+}
+
+.katha-admin-header .katha-theme-switch {
+  --width: clamp(50px, 12vmin, 100px);
+}
+
+.katha-nav-link[aria-current="page"] {
+  animation: katha-nav-activate 420ms cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
+
+@keyframes katha-nav-activate {
+  0% {
+    transform: scale(0.88);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-katha-gold) 38%, transparent);
+  }
+  55% {
+    transform: scale(1.07);
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--color-katha-gold) 12%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.katha-theme-switch[aria-pressed="false"] .pilot-bear {
+  animation: katha-toggle-pilot-pass calc(var(--bear-speed) * 0.5) 0s linear both;
+}
+
+.katha-theme-switch[aria-pressed="true"] .astrobear {
+  animation: katha-toggle-astrobear-drift var(--bear-speed) 0s linear both;
+}
+
+.katha-theme-switch[aria-pressed="true"] .astrobear svg {
+  animation: katha-toggle-astrobear-spin var(--bear-speed) 0s linear both;
+}
+
+@keyframes katha-toggle-indicator-light {
+  from { transform: translateX(calc(100cqi - 100%)); }
+  to { transform: translateX(0); }
+}
+
+@keyframes katha-toggle-indicator-dark {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100cqi - 100%)); }
+}
+
+@keyframes katha-toggle-moon-light {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes katha-toggle-moon-dark {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes katha-toggle-pilot-pass {
+  from { translate: 0 0; }
+  to { translate: calc(-1 * (var(--width) + 100%)) -200%; }
+}
+
+@keyframes katha-toggle-astrobear-drift {
+  from { translate: 0 0; }
+  to { translate: 400% -350%; }
+}
+
+@keyframes katha-toggle-astrobear-spin {
+  from { rotate: 0deg; }
+  to { rotate: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .katha-nav-link,
+  .katha-theme-switch,
+  .katha-theme-switch * {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Khmer-inspired light shell: a restrained kbach-like diamond rhythm. */
+:root[data-theme="light"] .katha-page-shell {
+  background-color: var(--color-katha-surface);
+  background-image:
+    radial-gradient(circle at 8% 5%, color-mix(in oklab, var(--color-katha-gold) 13%, transparent) 0, transparent 26rem),
+    radial-gradient(circle at 94% 82%, color-mix(in oklab, var(--color-katha-heritage) 7%, transparent) 0, transparent 30rem),
+    linear-gradient(color-mix(in oklab, var(--color-katha-surface) 72%, transparent), color-mix(in oklab, var(--color-katha-surface) 72%, transparent)),
+    url("/khmer-kbach-pattern.svg");
+  background-position: center top, center bottom, center, center top;
+  background-size: auto, auto, auto, 180px 180px;
+  background-attachment: fixed;
+}
+
+:root[data-theme="light"] .katha-vision-glow {
+  display: none;
+}
+
+:root[data-theme="dark"] .katha-page-shell {
+  background-color: var(--color-katha-surface);
+  background-image:
+    radial-gradient(circle at 8% 5%, color-mix(in oklab, var(--color-katha-gold) 8%, transparent) 0, transparent 26rem),
+    radial-gradient(circle at 94% 82%, color-mix(in oklab, var(--color-katha-heritage) 6%, transparent) 0, transparent 30rem),
+    linear-gradient(color-mix(in oklab, var(--color-katha-surface) 76%, transparent), color-mix(in oklab, var(--color-katha-surface) 76%, transparent)),
+    url("/khmer-kbach-pattern.svg");
+  background-position: center top, center bottom, center, center top;
+  background-size: auto, auto, auto, 180px 180px;
+  background-attachment: fixed;
+}
+
+:root[data-theme="light"] .katha-admin-header {
+  border-bottom-color: color-mix(in oklab, var(--color-katha-gold) 30%, transparent);
+  background-color: color-mix(in oklab, var(--color-katha-surface-light) 90%, transparent);
+  box-shadow: 0 8px 30px -24px color-mix(in oklab, var(--color-katha-text) 35%, transparent);
+}
+
+.katha-admin-header::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 4%, var(--color-katha-gold) 28%, var(--color-katha-heritage) 50%, var(--color-katha-gold) 72%, transparent 96%);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .katha-admin-header::after {
+  opacity: 0.68;
+}
+
+:root[data-theme="dark"] .katha-admin-header::after {
+  opacity: 0.28;
+}
+
+:root[data-theme="light"] .katha-nav-link:hover {
+  background-color: color-mix(in oklab, var(--color-katha-gold) 12%, transparent);
+  color: var(--color-katha-primary-light);
+}
+
+:root[data-theme="light"] .katha-card {
+  position: relative;
+  border-color: color-mix(in oklab, var(--color-katha-gold) 22%, transparent);
+  background-color: color-mix(in oklab, var(--color-katha-surface-light) 97%, var(--color-katha-gold) 3%);
+  box-shadow: 0 16px 42px -32px color-mix(in oklab, var(--color-katha-text) 42%, transparent);
+}
+
+:root[data-theme="light"] .katha-card::after {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  background: url("/khmer-kbach-pattern.svg") center / contain no-repeat;
+  content: "";
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .katha-card::after {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  background: url("/khmer-kbach-pattern.svg") center / contain no-repeat;
+  content: "";
+  opacity: 0.13;
+  pointer-events: none;
+}
+
+.katha-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.katha-eyebrow::before {
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 1px solid currentColor;
+  content: "";
+  opacity: 0.72;
+  transform: rotate(45deg);
+}
+
+.katha-ornament-card {
+  position: relative;
+}
+
+.katha-ornament-card::before,
+.katha-ornament-card::after {
+  position: absolute;
+  right: 2rem;
+  left: 2rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-katha-gold), var(--color-katha-heritage), var(--color-katha-gold), transparent);
+  content: "";
+  opacity: 0.66;
+  pointer-events: none;
+}
+
+.katha-ornament-card::before {
+  top: 0;
+}
+
+.katha-ornament-card::after {
+  bottom: 0;
 }
 
 /* Khmer typography utilities */

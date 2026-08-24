@@ -34,18 +34,18 @@ export function RejectPageDialog({
         onClick={isSubmitting ? undefined : onClose}
       />
       
-      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-katha-surface shadow-2xl p-6">
-        <h3 className="text-xl font-semibold text-white mb-2">
+      <div className="relative w-full max-w-md rounded-2xl border border-katha-text/10 bg-katha-surface shadow-2xl p-6">
+        <h3 className="text-xl font-semibold text-katha-text mb-2">
           Từ chối trang
         </h3>
-        <p className="text-sm text-gray-400 mb-6">
+        <p className="text-sm text-katha-text/55 mb-6">
           Vui lòng nhập lý do từ chối. Lý do này sẽ được sử dụng trong lần tạo lại ảnh.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
           <textarea
             autoFocus
-            className="w-full bg-katha-surface-light border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-katha-primary transition-colors min-h-[120px] resize-y"
+            className="w-full bg-katha-surface-light border border-katha-text/10 rounded-xl p-3 text-katha-text text-sm focus:outline-none focus:border-katha-primary transition-colors min-h-[120px] resize-y"
             placeholder="Ví dụ: Ảnh bị lỗi hiển thị, nhân vật không đúng yêu cầu..."
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -54,7 +54,7 @@ export function RejectPageDialog({
           />
           
           <div className="flex items-center justify-between">
-            <span className={`text-xs ${reason.length > 0 && isInvalid ? 'text-red-400' : 'text-gray-400'}`}>
+            <span className={`text-xs ${reason.length > 0 && isInvalid ? 'text-red-400' : 'text-katha-text/55'}`}>
               {reason.trim().length} / 500 (tối thiểu 5 ký tự)
             </span>
           </div>
@@ -64,7 +64,7 @@ export function RejectPageDialog({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 transition-colors disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl text-sm font-medium text-katha-text/70 hover:bg-katha-text/5 transition-colors disabled:opacity-50"
             >
               Hủy
             </button>
