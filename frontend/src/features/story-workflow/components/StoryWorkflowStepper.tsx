@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 import type { StoryRouteKey } from '@/features/stories/types';
 import type { WorkflowPresentation } from '../types';
 import { WORKFLOW_STEPS } from '../types';
@@ -12,6 +16,7 @@ export function StoryWorkflowStepper({
   presentation,
   storyKey,
 }: StoryWorkflowStepperProps) {
+  const { copy } = useUiCopy();
   const { currentStep, stepStates, allowedReadOnlyHrefs } = presentation;
   const allCompleted = WORKFLOW_STEPS.every((s) => stepStates[s.key] === 'completed');
 
@@ -37,15 +42,27 @@ export function StoryWorkflowStepper({
     return undefined;
   };
 
+  const stepLabels = {
+    setup: copy.stepSetup,
+    text: copy.stepText,
+    images: copy.stepImages,
+    review: copy.stepReview,
+  };
+
   return (
-    <nav aria-label="Tiến trình tạo truyện" className="mb-8">
+    <nav aria-label={copy.workflowProgress} className="mb-8">
       {/* Mobile compact stepper (width < 768px OR height < 600px) */}
       <div className="show-only-on-mobile-compact flex items-center justify-between rounded-xl border border-katha-text/10 bg-katha-surface/80 p-3 text-xs text-katha-text">
         <div className="flex items-center gap-2 font-medium">
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-katha-primary text-xs text-katha-text">
             {currentStep}
           </span>
-          <span>Bước {currentStep}/4 · {currentStepObj?.label}</span>
+          <span>
+            {formatCopy(copy.workflowStep, {
+              step: currentStep,
+              label: currentStepObj ? stepLabels[currentStepObj.key] : '',
+            })}
+          </span>
         </div>
       </div>
 
@@ -92,7 +109,7 @@ export function StoryWorkflowStepper({
                       : 'text-katha-text/40'
                 }`}
               >
-                {step.label}
+                {stepLabels[step.key]}
               </span>
             </div>
           );

@@ -3,6 +3,7 @@ import {
   orchestrateCreateAndGenerate,
   orchestrateConfirmAndPrepare,
   orchestrateSaveAndStart,
+  orchestrateVisionCreateAndStartReading,
 } from './orchestration';
 import * as storiesApi from '@/features/stories/api';
 import * as editorApi from '@/features/story-editor/api';
@@ -153,6 +154,92 @@ describe('orchestration logic', () => {
       if (result.kind === 'blocked') {
         expect(result.message).toContain('Không thể kiểm tra trạng thái truyện vừa tạo');
       }
+    });
+  });
+
+  describe('orchestrateVisionCreateAndStartReading', () => {
+    it('automates text confirmation and image start, then opens private reading', async () => {
+      const routeKey = 's1_UkLWZg9D' as StoryRouteKey;
+      const createdStory: Story = {
+        id: 42,
+        route_key: routeKey,
+        title_vi: 'Test',
+        title_km: 'តេស្ត',
+        description_vi: 'A verified Vision story',
+        backbone_id: 1,
+        genre_id: 1,
+        art_style_id: 1,
+        target_age: 'early_primary',
+        length_pref: 'short',
+        status: 'text_draft',
+        text_revision: 1,
+        cover_image_url: null,
+        created_by: 'user1',
+        character_ids: [1, 2],
+        created_at: null,
+        image_workflow_kind: null,
+        updated_at: null,
+      };
+      const storyText: StoryText = {
+        id: 42,
+        title_vi: 'Test',
+        title_km: 'តេស្ត',
+        description_vi: createdStory.description_vi,
+        target_age: 'early_primary',
+        length_pref: 'short',
+        status: 'text_draft',
+        text_revision: 1,
+        character_ids: [1, 2],
+        updated_at: null,
+        pages: [],
+      };
+      const plan: StoryImagesState = {
+        story_id: 42,
+        title_vi: 'Test',
+        status: 'text_confirmed',
+        text_revision: 1,
+        image_plan_revision: 2,
+        image_plan_ready: true,
+        mapping_locked: false,
+        job_id: null,
+        job_stale: false,
+        can_start: true,
+        can_retry: false,
+        can_resume: false,
+        progress: { total: 1, pending: 1, generating: 0, completed: 0, failed: 0 },
+        available_characters: [],
+        pages: [],
+      };
+      vi.mocked(storiesApi.createStory).mockResolvedValue(createdStory);
+      vi.mocked(storiesApi.generateStoryText).mockResolvedValue(storyText);
+      vi.mocked(storiesApi.fetchStory).mockResolvedValue(createdStory);
+      vi.mocked(storiesApi.fetchStoryText).mockResolvedValue(storyText);
+      vi.mocked(editorApi.confirmStoryText).mockResolvedValue({ ...storyText, status: 'text_confirmed' });
+      vi.mocked(imagesApi.fetchStoryImages).mockResolvedValue({ ...plan, image_plan_ready: false, can_start: false });
+      vi.mocked(imagesApi.createImagePlan).mockResolvedValue(plan);
+      vi.mocked(imagesApi.startImageGeneration).mockResolvedValue({
+        job_id: 'job-1',
+        already_running: false,
+        status: 'generating_images',
+        progress: plan.progress,
+      });
+
+      const result = await orchestrateVisionCreateAndStartReading({
+        description_vi: createdStory.description_vi,
+        backbone_id: 1,
+        genre_id: 1,
+        art_style_id: 1,
+        target_age: 'early_primary',
+        length_pref: 'short',
+        character_ids: [1, 2],
+      });
+
+      expect(result).toMatchObject({
+        kind: 'success',
+        nextHref: '/admin/stories/s1_UkLWZg9D/read?source=vision',
+      });
+      expect(editorApi.confirmStoryText).toHaveBeenCalledWith(42, 1, true);
+      expect(imagesApi.startImageGeneration).toHaveBeenCalledWith(42, 2);
     });
   });
 

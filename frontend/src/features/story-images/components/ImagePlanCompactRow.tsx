@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { StoryImageCharacter, StoryImagePage } from '../types';
 import { CharacterMapping } from './CharacterMapping';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ImagePlanCompactRowProps {
   page: StoryImagePage;
@@ -20,6 +22,7 @@ export function ImagePlanCompactRow({
   onMappingChange,
 }: ImagePlanCompactRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const { copy } = useUiCopy();
 
   return (
     <div className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.02] p-5 space-y-4">
@@ -30,14 +33,16 @@ export function ImagePlanCompactRow({
           </span>
           <div>
             <h4 className="text-sm font-medium text-katha-text line-clamp-1">
-              {page.image_scene_en || page.text_vi || `Trang ${page.page_no}`}
+              {page.image_scene_en ||
+                page.text_vi ||
+                formatCopy(copy.pageLabel, { page: page.page_no })}
             </h4>
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
               className="mt-0.5 text-xs text-katha-primary-light hover:underline focus:outline-none"
             >
-              {expanded ? '▲ Thu gọn chi tiết' : '▶ Xem nội dung và chi tiết kỹ thuật'}
+              {expanded ? copy.collapseDetails : copy.expandTechnicalDetails}
             </button>
           </div>
         </div>
@@ -57,14 +62,14 @@ export function ImagePlanCompactRow({
         <div className="rounded-xl bg-katha-field p-4 space-y-3 text-xs border border-katha-text/5">
           <div>
             <span className="font-semibold text-katha-text/50 block mb-1">
-              Nội dung tiếng Việt:
+              {copy.vietnameseContent}
             </span>
             <p className="text-katha-text/90">{page.text_vi}</p>
           </div>
 
           <div>
             <span className="font-semibold text-katha-text/50 block mb-1">
-              Nội dung tiếng Khmer:
+              {copy.khmerContent}
             </span>
             <p className="text-khmer text-katha-text/80">{page.text_km}</p>
           </div>
@@ -72,7 +77,7 @@ export function ImagePlanCompactRow({
           {page.image_prompt_en && (
             <details className="text-katha-text/40 pt-2 border-t border-katha-text/5">
               <summary className="cursor-pointer hover:text-katha-text/70">
-                Chi tiết Prompt (English)
+                {copy.promptDetailsEnglish}
               </summary>
               <p className="mt-2 font-mono text-[11px] leading-relaxed text-katha-text/60">
                 {page.image_prompt_en}

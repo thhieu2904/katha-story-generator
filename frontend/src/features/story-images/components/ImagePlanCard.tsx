@@ -1,6 +1,8 @@
 import { CharacterMapping } from './CharacterMapping';
 import { GeneratedImageCard } from './GeneratedImageCard';
 import type { StoryImageCharacter, StoryImagePage } from '../types';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ImagePlanCardProps {
   page: StoryImagePage;
@@ -19,17 +21,21 @@ export function ImagePlanCard({
   disabled,
   onMappingChange,
 }: ImagePlanCardProps) {
+  const { copy } = useUiCopy();
+
   return (
     <article className="overflow-hidden rounded-2xl border border-katha-text/10 bg-katha-text/[0.025]">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.78fr)]">
         <div className="p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-katha-text">Trang {page.page_no}</h2>
+            <h2 className="text-lg font-semibold text-katha-text">
+              {formatCopy(copy.pageLabel, { page: page.page_no })}
+            </h2>
           </div>
           <div className="space-y-3 text-sm leading-6">
             <section>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-katha-text/40">
-                Tiếng Việt
+                {copy.vietnamese}
               </h3>
               <p className="mt-1 text-katha-text/85">{page.text_vi}</p>
             </section>
@@ -45,34 +51,34 @@ export function ImagePlanCard({
 
           <details className="rounded-xl border border-katha-text/10 bg-black/15 p-3">
             <summary className="cursor-pointer text-xs font-medium text-katha-text/75 hover:text-katha-text transition">
-              Xem chi tiết kỹ thuật và prompt tiếng Anh
+              {copy.technicalDetails}
             </summary>
             <div className="mt-4 space-y-4 text-xs leading-6 text-katha-text/60">
               <p className="text-katha-text/40 font-mono text-[11px]">
-                Lần xử lý: {page.image_attempt_count}
+                {formatCopy(copy.processingAttempt, { count: page.image_attempt_count })}
               </p>
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-katha-text/40">
-                  Bản dịch English
+                  {copy.englishTranslation}
                 </h3>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {page.text_en || 'Chưa có kế hoạch minh họa.'}
+                  {page.text_en || copy.noImagePlanShort}
                 </p>
               </section>
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-katha-text/40">
-                  Mô tả cảnh
+                  {copy.sceneDescription}
                 </h3>
                 <p className="mt-1 whitespace-pre-wrap">
-                  {page.image_scene_en || 'Chưa có kế hoạch minh họa.'}
+                  {page.image_scene_en || copy.noImagePlanShort}
                 </p>
               </section>
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-katha-text/40">
-                  Prompt sinh ảnh
+                  {copy.imagePrompt}
                 </h3>
                 <p className="mt-1 font-mono text-[11px] whitespace-pre-wrap">
-                  {page.image_prompt_en || 'Chưa có kế hoạch minh họa.'}
+                  {page.image_prompt_en || copy.noImagePlanShort}
                 </p>
               </section>
             </div>

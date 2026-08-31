@@ -1,4 +1,6 @@
 import type { StoryImageProgress } from '../types';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ImageGenerationProgressProps {
   progress: StoryImageProgress;
@@ -13,16 +15,21 @@ export function ImageGenerationProgress({
   stale,
   activePageNo,
 }: ImageGenerationProgressProps) {
+  const { copy } = useUiCopy();
   const completed = Math.min(progress.completed, progress.total);
   const statusText = stale
-    ? 'Quá trình tạo ảnh bị gián đoạn; hãy tiếp tục thủ công để sinh các trang còn thiếu.'
+    ? copy.interruptedContinueHelp
     : activePageNo
-      ? `Đang tạo trang ${activePageNo} · ${completed}/${progress.total} ảnh hoàn tất`
+      ? formatCopy(copy.generatingImagePage, {
+          page: activePageNo,
+          completed,
+          total: progress.total,
+        })
       : status === 'generating_images'
-        ? `Chuẩn bị trang tiếp theo · ${completed}/${progress.total} ảnh hoàn tất`
+        ? formatCopy(copy.preparingNextPage, { completed, total: progress.total })
         : status === 'pending_review'
-          ? `Đã hoàn tất ${completed}/${progress.total} ảnh và sẵn sàng duyệt.`
-          : `Đã hoàn tất ${completed}/${progress.total} ảnh.`;
+          ? formatCopy(copy.imagesCompletedReady, { completed, total: progress.total })
+          : formatCopy(copy.imagesCompletedCount, { completed, total: progress.total });
 
   return (
     <section
@@ -32,7 +39,7 @@ export function ImageGenerationProgress({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="image-progress-heading" className="text-base font-semibold text-katha-text">
-            Tiến độ tạo ảnh
+            {copy.imageGenerationProgress}
           </h2>
           <p role="status" aria-live="polite" className="mt-1 text-sm text-katha-text/60">
             {statusText}
@@ -47,33 +54,36 @@ export function ImageGenerationProgress({
         className="h-2 w-full overflow-hidden rounded-full accent-katha-primary"
         value={completed}
         max={Math.max(progress.total, 1)}
-        aria-label="Tiến độ sinh ảnh"
-        aria-valuetext={`${completed} trên ${progress.total} ảnh đã hoàn tất`}
+        aria-label={copy.imageProgressAria}
+        aria-valuetext={formatCopy(copy.imagesCompletedAria, {
+          completed,
+          total: progress.total,
+        })}
       />
 
       <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
         <div className="rounded-lg bg-katha-text/[0.035] px-3 py-2">
-          <dt className="text-katha-text/40">Đang chờ</dt>
+          <dt className="text-katha-text/40">{copy.waiting}</dt>
           <dd className="mt-1 font-semibold text-katha-text/80">{progress.pending}</dd>
         </div>
         <div className="rounded-lg bg-katha-primary/10 px-3 py-2">
-          <dt className="text-katha-text/40">Đang tạo</dt>
+          <dt className="text-katha-text/40">{copy.generating}</dt>
           <dd className="mt-1 font-semibold text-katha-primary-light">
             {progress.generating}
           </dd>
         </div>
         <div className="rounded-lg bg-katha-success/10 px-3 py-2">
-          <dt className="text-katha-text/40">Hoàn tất</dt>
+          <dt className="text-katha-text/40">{copy.completed}</dt>
           <dd className="mt-1 font-semibold text-emerald-200">{progress.completed}</dd>
         </div>
         <div className="rounded-lg bg-katha-error/10 px-3 py-2">
-          <dt className="text-katha-text/40">Cần thử lại</dt>
+          <dt className="text-katha-text/40">{copy.needsRetry}</dt>
           <dd className="mt-1 font-semibold text-red-200">{progress.failed}</dd>
         </div>
       </dl>
 
       <p className="text-xs text-katha-text/45 pt-1">
-        Mỗi ảnh có thể mất vài phút. Bạn có thể quay lại xem sau; các ảnh đã hoàn tất sẽ được giữ lại.
+        {copy.imageGenerationTimeHelp}
       </p>
     </section>
   );

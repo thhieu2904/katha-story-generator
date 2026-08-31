@@ -21,7 +21,7 @@ describe('StoryCover', () => {
   it('uses the explicit cover image as the primary artwork without cropping it', () => {
     render(<StoryCover story={createStory()} language="km" />);
 
-    const image = screen.getByRole('img', { name: 'Bìa truyện: ចំណងជើងខ្មែរ' });
+    const image = screen.getByRole('img', { name: 'គម្របរឿង៖ ចំណងជើងខ្មែរ' });
     expect(image).toHaveAttribute('src', coverImage);
     expect(image).toHaveClass('object-contain');
     expect(image).not.toHaveClass('object-cover');
@@ -30,7 +30,7 @@ describe('StoryCover', () => {
   it('falls back to the first page image when the cover URL is empty', () => {
     render(<StoryCover story={createStory(null)} language="km" />);
 
-    expect(screen.getByRole('img', { name: 'Bìa truyện: ចំណងជើងខ្មែរ' })).toHaveAttribute('src', firstPageImage);
+    expect(screen.getByRole('img', { name: 'គម្របរឿង៖ ចំណងជើងខ្មែរ' })).toHaveAttribute('src', firstPageImage);
   });
 
   it('renders an accessible fallback when neither cover nor first page has an image', () => {
@@ -38,7 +38,7 @@ describe('StoryCover', () => {
     story.pages[0].image_url = null;
     render(<StoryCover story={story} language="km" />);
 
-    expect(screen.getByRole('img', { name: 'Chưa có ảnh bìa truyện' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'មិនទាន់មានរូបគម្របរឿង' })).toBeInTheDocument();
   });
 
   it('makes the selected language title primary', () => {

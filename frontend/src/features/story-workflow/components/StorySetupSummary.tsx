@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { useUiCopy } from '@/features/language/useUiCopy';
 import type { Story } from '@/features/stories/types';
 
 interface StorySetupSummaryProps {
@@ -16,48 +19,50 @@ export function StorySetupSummary({
   genreName,
   artStyleName,
 }: StorySetupSummaryProps) {
+  const { copy } = useUiCopy();
+
   return (
     <div className="rounded-2xl border border-katha-text/10 bg-katha-surface/40 p-6 backdrop-blur-sm space-y-6">
       <div className="flex items-center justify-between border-b border-katha-text/10 pb-4">
-        <h2 className="text-lg font-medium text-katha-text">Thiết lập ban đầu</h2>
+        <h2 className="text-lg font-medium text-katha-text">{copy.initialSetup}</h2>
         <span className="rounded-full bg-katha-success/20 px-3 py-1 text-xs font-semibold text-katha-success">
-          Đã khóa thiết lập
+          {copy.setupLocked}
         </span>
       </div>
 
       <div className="space-y-2">
         <h3 className="text-xs font-medium uppercase tracking-wider text-katha-text/50">
-          Ý tưởng câu chuyện
+          {copy.storyIdea}
         </h3>
         <p className="text-sm text-katha-text/90 leading-relaxed whitespace-pre-wrap">
-          {story.description_vi || 'Chưa có mô tả.'}
+          {story.description_vi || copy.noDescriptionPeriod}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
         <div className="rounded-xl border border-katha-text/5 bg-katha-text/5 p-3">
-          <span className="block text-xs text-katha-text/50">Cốt truyện (Backbone)</span>
+          <span className="block text-xs text-katha-text/50">{copy.backboneLabel}</span>
           <span className="text-sm font-medium text-katha-text">
             {backboneName || `#${story.backbone_id}`}
           </span>
         </div>
 
         <div className="rounded-xl border border-katha-text/5 bg-katha-text/5 p-3">
-          <span className="block text-xs text-katha-text/50">Thể loại (Genre)</span>
+          <span className="block text-xs text-katha-text/50">{copy.genreLabel}</span>
           <span className="text-sm font-medium text-katha-text">
             {genreName || `#${story.genre_id}`}
           </span>
         </div>
 
         <div className="rounded-xl border border-katha-text/5 bg-katha-text/5 p-3">
-          <span className="block text-xs text-katha-text/50">Phong cách nghệ thuật</span>
+          <span className="block text-xs text-katha-text/50">{copy.artStyleLabel}</span>
           <span className="text-sm font-medium text-katha-text">
             {artStyleName || `#${story.art_style_id}`}
           </span>
         </div>
 
         <div className="rounded-xl border border-katha-text/5 bg-katha-text/5 p-3">
-          <span className="block text-xs text-katha-text/50">Độ tuổi & Độ dài</span>
+          <span className="block text-xs text-katha-text/50">{copy.ageAndLength}</span>
           <span className="text-sm font-medium text-katha-text">
             {story.target_age || '—'} · {story.length_pref || '—'}
           </span>
@@ -67,7 +72,7 @@ export function StorySetupSummary({
       {characters.length > 0 && (
         <div className="space-y-2 pt-2">
           <h3 className="text-xs font-medium uppercase tracking-wider text-katha-text/50">
-            Nhân vật xuất hiện
+            {copy.appearingCharacters}
           </h3>
           <div className="flex flex-wrap gap-2">
             {characters.map((c) => (

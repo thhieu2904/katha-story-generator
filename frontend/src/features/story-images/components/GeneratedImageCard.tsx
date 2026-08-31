@@ -4,9 +4,10 @@ import Image from 'next/image';
 import { useState } from 'react';
 import {
   IMAGE_PAGE_ERROR_LABELS,
-  IMAGE_PAGE_STATUS_LABELS,
 } from '../constants';
 import type { StoryImagePage } from '../types';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'border-katha-text/15 bg-katha-text/[0.045] text-katha-text/55',
@@ -16,8 +17,11 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 function ImageFallback({ page }: { page: StoryImagePage }) {
+  const { copy, language } = useUiCopy();
   const error = page.image_error_code
-    ? IMAGE_PAGE_ERROR_LABELS[page.image_error_code] || 'Không thể hiển thị ảnh của trang này.'
+    ? language === 'vi'
+      ? IMAGE_PAGE_ERROR_LABELS[page.image_error_code] || copy.imageDisplayFailed
+      : copy.imageDisplayFailed
     : null;
 
   return (
@@ -29,7 +33,14 @@ function ImageFallback({ page }: { page: StoryImagePage }) {
           <path d="m5.5 17 4.5-4.5 3 2.8 2.2-2 3.3 3.7" />
         </svg>
         <p className="mt-2 text-xs font-medium text-katha-text/60">
-          {page.image_status === 'completed' ? 'Không thể tải ảnh minh họa' : IMAGE_PAGE_STATUS_LABELS[page.image_status]}
+          {page.image_status === 'completed'
+            ? copy.illustrationLoadFailed
+            : {
+                pending: copy.waiting,
+                generating: copy.generating,
+                completed: copy.completed,
+                failed: copy.needsRetry,
+              }[page.image_status] || page.image_status}
         </p>
         {error && <p className="mx-auto mt-1 max-w-xs text-[11px] leading-4 text-red-200/75">{error}</p>}
       </div>
@@ -41,7 +52,14 @@ export function GeneratedImageCard({ page }: { page: StoryImagePage }) {
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const imageUrl = page.image_url?.trim() || null;
   const hasImage = Boolean(imageUrl && imageUrl !== failedImageUrl);
-  const statusLabel = IMAGE_PAGE_STATUS_LABELS[page.image_status] || page.image_status;
+  const { copy } = useUiCopy();
+  const statusLabel =
+    {
+      pending: copy.waiting,
+      generating: copy.generating,
+      completed: copy.completed,
+      failed: copy.needsRetry,
+    }[page.image_status] || page.image_status;
 
   return (
     <section className="katha-card overflow-hidden rounded-xl border border-katha-text/10 bg-katha-field">
@@ -49,7 +67,7 @@ export function GeneratedImageCard({ page }: { page: StoryImagePage }) {
         {hasImage ? (
           <Image
             src={imageUrl as string}
-            alt={`Minh họa trang ${page.page_no}`}
+            alt={formatCopy(copy.pageIllustration, { page: page.page_no })}
             fill
             unoptimized
             sizes="(max-width: 1024px) 100vw, 42vw"
@@ -61,7 +79,9 @@ export function GeneratedImageCard({ page }: { page: StoryImagePage }) {
         )}
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-katha-text/10 px-3 py-2.5">
-        <span className="text-xs font-medium text-katha-text/70">Minh họa trang {page.page_no}</span>
+        <span className="text-xs font-medium text-katha-text/70">
+          {formatCopy(copy.pageIllustration, { page: page.page_no })}
+        </span>
         <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${STATUS_STYLES[page.image_status] || STATUS_STYLES.pending}`}>
           {statusLabel}
         </span>

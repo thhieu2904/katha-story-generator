@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { apiFetch } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { AuthContext, type AuthStatus, type AuthUser } from './auth';
+import { clearFloatingLanguagePosition } from '@/features/language/floatingLanguagePosition';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(nextSession);
 
     if (!nextSession) {
+      clearFloatingLanguagePosition();
       setUser(null);
       setStatus('unauthenticated');
       return null;
@@ -34,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return verifiedUser;
     } catch {
       if (requestId === validationId.current) {
+        clearFloatingLanguagePosition();
         setUser(null);
         setStatus('unauthenticated');
       }
@@ -94,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     validationId.current += 1;
+    clearFloatingLanguagePosition();
     if (supabase) {
       await supabase.auth.signOut();
     }

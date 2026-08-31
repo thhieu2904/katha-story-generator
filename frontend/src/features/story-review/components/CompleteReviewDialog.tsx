@@ -1,4 +1,6 @@
 import type { ReviewProgress } from '../types';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface CompleteReviewDialogProps {
   open: boolean;
@@ -15,6 +17,7 @@ export function CompleteReviewDialog({
   isSubmitting,
   progress,
 }: CompleteReviewDialogProps) {
+  const { copy } = useUiCopy();
   if (!open) return null;
 
   return (
@@ -32,11 +35,11 @@ export function CompleteReviewDialog({
         </div>
         
         <h3 className="text-xl font-semibold text-katha-text mb-2">
-          Hoàn tất duyệt truyện?
+          {copy.completeReviewQuestion}
         </h3>
         
         <p className="text-sm text-katha-text/70 mb-6">
-          Bạn đã duyệt tất cả {progress.total} trang. Truyện sẽ được chuyển sang trạng thái “Đã duyệt” và sẵn sàng để xuất bản.
+          {formatCopy(copy.completeReviewHelp, { count: progress.total })}
         </p>
 
         <div className="flex justify-center space-x-3">
@@ -46,7 +49,7 @@ export function CompleteReviewDialog({
             disabled={isSubmitting}
             className="px-5 py-2.5 rounded-xl text-sm font-medium text-katha-text/70 hover:bg-katha-text/5 transition-colors disabled:opacity-50"
           >
-            Hủy
+            {copy.cancel}
           </button>
           <button
             type="button"
@@ -54,7 +57,7 @@ export function CompleteReviewDialog({
             disabled={isSubmitting}
             className="px-5 py-2.5 rounded-xl text-sm font-medium bg-katha-success/20 text-emerald-300 hover:bg-katha-success/30 transition-colors disabled:opacity-50"
           >
-            {isSubmitting ? 'Đang xử lý...' : 'Hoàn tất duyệt'}
+            {isSubmitting ? copy.processing : copy.completeReview}
           </button>
         </div>
       </div>

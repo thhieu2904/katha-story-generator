@@ -1,18 +1,29 @@
 import React from 'react';
 import Head from 'next/head';
+import { formatCopy, getUiCopy } from '@/features/language/uiCopy';
+import type { KhmerKeyword } from '@/features/vision/api';
 import type { PublicPage, ReaderLanguage } from '../types';
+import { HighlightedLearningText } from './HighlightedLearningText';
 
 interface ReaderPageProps {
   page: PublicPage;
   language: ReaderLanguage;
   storyTitle: string;
   nextImageUrl?: string | null;
+  learnedKeywords?: KhmerKeyword[];
 }
 
-export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderPageProps) {
+export function ReaderPage({
+  page,
+  language,
+  storyTitle,
+  nextImageUrl,
+  learnedKeywords = [],
+}: ReaderPageProps) {
+  const copy = getUiCopy(language);
   return (
     <article className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 lg:h-full lg:min-h-0 lg:gap-4">
-      <h2 className="sr-only">Trang {page.page_no}</h2>
+      <h2 className="sr-only">{formatCopy(copy.pageLabel, { page: page.page_no })}</h2>
       
       {nextImageUrl && (
         <Head>
@@ -38,7 +49,7 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
         {page.image_url ? (
           <img
             src={page.image_url}
-            alt={`Minh họa trang ${page.page_no} của ${storyTitle}`}
+            alt={formatCopy(copy.pageIllustrationAlt, { page: page.page_no, title: storyTitle })}
             className="relative w-full h-auto rounded-xl lg:h-full lg:w-auto lg:max-w-full"
             loading="lazy"
           />
@@ -53,14 +64,22 @@ export function ReaderPage({ page, language, storyTitle, nextImageUrl }: ReaderP
             lang="km"
             className="text-center font-khmer-serif text-[22px] leading-[2] text-katha-text md:text-[26px] lg:text-left"
           >
-            {page.text_km}
+            <HighlightedLearningText
+              text={page.text_km}
+              keywords={learnedKeywords}
+              language="km"
+            />
           </p>
         ) : (
           <p 
             lang="vi" 
             className="text-center text-lg leading-relaxed text-katha-text md:text-xl lg:text-left"
           >
-            {page.text_vi}
+            <HighlightedLearningText
+              text={page.text_vi}
+              keywords={learnedKeywords}
+              language="vi"
+            />
           </p>
         )}
 

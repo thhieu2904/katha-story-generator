@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useStories } from '@/features/stories/useStories';
 import { StoryListItem } from '@/features/stories/components/StoryListItem';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 function StorySkeleton() {
   return (
@@ -25,6 +27,7 @@ function StorySkeleton() {
 
 export default function StoriesPage() {
   const { stories, error, loading, retry } = useStories();
+  const { copy, language } = useUiCopy();
   const searchParams = useSearchParams();
   const archivedNotice = searchParams.get('notice') === 'archived';
 
@@ -33,39 +36,39 @@ export default function StoriesPage() {
       <div className="mb-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="katha-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-katha-primary-light">
-            Story Manager
+            {copy.storyManagerEyebrow}
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            Quản lý truyện
+            {copy.storyManagerTitle}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-katha-text/50">
-            Quản lý các bản thảo, kịch bản và xuất bản các câu chuyện Katha.
+            {copy.storyManagerSubtitle}
           </p>
         </div>
         <div className="flex items-center gap-4">
           {stories && (
             <span className="w-fit rounded-full border border-katha-text/10 bg-katha-text/[0.04] px-3 py-1.5 text-xs text-katha-text/55">
-              {stories.length} truyện
+              {formatCopy(copy.storyCount, { count: stories.length })}
             </span>
           )}
           <Link
             href="/admin/stories/new"
             className="rounded-lg bg-katha-primary px-4 py-2 text-sm font-medium text-katha-text transition hover:bg-katha-primary-light"
           >
-            + Tạo truyện
+            {copy.createStory}
           </Link>
         </div>
       </div>
 
       {archivedNotice && (
         <section className="mb-7 rounded-xl border border-katha-warning/25 bg-katha-warning/10 p-4 text-sm text-amber-100">
-          Truyện này đã được lưu trữ nên không thể mở không gian minh họa.
+          {copy.archivedStoryNotice}
         </section>
       )}
 
       {loading && (
         <div
-          aria-label="Đang tải danh sách truyện"
+          aria-label={copy.loadingStoryList}
           className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
         >
           {Array.from({ length: 6 }, (_, index) => (
@@ -76,14 +79,16 @@ export default function StoriesPage() {
 
       {error && (
         <section className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
-          <h2 className="font-semibold text-red-100">Không thể tải danh sách truyện</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">{error}</p>
+          <h2 className="font-semibold text-red-100">{copy.storyListUnavailable}</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">
+            {language === 'vi' ? error : copy.storyListUnavailable}
+          </p>
           <button
             type="button"
             onClick={retry}
             className="mt-5 rounded-xl bg-katha-text px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-katha-text/90"
           >
-            Thử lại
+            {copy.retry}
           </button>
         </section>
       )}
@@ -91,15 +96,15 @@ export default function StoriesPage() {
       {stories?.length === 0 && (
         <section className="rounded-2xl border border-dashed border-katha-text/15 px-6 py-14 text-center">
           <div className="text-3xl">📝</div>
-          <h2 className="mt-3 font-semibold">Chưa có truyện nào</h2>
+          <h2 className="mt-3 font-semibold">{copy.noStories}</h2>
           <p className="mt-2 text-sm text-katha-text/45">
-            Bắt đầu sáng tạo bằng cách tạo câu chuyện đầu tiên.
+            {copy.noStoriesHelp}
           </p>
           <Link
             href="/admin/stories/new"
             className="mt-5 inline-block rounded-lg bg-katha-primary px-4 py-2.5 text-sm font-medium text-katha-text transition hover:bg-katha-primary-light"
           >
-            Tạo truyện đầu tiên
+            {copy.createFirstStory}
           </Link>
         </section>
       )}

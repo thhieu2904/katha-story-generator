@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { ReviewPageData, ReviewState } from '../types';
-import { REVIEW_STATUS_LABELS, REVIEW_STATUS_COLORS } from '../constants';
+import { REVIEW_STATUS_COLORS } from '../constants';
 import { KhmerTextEditor } from './KhmerTextEditor';
 import { RejectPageDialog } from './RejectPageDialog';
 import { RegenerateImageDialog } from './RegenerateImageDialog';
 import { ApproveWarningDialog } from './ApproveWarningDialog';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ReviewPageCardProps {
   page: ReviewPageData;
@@ -41,6 +43,7 @@ export function ReviewPageCard({
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isRegeneratingLocal, setIsRegeneratingLocal] = useState(false);
+  const { copy } = useUiCopy();
 
   const { capabilities } = reviewState;
   const canEdit =
@@ -48,7 +51,11 @@ export function ReviewPageCard({
   const canReview = capabilities.can_review_pages;
 
   const statusLabel =
-    REVIEW_STATUS_LABELS[page.review_status] || page.review_status;
+    {
+      pending: copy.statusPendingReview,
+      approved: copy.statusApproved,
+      rejected: copy.reject,
+    }[page.review_status] || page.review_status;
   const statusColor =
     REVIEW_STATUS_COLORS[page.review_status] ||
     REVIEW_STATUS_COLORS.pending;
@@ -120,7 +127,7 @@ export function ReviewPageCard({
       {/* Page number */}
       <div className="flex items-center justify-between mb-3 text-sm">
         <span className="font-semibold text-katha-text/55">
-          Trang {page.page_no}
+          {formatCopy(copy.pageLabel, { page: page.page_no })}
         </span>
       </div>
 
@@ -130,7 +137,7 @@ export function ReviewPageCard({
           <>
             <img
               src={page.image_url}
-              alt={`Trang ${page.page_no}`}
+              alt={formatCopy(copy.pageLabel, { page: page.page_no })}
               className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                 isRegenerating ? 'opacity-50' : ''
               }`}
@@ -158,7 +165,7 @@ export function ReviewPageCard({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                     />
                   </svg>
-                  Đang tạo bản thay thế
+                  {copy.generatingReplacement}
                 </div>
               </div>
             )}
@@ -178,7 +185,7 @@ export function ReviewPageCard({
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-sm">Không có ảnh</span>
+            <span className="text-sm">{copy.noImageAvailable}</span>
           </div>
         )}
         {/* Status badge */}
@@ -210,7 +217,7 @@ export function ReviewPageCard({
                 onClick={onEditStart}
                 disabled={disabled}
                 className="absolute top-0 right-0 p-1.5 text-katha-text/55 hover:text-katha-text bg-katha-text/5 hover:bg-katha-text/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
-                title="Chỉnh sửa văn bản Khmer"
+                title={copy.editKhmerText}
               >
                 <svg
                   className="w-4 h-4"
@@ -233,7 +240,7 @@ export function ReviewPageCard({
         {/* Spellcheck warnings */}
         {hasWarnings && page.review_status !== 'approved' && (
           <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs">
-            ⚠ Chưa kiểm tra hoặc có cảnh báo chính tả Khmer
+            ⚠ {copy.khmerTextWarning}
           </div>
         )}
 
@@ -246,7 +253,7 @@ export function ReviewPageCard({
         {page.review_status === 'rejected' && page.review_notes && (
           <div className="p-3 rounded-xl bg-katha-error/10 border border-katha-error/20">
             <p className="text-xs text-red-300 font-medium mb-1">
-              Lý do từ chối:
+              {copy.rejectionReason}
             </p>
             <p className="text-sm text-red-200/90">{page.review_notes}</p>
           </div>
@@ -260,7 +267,7 @@ export function ReviewPageCard({
             disabled={disabled || isMutating || isRegenerating}
             className="w-full mt-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-blue-500/15 text-blue-200 hover:bg-blue-500/25 border border-blue-500/20 transition-colors disabled:opacity-50"
           >
-            Khôi phục tạo lại ảnh
+            {copy.recoverRegeneration}
           </button>
         )}
 
@@ -270,7 +277,7 @@ export function ReviewPageCard({
             disabled={disabled || isMutating || isRegenerating}
             className="w-full mt-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/20 transition-colors disabled:opacity-50"
           >
-            Tạo lại ảnh
+            {copy.regenerateImage}
           </button>
         )}
 
@@ -290,7 +297,7 @@ export function ReviewPageCard({
                 }
                 className="flex-1 flex justify-center items-center px-4 py-2.5 rounded-xl text-sm font-medium bg-katha-error/20 text-red-300 hover:bg-katha-error/30 transition-colors disabled:opacity-50"
               >
-                Từ chối
+                {copy.reject}
               </button>
               <button
                 type="button"
@@ -318,17 +325,17 @@ export function ReviewPageCard({
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                Duyệt
+                {copy.approve}
               </button>
             </div>
             {!page.can_approve && (
               <p className="mt-2 text-center text-[11px] text-gray-500">
-                Trang cần có đủ văn bản song ngữ và ảnh để duyệt hoặc từ chối.
+                {copy.reviewRequirements}
               </p>
             )}
             {page.can_approve && page.review_status === 'approved' && (
               <p className="mt-2 text-center text-[11px] text-gray-500">
-                Trang đã được duyệt — dùng «Từ chối» nếu muốn đổi quyết định.
+                {copy.approvedPageHelp}
               </p>
             )}
           </div>

@@ -1,17 +1,23 @@
 import React from 'react';
 import type { StoryImagePage } from '../types';
 import { GeneratedImageCard } from './GeneratedImageCard';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ImagePageProgressGridProps {
   pages: StoryImagePage[];
 }
 
 export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
+  const { copy } = useUiCopy();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-katha-text">Tiến độ từng trang</h3>
-        <span className="text-xs text-katha-text/50">{pages.length} trang</span>
+        <h3 className="text-base font-semibold text-katha-text">{copy.pageProgress}</h3>
+        <span className="text-xs text-katha-text/50">
+          {formatCopy(copy.pageCount, { count: pages.length })}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -36,7 +42,7 @@ export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-katha-text">
-                  Trang {page.page_no}
+                  {formatCopy(copy.pageLabel, { page: page.page_no })}
                 </span>
                 <span
                   role="status"
@@ -52,12 +58,12 @@ export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
                   }`}
                 >
                   {isGenerating
-                    ? 'Trang ' + page.page_no + ' · Đang tạo'
+                    ? formatCopy(copy.pageGenerating, { page: page.page_no })
                     : isCompleted
-                      ? 'Hoàn tất'
+                      ? copy.completed
                       : isFailed
-                        ? 'Cần thử lại'
-                        : 'Đang chờ'}
+                        ? copy.needsRetry
+                        : copy.waiting}
                 </span>
               </div>
 
@@ -68,17 +74,17 @@ export function ImagePageProgressGrid({ pages }: ImagePageProgressGridProps) {
                   <div className="flex flex-col items-center justify-center h-full gap-2 p-4 text-center">
                     <div className="h-8 w-8 rounded-full border-2 border-katha-primary border-t-transparent animate-spin" />
                     <span className="text-xs text-katha-primary-light font-medium">
-                      Đang sinh ảnh AI…
+                      {copy.aiGeneratingImage}
                     </span>
                   </div>
                 ) : isFailed ? (
                   <div className="flex flex-col items-center justify-center h-full gap-1 p-4 text-center">
                     <span className="text-lg">⚠️</span>
-                    <span className="text-xs text-rose-300">Không thể tạo ảnh</span>
+                    <span className="text-xs text-rose-300">{copy.imageGenerationFailed}</span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                    <span className="text-xs text-katha-text/30">Chờ tới lượt</span>
+                    <span className="text-xs text-katha-text/30">{copy.waitingTurn}</span>
                   </div>
                 )}
               </div>

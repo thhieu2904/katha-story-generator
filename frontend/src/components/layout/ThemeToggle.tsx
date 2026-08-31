@@ -1,6 +1,7 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { memo, useSyncExternalStore } from 'react';
+import { useUiCopy } from '@/features/language/useUiCopy';
 import { THEME_TOGGLE_MARKUP } from './ThemeToggleMarkup';
 
 type Theme = 'light' | 'dark';
@@ -33,8 +34,10 @@ function getThemeSnapshot() {
   return readTheme() === 'dark';
 }
 
-export function ThemeToggle() {
+function ThemeToggleComponent() {
   const isDark = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, () => false);
+  const { copy } = useUiCopy();
+  const label = isDark ? copy.enableLightTheme : copy.enableDarkTheme;
 
   function toggleTheme() {
     const nextTheme = readTheme() === 'dark' ? 'light' : 'dark';
@@ -46,10 +49,13 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-pressed={isDark}
-      aria-label={isDark ? 'Bật giao diện sáng' : 'Bật giao diện tối'}
-      title={isDark ? 'Bật giao diện sáng' : 'Bật giao diện tối'}
+      aria-label={label}
+      title={label}
       className="katha-theme-switch toggle shrink-0"
       dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_MARKUP }}
     />
   );
 }
+
+export const ThemeToggle = memo(ThemeToggleComponent);
+ThemeToggle.displayName = 'ThemeToggle';

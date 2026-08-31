@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { archiveStory, fetchStory } from '../api';
 import { isUncertainError } from '@/features/story-workflow/mutation-helpers';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ArchiveStoryDialogProps {
   storyId: number;
@@ -14,6 +16,7 @@ interface ArchiveStoryDialogProps {
 export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: ArchiveStoryDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { copy, language } = useUiCopy();
 
   const handleArchive = async () => {
     setIsSubmitting(true);
@@ -33,7 +36,7 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
           // Re-read also failed
         }
       }
-      setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra');
+      setError(language === 'vi' && err instanceof Error ? err.message : copy.genericError);
       setIsSubmitting(false);
     }
   };
@@ -43,9 +46,9 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-katha-text/10 bg-katha-surface shadow-2xl p-6">
-        <h3 className="text-xl font-bold mb-2">Lưu trữ truyện</h3>
+        <h3 className="text-xl font-bold mb-2">{copy.archiveStory}</h3>
         <p className="text-sm text-katha-text/70 mb-4">
-          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-katha-text">“{storyTitle}”</span>? Truyện sẽ bị lưu trữ. Bạn có thể khôi phục sau.
+          {formatCopy(copy.archiveStoryConfirm, { title: storyTitle })}
         </p>
 
         {error && (
@@ -61,7 +64,7 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
             disabled={isSubmitting}
             className="rounded-lg px-4 py-2 text-sm font-medium text-katha-text/70 transition hover:bg-katha-text/10 hover:text-katha-text disabled:opacity-50"
           >
-            Hủy
+            {copy.cancel}
           </button>
           <button
             type="button"
@@ -69,7 +72,7 @@ export function ArchiveStoryDialog({ storyId, storyTitle, onClose, onSuccess }: 
             disabled={isSubmitting}
             className="rounded-lg bg-katha-error px-4 py-2 text-sm font-medium text-katha-text transition hover:bg-red-500 disabled:opacity-50"
           >
-            {isSubmitting ? 'Đang lưu trữ...' : 'Lưu trữ'}
+            {isSubmitting ? copy.archiving : copy.archive}
           </button>
         </div>
       </div>

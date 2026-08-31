@@ -15,8 +15,8 @@ interface KathaLogoProps {
 
 /** Logo Katha đầy đủ. Luôn hiển thị trọn logo, chỉ thay đổi cỡ theo chỗ đặt. */
 export function KathaLogo({ width, height, className = '', priority = false }: KathaLogoProps) {
-  const w = height ? Math.round((height * LOGO_W) / LOGO_H) : (width ?? 240);
-  const h = height ?? Math.round(((width ?? 240) * LOGO_H) / LOGO_W);
+  const w = height ? Math.round((height * LOGO_W) / LOGO_H) : (width ?? 260);
+  const h = height ?? Math.round(((width ?? 260) * LOGO_H) / LOGO_W);
 
   return (
     <Image

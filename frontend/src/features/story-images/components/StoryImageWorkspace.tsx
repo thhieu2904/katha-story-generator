@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { STATUS_LABELS } from '@/features/stories/constants';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
 import { orchestrateSaveAndStart } from '@/features/story-workflow/orchestration';
 import type { SaveAndStartResult } from '@/features/story-workflow/orchestration';
@@ -17,6 +16,12 @@ import type { ImageGenerationDialogMode, StoryImagesState } from '../types';
 
 import type { StoryRouteKey } from '@/features/stories/types';
 import { useStoryByRouteKey } from '@/features/stories/useStory';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
+import { LearningProgressBar } from '@/features/learning/components/LearningProgressBar';
+import { LearningJourneyControls } from '@/features/learning/components/LearningJourneyControls';
+import { resetLearningJourneyProgress } from '@/features/learning/resetLearningJourney';
+import { hasVisionLearningContextInDescription } from '@/features/learning/visionStoryDraft';
 
 const STATUS_STYLES: Record<string, string> = {
   text_confirmed: 'border-blue-500/25 bg-blue-500/10 text-blue-200',
@@ -37,6 +42,7 @@ function getGenerationDialogMode(
 
 export function StoryImageWorkspace({ storyKey }: { storyKey: StoryRouteKey }) {
   const { story, loading: storyLoading, error: fetchError, retry } = useStoryByRouteKey(storyKey);
+  const { copy, language } = useUiCopy();
 
   if (storyLoading) {
     return (
@@ -50,25 +56,34 @@ export function StoryImageWorkspace({ storyKey }: { storyKey: StoryRouteKey }) {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <WorkspaceMessage
-          title="Không thể tải không gian minh họa"
-          detail={fetchError || undefined}
+          title={copy.imageWorkspaceUnavailable}
+          detail={language === 'vi' ? fetchError || undefined : undefined}
           onRetry={retry}
         />
       </StoryWorkflowShell>
     );
   }
 
-  return <StoryImageWorkspaceInner storyId={story.id} storyKey={storyKey} />;
+  return (
+    <StoryImageWorkspaceInner
+      storyId={story.id}
+      storyKey={storyKey}
+      isVisionLesson={hasVisionLearningContextInDescription(story.description_vi ?? '')}
+    />
+  );
 }
 
 function StoryImageWorkspaceInner({
   storyId,
   storyKey,
+  isVisionLesson,
 }: {
   storyId: number;
   storyKey: StoryRouteKey;
+  isVisionLesson: boolean;
 }) {
   const router = useRouter();
+  const { copy, language } = useUiCopy();
   const images = useStoryImages(storyId);
   const isMobileCompact = useIsMobileCompact();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -76,6 +91,10 @@ function StoryImageWorkspaceInner({
   const [actionError, setActionError] = useState<string | null>(null);
   const [useCompactView, setUseCompactView] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const resetLearningJourney = () => {
+    resetLearningJourneyProgress();
+    router.replace('/admin/vision');
+  };
 
   useEffect(() => {
     if (images.redirectHref) router.replace(images.redirectHref);
@@ -84,7 +103,7 @@ function StoryImageWorkspaceInner({
   if (images.redirectHref) {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
-        <WorkspaceMessage title="Đang chuyển đến bước phù hợp…" />
+        <WorkspaceMessage title={copy.redirectingToCurrentStep} />
       </StoryWorkflowShell>
     );
   }
@@ -101,8 +120,8 @@ function StoryImageWorkspaceInner({
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <WorkspaceMessage
-          title="Không thể tải không gian minh họa"
-          detail={images.error || undefined}
+          title={copy.imageWorkspaceUnavailable}
+          detail={language === 'vi' ? images.error || undefined : undefined}
           onRetry={() => void images.refresh()}
         />
       </StoryWorkflowShell>
@@ -211,14 +230,14 @@ function StoryImageWorkspaceInner({
     actionBar = (
       <>
         <div className="text-xs text-rose-300">
-          Chưa thể xác nhận trạng thái mới nhất. Hãy kiểm tra lại.
+          {copy.latestStateUnconfirmed}
         </div>
         <button
           type="button"
           onClick={() => void handleCheckStatus()}
           className="rounded-xl bg-katha-text px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-katha-text/90"
         >
-          Kiểm tra lại trạng thái
+          {copy.checkStateAgain}
         </button>
       </>
     );
@@ -227,21 +246,21 @@ function StoryImageWorkspaceInner({
     actionBar = (
       <>
         <div className="text-xs text-amber-200">
-          Dữ liệu trên máy chủ đã thay đổi. Vui lòng tải lại trước khi tiếp tục.
+          {copy.serverDataChanged}
         </div>
         <button
           type="button"
           onClick={() => void images.discardAndReload()}
           className="rounded-xl bg-katha-text px-4 py-2.5 text-xs font-semibold text-katha-surface shadow transition hover:bg-katha-text/90"
         >
-          Tải trạng thái mới nhất
+          {copy.loadLatestState}
         </button>
       </>
     );
   } else if (!state.image_plan_ready && images.canPreparePlan) {
     actionBar = (
       <>
-        <div className="text-xs text-katha-text/50">Nội dung đã xác nhận.</div>
+        <div className="text-xs text-katha-text/50">{copy.contentConfirmed}</div>
         <button
           type="button"
           disabled={actionsDisabled}
@@ -249,8 +268,8 @@ function StoryImageWorkspaceInner({
           className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           {images.pending === 'prepare'
-            ? 'Đang chuẩn bị minh họa…'
-            : 'Chuẩn bị minh họa'}
+            ? copy.preparingIllustrations
+            : copy.prepareIllustrationsAction}
         </button>
       </>
     );
@@ -259,34 +278,41 @@ function StoryImageWorkspaceInner({
       <>
         <div className="text-xs text-katha-text/60 font-medium">
           {images.activePage
-            ? `Đang tạo trang ${images.activePage.page_no} · ${state.progress.completed}/${state.progress.total} ảnh hoàn tất`
-            : `Đang xử lý · ${state.progress.completed}/${state.progress.total} ảnh hoàn tất`}
+            ? formatCopy(copy.generatingImagePage, {
+                page: images.activePage.page_no,
+                completed: state.progress.completed,
+                total: state.progress.total,
+              })
+            : formatCopy(copy.imageProcessing, {
+                completed: state.progress.completed,
+                total: state.progress.total,
+              })}
         </div>
         <span className="text-xs text-katha-primary-light font-medium flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-katha-primary animate-ping" />
-          Tự động cập nhật 3s
+          {copy.autoRefreshThreeSeconds}
         </span>
       </>
     );
   } else if (hasGenerationAction) {
     const primaryLabel = state.can_resume
       ? finalizationOnly
-        ? 'Đồng bộ kết quả'
-        : `Tiếp tục ${unresolvedCount} ảnh còn lại`
+        ? copy.syncResults
+        : formatCopy(copy.continueRemainingImages, { count: unresolvedCount })
       : state.can_retry
-        ? `Thử lại ${unresolvedCount} ảnh`
-        : `Bắt đầu sinh ${state.progress.total} ảnh`;
+        ? formatCopy(copy.retryRemainingImages, { count: unresolvedCount })
+        : formatCopy(copy.startGeneratingImages, { count: state.progress.total });
 
     actionBar = (
       <>
         <div className="text-xs text-katha-text/50 hidden sm:block">
           {images.mappingDirty
-            ? 'Lựa chọn nhân vật sẽ được lưu trước khi bắt đầu.'
+            ? copy.mappingSavedBeforeStart
             : state.can_resume
-              ? 'Quá trình tạo ảnh bị gián đoạn.'
+              ? copy.imageGenerationInterrupted
               : state.can_retry
-                ? `Có ${unresolvedCount} ảnh cần thử lại.`
-                : 'Đã sẵn sàng tạo ảnh.'}
+                ? formatCopy(copy.imagesNeedRetry, { count: unresolvedCount })
+                : copy.readyToGenerateImages}
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
           {images.canEditMapping && images.mappingDirty && !isMobileCompact && (
@@ -296,7 +322,7 @@ function StoryImageWorkspaceInner({
               onClick={() => void handleSaveMappingOnly()}
               className="rounded-xl border border-katha-text/15 px-4 py-2.5 text-xs font-medium text-katha-text transition hover:bg-katha-text/10 disabled:opacity-40"
             >
-              {images.pending === 'save_mapping' ? 'Đang lưu…' : 'Lưu thay đổi'}
+              {images.pending === 'save_mapping' ? copy.saving : copy.saveChanges}
             </button>
           )}
           <button
@@ -305,7 +331,7 @@ function StoryImageWorkspaceInner({
             onClick={() => setDialogOpen(true)}
             className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
           >
-            {isStartingOrSaving ? 'Đang khởi chạy…' : primaryLabel}
+            {isStartingOrSaving ? copy.starting : primaryLabel}
           </button>
         </div>
       </>
@@ -314,14 +340,14 @@ function StoryImageWorkspaceInner({
     actionBar = (
       <>
         <div className="text-xs text-katha-text/50">
-          Tất cả ảnh đã hoàn tất.
+          {copy.allImagesCompleted}
         </div>
         <button
           type="button"
           disabled
           className="rounded-xl bg-katha-success/20 border border-katha-success/30 px-5 py-2.5 text-xs font-semibold text-emerald-200"
         >
-          Sẵn sàng duyệt
+          {copy.readyToReview}
         </button>
       </>
     );
@@ -332,15 +358,22 @@ function StoryImageWorkspaceInner({
   return (
     <StoryWorkflowShell
       storyKey={storyKey}
-      storyTitle={state.title_vi || 'Truyện chưa đặt tên'}
+      storyTitle={state.title_vi || copy.untitledStory}
       status={state.status}
       actionBar={actionBar}
+      showWorkflowStepper={!isVisionLesson}
     >
       <div className="space-y-6">
+        {isVisionLesson && (
+          <div className="katha-card rounded-2xl border border-katha-text/10 bg-katha-text/[0.035] p-4 shadow-lg backdrop-blur-xl sm:p-5">
+            <LearningProgressBar currentStep={3} stepProgress={0} language={language} />
+          </div>
+        )}
+
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h1 className="text-2xl font-bold text-katha-text tracking-tight sm:text-3xl">
-              Minh họa truyện
+              {copy.storyIllustrations}
             </h1>
             <span
               className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
@@ -348,50 +381,56 @@ function StoryImageWorkspaceInner({
                 'border-katha-text/10 bg-katha-text/[0.04] text-katha-text/60'
               }`}
             >
-              {STATUS_LABELS[state.status] || state.status}
+              {{
+                text_confirmed: copy.statusTextConfirmed,
+                generating_images: copy.statusGeneratingImages,
+                pending_review: copy.statusPendingReview,
+                approved: copy.statusApproved,
+                published: copy.statusPublished,
+              }[state.status] || state.status}
             </span>
           </div>
           <p className="text-sm text-katha-text/60">
-            {state.title_vi || 'Truyện chưa đặt tên'}
+            {state.title_vi || copy.untitledStory}
           </p>
         </div>
 
         {isMobileCompact && images.canEditMapping && (
           <div className="rounded-xl border border-katha-text/10 bg-katha-text/5 p-4 text-xs text-katha-text/60">
-            💡 Mở trên tablet hoặc máy tính (tối thiểu 768×600) để tùy chỉnh phân bổ nhân vật theo từng trang.
+            💡 {copy.mobileMappingHelp}
           </div>
         )}
 
         {/* B6: Mobile dirty mapping warning */}
         {isMobileCompact && images.mappingDirty && (
           <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 text-xs text-amber-200">
-            ⚠️ Bạn có thay đổi nhân vật chưa lưu. Hãy mở trên máy tính để lưu và bắt đầu sinh ảnh.
+            ⚠️ {copy.unsavedMappingMobile}
           </div>
         )}
 
         {/* B5: Mapping conflict banner */}
         {images.mappingConflict && (
           <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-100 flex flex-wrap items-center justify-between gap-3">
-            <p>Dữ liệu trên máy chủ đã thay đổi. Bản nháp cục bộ của bạn có thể không còn phù hợp.</p>
+            <p>{copy.localDraftMayBeStale}</p>
             <button
               type="button"
               onClick={() => void images.discardAndReload()}
               className="rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface"
             >
-              Tải trạng thái mới nhất
+              {copy.loadLatestState}
             </button>
           </div>
         )}
 
         {images.notice && (
           <div className="rounded-xl border border-katha-success/25 bg-katha-success/10 p-4 text-sm text-emerald-200">
-            {images.notice}
+            {language === 'vi' ? images.notice : copy.actionCompleted}
           </div>
         )}
 
         {(images.error || actionError) && (
           <div className="rounded-xl border border-katha-error/25 bg-katha-error/10 p-4 text-sm text-rose-200 flex flex-wrap items-center justify-between gap-3">
-            <p>{images.error || actionError}</p>
+            <p>{language === 'vi' ? images.error || actionError : copy.genericError}</p>
             {(images.blocked || isBlocked) && (
               <button
                 type="button"
@@ -402,7 +441,7 @@ function StoryImageWorkspaceInner({
                 }}
                 className="rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface"
               >
-                Kiểm tra lại trạng thái
+                {copy.checkStateAgain}
               </button>
             )}
           </div>
@@ -411,14 +450,14 @@ function StoryImageWorkspaceInner({
         {images.pollError && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-katha-warning/25 bg-katha-warning/10 p-4 text-sm text-amber-100">
             <p>
-              {images.pollError} Tiến độ gần nhất vẫn được giữ lại và hệ thống sẽ tự thử lại.
+              {language === 'vi' ? `${images.pollError} ` : ''}{copy.pollErrorSuffix}
             </p>
             <button
               type="button"
               onClick={() => void images.refresh()}
               className="rounded-lg border border-amber-100/25 px-3 py-1.5 text-xs font-semibold"
             >
-              Kiểm tra ngay
+              {copy.checkNow}
             </button>
           </div>
         )}
@@ -427,10 +466,10 @@ function StoryImageWorkspaceInner({
         {!state.image_plan_ready && (
           <section className="rounded-2xl border border-dashed border-katha-text/15 bg-katha-text/[0.02] p-8 text-center sm:p-12 space-y-4">
             <h2 className="text-xl font-semibold text-katha-text">
-              Chưa chuẩn bị kế hoạch minh họa
+              {copy.noImagePlan}
             </h2>
             <p className="mx-auto max-w-xl text-sm text-katha-text/60 leading-relaxed">
-              Kế hoạch minh họa sẽ tự động phân tích từng trang, đề xuất các cảnh quay và gán nhân vật xuất hiện.
+              {copy.noImagePlanHelp}
             </p>
           </section>
         )}
@@ -458,14 +497,14 @@ function StoryImageWorkspaceInner({
               <section className="space-y-6">
                 <div className="flex items-center justify-between border-b border-katha-text/10 pb-4">
                   <h2 className="text-lg font-semibold text-katha-text">
-                    Kiểm tra nhân vật từng trang
+                    {copy.reviewPageCharacters}
                   </h2>
                   <button
                     type="button"
                     onClick={() => setUseCompactView(!useCompactView)}
                     className="text-xs text-katha-primary-light hover:underline"
                   >
-                    {useCompactView ? 'Xem dạng đầy đủ' : 'Xem dạng thu gọn'}
+                    {useCompactView ? copy.fullView : copy.compactView}
                   </button>
                 </div>
 
@@ -506,6 +545,15 @@ function StoryImageWorkspaceInner({
             )}
           </>
         )}
+
+        {isVisionLesson && (
+          <LearningJourneyControls
+            language={language}
+            onReset={resetLearningJourney}
+            disabled={isStartingOrSaving || images.pending === 'start'}
+            className="border-t border-katha-text/10 pt-5"
+          />
+        )}
       </div>
 
       {dialogMode && (
@@ -531,8 +579,10 @@ function StoryImageWorkspaceInner({
 }
 
 function WorkspaceSkeleton() {
+  const { copy } = useUiCopy();
+
   return (
-    <div className="space-y-6 animate-pulse" aria-label="Đang tải không gian minh họa">
+    <div className="space-y-6 animate-pulse" aria-label={copy.loadingImageWorkspace}>
       <div className="h-28 rounded-2xl bg-katha-text/[0.05]" />
       <div className="h-36 rounded-2xl bg-katha-text/[0.04]" />
       <div className="h-80 rounded-2xl bg-katha-text/[0.035]" />
@@ -549,6 +599,8 @@ function WorkspaceMessage({
   detail?: string;
   onRetry?: () => void;
 }) {
+  const { copy } = useUiCopy();
+
   return (
     <section className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-10 text-center">
       <h1 className="text-xl font-semibold text-katha-text">{title}</h1>
@@ -563,7 +615,7 @@ function WorkspaceMessage({
           onClick={onRetry}
           className="mt-5 rounded-lg bg-katha-text px-4 py-2 text-sm font-semibold text-katha-surface"
         >
-          Thử lại
+          {copy.retry}
         </button>
       )}
     </section>

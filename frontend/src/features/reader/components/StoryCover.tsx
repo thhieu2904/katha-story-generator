@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatCopy, getUiCopy } from '@/features/language/uiCopy';
 import type { PublicStory, ReaderLanguage } from '../types';
 
 interface StoryCoverProps {
@@ -7,8 +8,9 @@ interface StoryCoverProps {
 }
 
 export function StoryCover({ story, language }: StoryCoverProps) {
+  const copy = getUiCopy(language);
   const bgUrl = story.cover.background_url || story.pages[0]?.image_url;
-  const primaryTitle = language === 'km' ? story.title_km || 'ចំណងជើង' : story.title_vi || 'Tiêu đề';
+  const primaryTitle = language === 'km' ? story.title_km || copy.defaultTitle : story.title_vi || copy.defaultTitle;
   const secondaryTitle = language === 'km' ? story.title_vi || 'Tiêu đề' : story.title_km || 'ចំណងជើង';
   
   return (
@@ -24,13 +26,13 @@ export function StoryCover({ story, language }: StoryCoverProps) {
         {bgUrl ? (
           <img
             src={bgUrl}
-            alt={`Bìa truyện: ${primaryTitle}`}
+            alt={formatCopy(copy.storyCoverAlt, { title: primaryTitle })}
             className="relative h-auto w-full rounded-xl object-contain lg:h-full lg:w-auto lg:max-w-full"
           />
         ) : (
           <div
             role="img"
-            aria-label="Chưa có ảnh bìa truyện"
+            aria-label={copy.noStoryCover}
             className="aspect-video w-full rounded-xl bg-gradient-to-br from-indigo-900 via-katha-surface to-purple-900"
           />
         )}

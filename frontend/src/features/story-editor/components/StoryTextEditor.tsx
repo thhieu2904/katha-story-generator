@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { StoryTextPage, StoryRouteKey } from '@/features/stories/types';
 import { useStoryByRouteKey } from '@/features/stories/useStory';
-import { LENGTH_LABELS, STATUS_LABELS } from '@/features/stories/constants';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
 import { orchestrateConfirmAndPrepare } from '@/features/story-workflow/orchestration';
 import { useIsMobileCompact } from '@/features/story-workflow/useIsMobileCompact';
@@ -20,9 +19,16 @@ import { DeletePageDialog } from './DeletePageDialog';
 import { InstructionBox } from './InstructionBox';
 import { QuickActions } from './QuickActions';
 import { SortablePageList } from './SortablePageList';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
+import { LearningProgressBar } from '@/features/learning/components/LearningProgressBar';
+import { LearningJourneyControls } from '@/features/learning/components/LearningJourneyControls';
+import { resetLearningJourneyProgress } from '@/features/learning/resetLearningJourney';
+import { hasVisionLearningContextInDescription } from '@/features/learning/visionStoryDraft';
 
 export function StoryTextEditor({ storyKey }: { storyKey: StoryRouteKey }) {
   const { story, loading: storyLoading, error: fetchError, retry } = useStoryByRouteKey(storyKey);
+  const { copy, language } = useUiCopy();
 
   if (storyLoading) {
     return (
@@ -39,45 +45,62 @@ export function StoryTextEditor({ storyKey }: { storyKey: StoryRouteKey }) {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <EditorMessage
-          title="Không thể tải truyện"
-          detail={fetchError || undefined}
+          title={copy.publicStoryLoadFailed}
+          detail={language === 'vi' ? fetchError || undefined : undefined}
           onRetry={retry}
         />
       </StoryWorkflowShell>
     );
   }
 
-  return <StoryTextEditorInner storyId={story.id} storyKey={storyKey} />;
+  return (
+    <StoryTextEditorInner
+      storyId={story.id}
+      storyKey={storyKey}
+      isVisionLesson={hasVisionLearningContextInDescription(story.description_vi ?? '')}
+    />
+  );
 }
 
 function StoryTextEditorInner({
   storyId,
   storyKey,
+  isVisionLesson,
 }: {
   storyId: number;
   storyKey: StoryRouteKey;
+  isVisionLesson: boolean;
 }) {
   const router = useRouter();
+  const { copy, language: contentLanguage } = useUiCopy();
   const editor = useStoryEditor(storyId);
   const isMobileCompact = useIsMobileCompact();
   const [deleteTarget, setDeleteTarget] = useState<StoryTextPage | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isConfirmingAndPreparing, setIsConfirmingAndPreparing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const resetLearningJourney = () => {
+    resetLearningJourneyProgress();
+    router.replace('/admin/vision');
+  };
 
   useEffect(() => {
     const status = editor.story?.status;
     if (!status) return;
-    const presentation = getWorkflowPresentation(storyKey, status, editor.story?.image_workflow_kind);
+    const presentation = getWorkflowPresentation(
+      storyKey,
+      status,
+      editor.story?.image_workflow_kind,
+    );
     const routeMode = getWorkflowRouteMode(
       presentation,
-      `/admin/stories/${storyKey}/edit`
+      `/admin/stories/${storyKey}/edit`,
     );
 
     if (routeMode === 'redirect') {
       router.replace(presentation.canonicalHref);
     }
-  }, [editor.story?.status, router, storyKey]);
+  }, [editor.story?.image_workflow_kind, editor.story?.status, router, storyKey]);
 
   if (editor.loading) {
     return (
@@ -94,8 +117,8 @@ function StoryTextEditorInner({
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <EditorMessage
-          title="Không thể tải truyện"
-          detail={editor.error || undefined}
+          title={copy.publicStoryLoadFailed}
+          detail={contentLanguage === 'vi' ? editor.error || undefined : undefined}
           onRetry={() => void editor.refresh()}
         />
       </StoryWorkflowShell>
@@ -106,14 +129,32 @@ function StoryTextEditorInner({
     return (
       <StoryWorkflowShell
         storyKey={storyKey}
-        storyTitle={editor.story.title_vi || 'Truyện chưa đặt tên'}
+        storyTitle={
+          contentLanguage === 'km'
+            ? editor.story.title_km || editor.story.title_vi || copy.untitledStory
+            : editor.story.title_vi || editor.story.title_km || copy.untitledStory
+        }
         status={editor.story.status}
         imageWorkflowKind={editor.story.image_workflow_kind}
+        showWorkflowStepper={!isVisionLesson}
       >
-        <EditorMessage
-          title="Đang sinh nội dung song ngữ…"
-          detail="Hệ thống đang sinh nội dung và bản dịch. Trạng thái sẽ tự động cập nhật."
-        />
+        <div className="space-y-6">
+          <VisionLearningProgress
+            enabled={isVisionLesson}
+            language={contentLanguage}
+          />
+          <EditorMessage
+            title={copy.generatingBilingual}
+            detail={copy.generatingBilingualDetail}
+          />
+          {isVisionLesson && (
+            <LearningJourneyControls
+              language={contentLanguage}
+              onReset={resetLearningJourney}
+              className="border-t border-katha-text/10 pt-5"
+            />
+          )}
+        </div>
       </StoryWorkflowShell>
     );
   }
@@ -129,7 +170,7 @@ function StoryTextEditorInner({
   if (editor.story.status === 'archived') {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
-        <EditorMessage title="Truyện đã được lưu trữ" />
+        <EditorMessage title={copy.storyArchivedMessage} />
       </StoryWorkflowShell>
     );
   }
@@ -139,8 +180,8 @@ function StoryTextEditorInner({
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <EditorMessage
-          title="Không có nội dung để hiển thị"
-          detail={editor.error || undefined}
+          title={copy.noContentToDisplay}
+          detail={contentLanguage === 'vi' ? editor.error || undefined : undefined}
           onRetry={() => void editor.refresh()}
         />
       </StoryWorkflowShell>
@@ -182,7 +223,10 @@ function StoryTextEditorInner({
   const actionBar = editable ? (
     <>
       <div className="text-xs text-katha-text/50 hidden sm:block">
-        {text.pages.length} trang · {LENGTH_LABELS[text.length_pref] || text.length_pref}
+        {formatCopy(copy.pageCount, { count: text.pages.length })} ·{' '}
+        {{ short: copy.shortLength, medium: copy.mediumLength, long: copy.longLength }[
+          text.length_pref
+        ] || text.length_pref}
       </div>
       <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
         <button
@@ -192,42 +236,76 @@ function StoryTextEditorInner({
           className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
           {isConfirmingAndPreparing
-            ? 'Đang chuẩn bị minh họa…'
-            : 'Xác nhận và chuẩn bị minh họa'}
+            ? copy.preparingIllustrations
+            : copy.confirmAndPrepare}
         </button>
       </div>
     </>
   ) : (
     <div className="text-xs text-katha-text/50">
-      Nội dung đã được xác nhận và ở chế độ chỉ đọc.
+      {copy.contentReadOnly}
     </div>
   );
 
   return (
     <StoryWorkflowShell
       storyKey={storyKey}
-      storyTitle={text.title_vi || 'Truyện chưa đặt tên'}
+      storyTitle={
+        contentLanguage === 'km'
+          ? text.title_km || text.title_vi || copy.untitledStory
+          : text.title_vi || text.title_km || copy.untitledStory
+      }
       status={text.status}
       imageWorkflowKind={editor.story.image_workflow_kind}
       actionBar={actionBar}
+      showWorkflowStepper={!isVisionLesson}
     >
       <div className="space-y-6">
+        <VisionLearningProgress
+          enabled={isVisionLesson}
+          language={contentLanguage}
+        />
+
         <header className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-katha-text/45">
                 <span className="rounded-full border border-katha-text/10 px-2.5 py-1">
-                  {STATUS_LABELS[text.status] || text.status}
+                  {{
+                    draft: copy.statusDraft,
+                    generating_text: copy.statusGeneratingText,
+                    text_draft: copy.statusTextDraft,
+                    text_confirmed: copy.statusTextConfirmed,
+                    generating_images: copy.statusGeneratingImages,
+                    pending_review: copy.statusPendingReview,
+                    approved: copy.statusApproved,
+                    published: copy.statusPublished,
+                    archived: copy.statusArchived,
+                  }[text.status] || text.status}
                 </span>
-                <span>{text.pages.length} trang</span>
+                <span>{formatCopy(copy.pageCount, { count: text.pages.length })}</span>
                 <span>·</span>
-                <span>{LENGTH_LABELS[text.length_pref] || text.length_pref}</span>
+                <span>
+                  {{ short: copy.shortLength, medium: copy.mediumLength, long: copy.longLength }[
+                    text.length_pref
+                  ] || text.length_pref}
+                </span>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                {text.title_vi}
+              <h1
+                lang={contentLanguage}
+                className={`text-3xl font-bold tracking-tight sm:text-4xl ${
+                  contentLanguage === 'km' ? 'font-khmer' : ''
+                }`}
+              >
+                {contentLanguage === 'km' ? text.title_km : text.title_vi}
               </h1>
-              <p className="text-khmer mt-3 text-xl leading-9 text-katha-text/65">
-                {text.title_km}
+              <p
+                lang={contentLanguage === 'km' ? 'vi' : 'km'}
+                className={`mt-3 text-xl leading-9 text-katha-text/65 ${
+                  contentLanguage === 'vi' ? 'text-khmer' : ''
+                }`}
+              >
+                {contentLanguage === 'km' ? text.title_vi : text.title_km}
               </p>
             </div>
             {editable && !isMobileCompact && (
@@ -237,7 +315,7 @@ function StoryTextEditorInner({
                 onClick={() => void editor.retranslate('title')}
                 className="rounded-lg border border-katha-text/15 px-3 py-2 text-xs font-medium text-katha-text/80 hover:text-katha-text transition disabled:opacity-40"
               >
-                Dịch lại tiêu đề Khmer
+                {copy.retranslateKhmerTitle}
               </button>
             )}
           </div>
@@ -245,17 +323,17 @@ function StoryTextEditorInner({
           {/* Page anchor navigator compact (P1 feature) */}
           {text.pages.length > 1 && (
             <nav
-              aria-label="Điều hướng nhanh trang"
+              aria-label={copy.quickPageNavigation}
               className="mt-6 flex flex-wrap items-center gap-2 border-t border-katha-text/10 pt-4"
             >
-              <span className="text-xs text-katha-text/45 mr-1">Chuyển nhanh:</span>
+              <span className="text-xs text-katha-text/45 mr-1">{copy.jumpTo}</span>
               {text.pages.map((p) => (
                 <a
                   key={p.id}
                   href={`#page-${p.page_no}`}
                   className="rounded-md border border-katha-text/10 bg-katha-text/5 px-2.5 py-1 text-xs text-katha-text/70 hover:bg-katha-text/15 hover:text-katha-text transition"
                 >
-                  Trang {p.page_no}
+                  {formatCopy(copy.pageLabel, { page: p.page_no })}
                 </a>
               ))}
             </nav>
@@ -264,37 +342,45 @@ function StoryTextEditorInner({
 
         {!editable && (
           <div className="rounded-xl border border-katha-success/25 bg-katha-success/10 p-4 text-sm text-emerald-200">
-            Nội dung đã được xác nhận và đang ở chế độ chỉ đọc.
+            {copy.contentReadOnly}
           </div>
         )}
 
         {isMobileCompact && editable && (
           <div className="rounded-xl border border-katha-text/10 bg-katha-text/5 p-4 text-xs text-katha-text/60">
-            💡 Mở trên tablet hoặc máy tính (tối thiểu 768×600) để sử dụng các công cụ biên tập AI và sắp xếp trang chi tiết.
+            💡 {copy.mobileEditorHelp}
           </div>
         )}
 
         {actionError && (
           <div className="rounded-xl border border-katha-error/25 bg-katha-error/10 p-4 text-sm text-rose-200">
-            {actionError}
+            {contentLanguage === 'vi' ? actionError : copy.genericError}
           </div>
         )}
 
         {editor.pending && (
           <div className="rounded-xl border border-katha-primary/25 bg-katha-primary/10 p-4 text-sm text-katha-primary-light">
-            {pendingLabel(editor.pending)}
+            {{
+              validate: copy.validatingKhmer,
+              edit: copy.editingAndTranslating,
+              add: copy.generatingNewPage,
+              reorder: copy.savingPageOrder,
+              delete: copy.deletingAndRenumbering,
+              retranslate: copy.retranslatingKhmer,
+              confirm: copy.confirmingContent,
+            }[editor.pending] || copy.processing}
           </div>
         )}
 
         {editor.notice && (
           <div className="rounded-xl border border-katha-success/20 bg-katha-success/8 p-4 text-sm text-emerald-200">
-            {editor.notice}
+            {contentLanguage === 'vi' ? editor.notice : copy.actionCompleted}
           </div>
         )}
 
         {editor.error && (
           <div className="rounded-xl border border-katha-error/25 bg-katha-error/8 p-4 text-sm text-red-200">
-            <p>{editor.error}</p>
+            <p>{contentLanguage === 'vi' ? editor.error : copy.genericError}</p>
             {(editor.blocked || editor.validationFailed) && (
               <button
                 type="button"
@@ -305,7 +391,7 @@ function StoryTextEditorInner({
                 }
                 className="mt-3 rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface"
               >
-                {editor.blocked ? 'Kiểm tra lại trạng thái' : 'Thử lại kiểm tra Khmer'}
+                {editor.blocked ? copy.checkStateAgain : copy.retryKhmerValidation}
               </button>
             )}
           </div>
@@ -367,22 +453,34 @@ function StoryTextEditorInner({
             }}
           />
         )}
+
+        {isVisionLesson && (
+          <LearningJourneyControls
+            language={contentLanguage}
+            onReset={resetLearningJourney}
+            disabled={Boolean(editor.pending || editor.blocked || isConfirmingAndPreparing)}
+            className="border-t border-katha-text/10 pt-5"
+          />
+        )}
       </div>
     </StoryWorkflowShell>
   );
 }
 
-function pendingLabel(pending: string) {
-  const labels: Record<string, string> = {
-    validate: 'Đang kiểm tra kỹ thuật Khmer…',
-    edit: 'Đang biên tập và đồng bộ bản dịch…',
-    add: 'Đang sinh trang mới…',
-    reorder: 'Đang lưu thứ tự trang…',
-    delete: 'Đang xóa và đánh lại số trang…',
-    retranslate: 'Đang dịch lại Khmer…',
-    confirm: 'Đang xác nhận nội dung…',
-  };
-  return labels[pending] || 'Đang xử lý…';
+function VisionLearningProgress({
+  enabled,
+  language,
+}: {
+  enabled: boolean;
+  language: 'vi' | 'km';
+}) {
+  if (!enabled) return null;
+
+  return (
+    <div className="katha-card rounded-2xl border border-katha-text/10 bg-katha-text/[0.035] p-4 shadow-lg backdrop-blur-xl sm:p-5">
+      <LearningProgressBar currentStep={3} stepProgress={0} language={language} />
+    </div>
+  );
 }
 
 function EditorMessage({
@@ -394,6 +492,8 @@ function EditorMessage({
   detail?: string;
   onRetry?: () => void;
 }) {
+  const { copy } = useUiCopy();
+
   return (
     <section className="rounded-2xl border border-katha-text/10 bg-katha-text/[0.025] p-10 text-center">
       <h1 className="text-xl font-semibold text-katha-text">{title}</h1>
@@ -404,7 +504,7 @@ function EditorMessage({
           onClick={onRetry}
           className="mt-5 rounded-lg bg-katha-text px-4 py-2 text-sm font-semibold text-katha-surface"
         >
-          Thử lại
+          {copy.retry}
         </button>
       )}
     </section>

@@ -1,4 +1,6 @@
 import React from 'react';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ArchiveReviewDialogProps {
   open: boolean;
@@ -15,6 +17,7 @@ export function ArchiveReviewDialog({
   onConfirm,
   isSubmitting,
 }: ArchiveReviewDialogProps) {
+  const { copy } = useUiCopy();
   if (!open) return null;
 
   return (
@@ -31,10 +34,12 @@ export function ArchiveReviewDialog({
           </svg>
         </div>
 
-        <h3 className="text-xl font-bold mb-2 text-katha-text">Lưu trữ truyện</h3>
+        <h3 className="text-xl font-bold mb-2 text-katha-text">{copy.archiveStory}</h3>
         
         <p className="text-sm text-katha-text/70 mb-6">
-          Bạn có chắc chắn muốn lưu trữ truyện <span className="font-semibold text-katha-text">“{storyTitle || 'Truyện chưa đặt tên'}”</span>? Truyện sẽ bị ẩn.
+          {formatCopy(copy.archiveReviewConfirm, {
+            title: storyTitle || copy.untitledStory,
+          })}
         </p>
 
         <div className="flex justify-center gap-3">
@@ -44,7 +49,7 @@ export function ArchiveReviewDialog({
             disabled={isSubmitting}
             className="rounded-xl px-5 py-2.5 text-sm font-medium text-katha-text/70 hover:bg-katha-text/5 transition-colors disabled:opacity-50"
           >
-            Hủy
+            {copy.cancel}
           </button>
           <button
             type="button"
@@ -52,7 +57,7 @@ export function ArchiveReviewDialog({
             disabled={isSubmitting}
             className="rounded-xl bg-katha-error px-5 py-2.5 text-sm font-medium text-katha-text transition hover:bg-red-600 disabled:opacity-50"
           >
-            {isSubmitting ? 'Đang lưu trữ...' : 'Lưu trữ'}
+            {isSubmitting ? copy.archiving : copy.archive}
           </button>
         </div>
       </div>

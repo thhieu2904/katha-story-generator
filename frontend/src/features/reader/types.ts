@@ -1,3 +1,5 @@
+import type { KhmerKnowledge } from '@/features/vision/api';
+
 export interface PublicPage {
   page_no: number;
   text_km: string;
@@ -16,6 +18,10 @@ export interface PublicStory {
   page_count: number;
   cover: PublicCover;
   pages: PublicPage[];
+  learning_context?: {
+    class_name: string;
+    knowledge: KhmerKnowledge;
+  } | null;
 }
 
 export type ReaderLanguage = 'km' | 'vi';

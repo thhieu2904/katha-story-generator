@@ -2,11 +2,14 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 import type { StoryImageCharacter } from '../types';
 
 function CharacterThumbnail({ character }: { character: StoryImageCharacter }) {
   const [failed, setFailed] = useState(false);
   const src = character.thumbnail_url?.trim();
+  const { copy } = useUiCopy();
 
   if (!src || failed) {
     return (
@@ -23,7 +26,7 @@ function CharacterThumbnail({ character }: { character: StoryImageCharacter }) {
     <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-katha-text/[0.07]">
       <Image
         src={src}
-        alt={`Ảnh tham chiếu ${character.name}`}
+        alt={formatCopy(copy.characterReference, { name: character.name })}
         fill
         unoptimized
         sizes="40px"
@@ -49,20 +52,21 @@ export function CharacterMapping({
   disabled,
   onChange,
 }: CharacterMappingProps) {
+  const { copy } = useUiCopy();
   const selected = new Set(selectedCharacterIds);
   const selectionAtLimit = selected.size >= 3;
   const descriptionId = `page-${pageNo}-character-help`;
 
   return (
     <fieldset disabled={disabled} className="mt-5 rounded-xl border border-katha-text/10 bg-black/15 p-4 disabled:opacity-65">
-      <legend className="px-1 text-sm font-semibold text-katha-text/85">Nhân vật xuất hiện</legend>
+      <legend className="px-1 text-sm font-semibold text-katha-text/85">{copy.charactersAppearing}</legend>
       <p id={descriptionId} className="mt-1 text-xs leading-5 text-katha-text/45">
-        Chọn tối đa 3 nhân vật thuộc dàn nhân vật của truyện. Có thể để trống cho cảnh không có nhân vật.
+        {copy.characterMappingHelp}
       </p>
 
       {characters.length === 0 ? (
         <p className="mt-3 rounded-lg border border-dashed border-katha-text/15 px-3 py-2 text-xs text-katha-text/45">
-          Truyện này chưa có nhân vật để gắn vào trang.
+          {copy.noStoryCharacters}
         </p>
       ) : (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">

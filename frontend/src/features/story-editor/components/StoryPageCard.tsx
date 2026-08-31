@@ -4,6 +4,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { useSortable } from '@dnd-kit/sortable';
 import type { StoryTextPage } from '@/features/stories/types';
 import { SpellcheckFlags } from './SpellcheckFlags';
+import { useContentLanguage } from '@/features/language/useContentLanguage';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 export function StoryPageCard({
   page,
@@ -24,6 +27,8 @@ export function StoryPageCard({
   onDelete: () => void;
   onRetranslate: () => void;
 }) {
+  const { language: contentLanguage } = useContentLanguage();
+  const { copy } = useUiCopy();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: page.id,
     disabled,
@@ -40,7 +45,7 @@ export function StoryPageCard({
           <button
             type="button"
             disabled={disabled}
-            aria-label={`Kéo trang ${page.page_no}`}
+            aria-label={formatCopy(copy.dragPage, { page: page.page_no })}
             className="cursor-grab rounded-lg border border-katha-text/10 px-2 py-1 text-katha-text/45 disabled:cursor-default"
             {...attributes}
             {...listeners}
@@ -48,19 +53,33 @@ export function StoryPageCard({
             ⠿
           </button>
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-katha-primary-light">
-            Trang {page.page_no}
+            {formatCopy(copy.pageLabel, { page: page.page_no })}
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={disabled || index === 0} onClick={() => onMove(index, index - 1)} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30" aria-label="Đưa trang lên">↑</button>
-          <button type="button" disabled={disabled || index === count - 1} onClick={() => onMove(index, index + 1)} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30" aria-label="Đưa trang xuống">↓</button>
-          <button type="button" disabled={disabled} onClick={onRetranslate} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30">Dịch lại Khmer</button>
-          <button type="button" disabled={disabled || !canDelete} onClick={onDelete} className="rounded-md border border-katha-error/30 px-2 py-1 text-xs text-red-200 disabled:opacity-30">Xóa</button>
+          <button type="button" disabled={disabled || index === 0} onClick={() => onMove(index, index - 1)} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30" aria-label={copy.movePageUp}>↑</button>
+          <button type="button" disabled={disabled || index === count - 1} onClick={() => onMove(index, index + 1)} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30" aria-label={copy.movePageDown}>↓</button>
+          <button type="button" disabled={disabled} onClick={onRetranslate} className="rounded-md border border-katha-text/10 px-2 py-1 text-xs disabled:opacity-30">{copy.retranslateKhmer}</button>
+          <button type="button" disabled={disabled || !canDelete} onClick={onDelete} className="rounded-md border border-katha-error/30 px-2 py-1 text-xs text-red-200 disabled:opacity-30">{copy.deleteAction}</button>
         </div>
       </div>
-      <p className="text-[17px] font-medium leading-8 text-katha-text/90">{page.text_vi}</p>
+      <p
+        lang={contentLanguage}
+        className={`font-medium leading-8 text-katha-text/90 ${
+          contentLanguage === 'km' ? 'text-khmer' : 'text-[17px]'
+        }`}
+      >
+        {contentLanguage === 'km' ? page.text_km : page.text_vi}
+      </p>
       <div className="my-5 border-t border-katha-text/10" />
-      <p className="text-khmer text-base leading-8 text-katha-text/65">{page.text_km}</p>
+      <p
+        lang={contentLanguage === 'km' ? 'vi' : 'km'}
+        className={`text-base leading-8 text-katha-text/65 ${
+          contentLanguage === 'vi' ? 'text-khmer' : ''
+        }`}
+      >
+        {contentLanguage === 'km' ? page.text_vi : page.text_km}
+      </p>
       <SpellcheckFlags flags={page.spellcheck_flags} validatedAt={page.khmer_validated_at} />
     </article>
   );

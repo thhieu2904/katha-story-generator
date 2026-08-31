@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from 'react';
-import { READER_CREDIT } from '../constants';
+import { formatCopy, getUiCopy } from '@/features/language/uiCopy';
+import type { ReaderLanguage } from '../types';
 
 interface ReaderControlsProps {
   currentPage: number;
@@ -9,6 +10,7 @@ interface ReaderControlsProps {
   canNarrate?: boolean;
   onNarrationToggle?: () => void;
   navigationDisabled?: boolean;
+  language?: ReaderLanguage;
 }
 
 export function ReaderControls({
@@ -19,7 +21,9 @@ export function ReaderControls({
   canNarrate = false,
   onNarrationToggle,
   navigationDisabled = false,
+  language = 'vi',
 }: ReaderControlsProps) {
+  const copy = getUiCopy(language);
   const gestureRef = useRef<{ x: number; y: number } | null>(null);
 
   const handlePrev = useCallback(() => {
@@ -115,7 +119,7 @@ export function ReaderControls({
           onClick={handlePrev}
           disabled={navigationDisabled || currentPage === 0}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-katha-text/10 hover:bg-katha-text/20 disabled:opacity-30 disabled:hover:bg-katha-text/10 transition-colors focus:outline-none focus:ring-2 focus:ring-katha-primary"
-          aria-label="Trang trước"
+          aria-label={copy.previousPage}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
@@ -131,12 +135,12 @@ export function ReaderControls({
               className="flex min-h-[44px] items-center gap-2 rounded-full bg-katha-primary px-4 text-sm font-semibold text-katha-text transition-colors hover:bg-katha-primary/85 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={
                 narrationState === 'preparing'
-                  ? 'Đang tải giọng đọc'
+                  ? copy.loadingNarration
                   : narrationState === 'playing' || narrationState === 'loading'
-                  ? 'Tạm dừng đọc truyện'
+                  ? copy.pauseStoryReading
                   : narrationState === 'paused'
-                    ? 'Tiếp tục đọc truyện'
-                    : 'Bắt đầu đọc truyện'
+                    ? copy.resumeStoryReading
+                    : copy.startStoryReading
               }
             >
               {narrationState === 'preparing' ? (
@@ -155,12 +159,12 @@ export function ReaderControls({
               )}
               <span className="hidden sm:inline">
                 {narrationState === 'preparing'
-                  ? 'Đang tải'
+                  ? copy.loadingShort
                   : narrationState === 'playing' || narrationState === 'loading'
-                  ? 'Tạm dừng'
+                  ? copy.pause
                   : narrationState === 'paused'
-                    ? 'Tiếp tục'
-                    : 'Bắt đầu nghe'}
+                    ? copy.resumeShort
+                    : copy.startListening}
               </span>
             </button>
           )}
@@ -170,7 +174,9 @@ export function ReaderControls({
             aria-live="polite"
             aria-atomic="true"
           >
-            {currentPage === 0 ? 'Bìa' : `Trang ${currentPage}/${totalPages}`}
+            {currentPage === 0
+              ? copy.cover
+              : formatCopy(copy.pageNumber, { page: currentPage, total: totalPages })}
           </div>
         </div>
         
@@ -178,7 +184,7 @@ export function ReaderControls({
           onClick={handleNext}
           disabled={navigationDisabled}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-katha-text/10 hover:bg-katha-text/20 transition-colors focus:outline-none focus:ring-2 focus:ring-katha-primary"
-          aria-label={currentPage === totalPages ? 'Về bìa' : 'Trang tiếp'}
+          aria-label={currentPage === totalPages ? copy.backToCover : copy.nextPage}
         >
           {currentPage === totalPages ? (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -193,7 +199,7 @@ export function ReaderControls({
         </button>
       </div>
       <p className="mx-auto mt-2 max-w-[1400px] text-center text-[11px] leading-relaxed text-katha-text/30">
-        {READER_CREDIT}
+        {copy.readerCredit}
       </p>
     </div>
   );

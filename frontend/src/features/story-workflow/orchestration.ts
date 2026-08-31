@@ -1,5 +1,5 @@
 import type { Story, StoryCreate, StoryRouteKey } from '@/features/stories/types';
-import { createStory, fetchStory, generateStoryText } from '@/features/stories/api';
+import { createStory, fetchStory, fetchStoryText, generateStoryText } from '@/features/stories/api';
 import { confirmStoryText } from '@/features/story-editor/api';
 import {
   createImagePlan,
@@ -103,6 +103,71 @@ export async function orchestrateCreateAndGenerate(
       };
     }
   }
+}
+
+export async function orchestrateVisionCreateAndStartReading(
+  formData: StoryCreate,
+): Promise<WorkflowTransitionResult<Story>> {
+  const created = await orchestrateCreateAndGenerate(formData);
+  if (created.kind !== 'success' || !created.canonical) return created;
+
+  const story = created.canonical;
+  let textRevision: number;
+  try {
+    textRevision = (await fetchStoryText(story.id)).text_revision;
+  } catch (error) {
+    return {
+      kind: 'partial',
+      canonical: story,
+      message: getErrorMessage(error),
+      nextHref: created.nextHref,
+    };
+  }
+
+  const prepared = await orchestrateConfirmAndPrepare(
+    story.id,
+    textRevision,
+    true,
+    story.route_key,
+  );
+  if (prepared.kind === 'blocked' || prepared.kind === 'failed') {
+    return { kind: prepared.kind, message: prepared.message };
+  }
+  if (prepared.kind === 'partial') {
+    return {
+      kind: 'partial',
+      canonical: story,
+      message: prepared.message,
+      nextHref: prepared.nextHref,
+    };
+  }
+
+  const imagesState = prepared.canonical;
+  const started = await orchestrateSaveAndStart(
+    story.id,
+    false,
+    [],
+    imagesState.image_plan_revision,
+    imagesState,
+    undefined,
+    story.route_key,
+  );
+  if (started.kind === 'success') {
+    return {
+      kind: 'success',
+      canonical: story,
+      nextHref: `/admin/stories/${story.route_key}/read?source=vision`,
+    };
+  }
+  if (started.kind === 'blocked' || started.kind === 'failed') {
+    return { kind: started.kind, message: started.message };
+  }
+  return {
+    kind: 'partial',
+    canonical: story,
+    message: started.message,
+    nextHref: started.nextHref,
+  };
 }
 
 // ---------------------------------------------------------------------------

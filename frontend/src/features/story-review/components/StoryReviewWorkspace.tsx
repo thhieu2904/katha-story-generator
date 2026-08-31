@@ -6,7 +6,6 @@ import type { StoryRouteKey } from '@/features/stories/types';
 import { useStoryByRouteKey } from '@/features/stories/useStory';
 import { StoryWorkflowShell } from '@/features/story-workflow/components/StoryWorkflowShell';
 import { useIsMobileCompact } from '@/features/story-workflow/useIsMobileCompact';
-import { STORY_STATUS_LABELS } from '../constants';
 import { useStoryReview } from '../useStoryReview';
 import type { ReviewPageData } from '../types';
 import { ReviewProgress as ReviewProgressBar } from './ReviewProgress';
@@ -17,6 +16,8 @@ import { ShareLinkPanel } from './ShareLinkPanel';
 import { StopSharingDialog } from './StopSharingDialog';
 import { ArchiveReviewDialog } from './ArchiveReviewDialog';
 import { EditKhmerTitleDialog } from './EditKhmerTitleDialog';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 function WorkspaceSkeleton() {
   return (
@@ -40,6 +41,8 @@ function WorkspaceMessage({
   detail?: string;
   onRetry?: () => void;
 }) {
+  const { copy } = useUiCopy();
+
   return (
     <div className="flex flex-col items-center justify-center p-12 text-center bg-katha-surface-light rounded-2xl border border-katha-text/5">
       <h3 className="text-xl font-medium text-katha-text mb-2">{title}</h3>
@@ -49,7 +52,7 @@ function WorkspaceMessage({
           onClick={onRetry}
           className="px-6 py-2.5 bg-katha-text/10 hover:bg-katha-text/15 text-katha-text rounded-xl font-medium transition-colors"
         >
-          Thử lại
+          {copy.retry}
         </button>
       )}
     </div>
@@ -71,6 +74,7 @@ export function StoryReviewWorkspace({
   storyKey: StoryRouteKey;
 }) {
   const { story, loading, error, retry } = useStoryByRouteKey(storyKey);
+  const { copy, language } = useUiCopy();
 
   if (loading) {
     return (
@@ -89,8 +93,8 @@ export function StoryReviewWorkspace({
         imageWorkflowKind={story?.image_workflow_kind}
       >
         <WorkspaceMessage
-          title="Không thể tải không gian duyệt truyện"
-          detail={error || undefined}
+          title={copy.reviewWorkspaceUnavailable}
+          detail={language === 'vi' ? error || undefined : undefined}
           onRetry={retry}
         />
       </StoryWorkflowShell>
@@ -126,6 +130,7 @@ function StoryReviewWorkspaceInner({
   storyMeta: StoryMetaFallback;
 }) {
   const router = useRouter();
+  const { copy, language } = useUiCopy();
   const isMobileCompact = useIsMobileCompact();
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -162,7 +167,7 @@ function StoryReviewWorkspaceInner({
 
   const fallbackShellProps = {
     storyKey,
-    storyTitle: storyMeta.title || 'Truyện chưa đặt tên',
+    storyTitle: storyMeta.title || copy.untitledStory,
     status: storyMeta.status,
     imageWorkflowKind: storyMeta.imageWorkflowKind,
   };
@@ -179,8 +184,8 @@ function StoryReviewWorkspaceInner({
     return (
       <StoryWorkflowShell {...fallbackShellProps}>
         <WorkspaceMessage
-          title="Lỗi tải dữ liệu duyệt truyện"
-          detail={error}
+          title={copy.reviewDataLoadError}
+          detail={language === 'vi' ? error : undefined}
           onRetry={refresh}
         />
       </StoryWorkflowShell>
@@ -190,7 +195,7 @@ function StoryReviewWorkspaceInner({
   if (!reviewState) {
     return (
       <StoryWorkflowShell {...fallbackShellProps}>
-        <WorkspaceMessage title="Không có dữ liệu" onRetry={refresh} />
+        <WorkspaceMessage title={copy.noData} onRetry={refresh} />
       </StoryWorkflowShell>
     );
   }
@@ -309,7 +314,12 @@ function StoryReviewWorkspaceInner({
 
   const isJobRunning = job.is_running;
   const statusLabel =
-    STORY_STATUS_LABELS[story.status] || story.status;
+    {
+      generating_images: copy.statusGeneratingImages,
+      pending_review: copy.statusPendingReview,
+      approved: copy.statusApproved,
+      published: copy.statusPublished,
+    }[story.status] || story.status;
   const statusStyle =
     STATUS_BADGE_STYLES[story.status] || STATUS_BADGE_STYLES.pending_review;
 
@@ -318,14 +328,14 @@ function StoryReviewWorkspaceInner({
     actionBar = (
       <>
         <div className="text-xs text-katha-text/50">
-          Đang tạo bản thay thế ảnh. Các thao tác duyệt tạm bị tắt.
+          {copy.replacementInProgress}
         </div>
         <button
           type="button"
           disabled
           className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition disabled:opacity-40"
         >
-          Hoàn tất duyệt truyện
+          {copy.completeReview}
         </button>
       </>
     );
@@ -334,10 +344,14 @@ function StoryReviewWorkspaceInner({
       <>
         <div className="text-xs text-katha-text/50 hidden sm:block">
           {capabilities.can_complete_review
-            ? 'Tất cả trang đã được duyệt.'
-            : `Còn ${progress.pending} trang chờ duyệt${
-                progress.rejected > 0 ? `, ${progress.rejected} trang bị từ chối` : ''
-              }.`}
+            ? copy.allPagesApproved
+            : formatCopy(copy.pagesAwaitingReview, {
+                pending: progress.pending,
+                rejected:
+                  progress.rejected > 0
+                    ? formatCopy(copy.rejectedSuffix, { count: progress.rejected })
+                    : '',
+              })}
         </div>
         <button
           type="button"
@@ -345,7 +359,7 @@ function StoryReviewWorkspaceInner({
           disabled={!capabilities.can_complete_review || mutating || isCompleting}
           className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
-          Hoàn tất duyệt truyện
+          {copy.completeReview}
         </button>
       </>
     );
@@ -353,7 +367,7 @@ function StoryReviewWorkspaceInner({
     actionBar = (
       <>
         <div className="text-xs text-katha-text/50 hidden sm:block">
-          Truyện đã được duyệt, sẵn sàng xuất bản.
+          {copy.storyReadyToPublish}
         </div>
         <button
           type="button"
@@ -361,7 +375,7 @@ function StoryReviewWorkspaceInner({
           disabled={!capabilities.can_publish || mutating || isPublishing}
           className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
-          Xuất bản và tạo liên kết
+          {copy.publishAndShare}
         </button>
       </>
     );
@@ -369,14 +383,14 @@ function StoryReviewWorkspaceInner({
     actionBar = (
       <>
         <div className="text-xs text-katha-text/50">
-          Truyện đã xuất bản. Quản lý liên kết chia sẻ ở phía trên.
+          {copy.publishedSharingHelp}
         </div>
         <button
           type="button"
           disabled
           className="rounded-xl bg-katha-success/20 border border-katha-success/30 px-5 py-2.5 text-xs font-semibold text-emerald-200"
         >
-          Đã xuất bản
+          {copy.published}
         </button>
       </>
     );
@@ -385,7 +399,11 @@ function StoryReviewWorkspaceInner({
   return (
     <StoryWorkflowShell
       storyKey={storyKey}
-      storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
+      storyTitle={
+        language === 'km'
+          ? story.title_km || story.title_vi || copy.untitledStory
+          : story.title_vi || story.title_km || copy.untitledStory
+      }
       status={story.status}
       imageWorkflowKind={job.kind}
       actionBar={actionBar}
@@ -394,13 +412,13 @@ function StoryReviewWorkspaceInner({
       {pollError && (
         <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex items-center justify-between">
           <span>
-            Không thể cập nhật trạng thái mới nhất. Dữ liệu có thể cũ.
+            {copy.latestStateMayBeStale}
           </span>
           <button
             onClick={refresh}
             className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg text-xs font-medium"
           >
-            Thử lại
+            {copy.retry}
           </button>
         </div>
       )}
@@ -408,26 +426,26 @@ function StoryReviewWorkspaceInner({
       {/* Error banner */}
       {error && reviewState && (
         <div className="mb-6 p-4 rounded-xl bg-katha-error/10 border border-katha-error/20 text-red-200 text-sm flex items-center justify-between">
-          <span>{error}</span>
+          <span>{language === 'vi' ? error : copy.genericError}</span>
           <button
             onClick={refresh}
             className="px-3 py-1.5 bg-katha-error/20 hover:bg-katha-error/30 rounded-lg text-xs font-medium"
           >
-            Tải lại
+            {copy.reload}
           </button>
         </div>
       )}
 
       {showKhmerValidatorCta && (
         <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-          <span>Văn bản Khmer chưa được kiểm tra hoặc vẫn còn cảnh báo kỹ thuật.</span>
+          <span>{copy.khmerTextNeedsCheck}</span>
           <button
             type="button"
             onClick={() => void handleRunKhmerValidator(story.text_revision)}
             disabled={mutating || isJobRunning}
             className="shrink-0 rounded-lg bg-amber-500/20 px-3 py-2 text-xs font-medium hover:bg-amber-500/30 disabled:opacity-50"
           >
-            Chạy lại kiểm tra Khmer
+            {copy.rerunKhmerCheck}
           </button>
         </div>
       )}
@@ -455,7 +473,7 @@ function StoryReviewWorkspaceInner({
             />
           </svg>
           <span>
-            Đang tạo bản thay thế ảnh. Các thao tác duyệt tạm bị tắt.
+            {copy.replacementInProgress}
           </span>
         </div>
       )}
@@ -471,7 +489,7 @@ function StoryReviewWorkspaceInner({
               {statusLabel}
             </span>
             {capabilities.read_only && (
-              <span className="text-xs text-katha-text/55">Chỉ đọc</span>
+              <span className="text-xs text-katha-text/55">{copy.readOnly}</span>
             )}
           </div>
 
@@ -479,14 +497,14 @@ function StoryReviewWorkspaceInner({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-xl font-khmer text-katha-text">
-                  {story.title_km || 'Chưa có tiêu đề Khmer'}
+                  {story.title_km || copy.noKhmerTitle}
                 </h2>
                 {capabilities.can_edit_khmer && !isMobileCompact && (
                   <button
                     onClick={() => setEditTitleDialogOpen(true)}
                     disabled={mutating}
                     className="p-1.5 text-katha-text/55 hover:text-katha-text bg-katha-text/5 hover:bg-katha-text/10 rounded-lg transition-colors disabled:opacity-50"
-                    title="Sửa tiêu đề Khmer"
+                    title={copy.editKhmerTitleAction}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -495,7 +513,7 @@ function StoryReviewWorkspaceInner({
                 )}
               </div>
               <p className="text-sm text-katha-text/55">
-                {story.title_vi || 'Truyện chưa đặt tên'}
+                {story.title_vi || copy.untitledStory}
               </p>
             </div>
 
@@ -507,7 +525,7 @@ function StoryReviewWorkspaceInner({
       {/* Mobile compact guard */}
       {isMobileCompact && (
         <div className="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm text-center">
-          Mở trên tablet hoặc máy tính để chỉnh sửa chi tiết
+          {copy.desktopEditHelp}
         </div>
       )}
 
@@ -517,7 +535,7 @@ function StoryReviewWorkspaceInner({
           <ShareLinkPanel
             share={reviewState.share}
             capabilities={capabilities}
-            storyTitle={story.title_vi}
+            storyTitle={language === 'km' ? story.title_km || story.title_vi : story.title_vi}
             onRevokeShare={() => setRevokeDialogOpen(true)}
             onCreateShareLink={handleCreateShareLinkAction}
             onArchive={() => setArchiveDialogOpen(true)}

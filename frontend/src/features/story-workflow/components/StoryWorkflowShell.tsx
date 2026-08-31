@@ -12,6 +12,7 @@ interface StoryWorkflowShellProps {
   imageWorkflowKind?: string | null;
   children: React.ReactNode;
   actionBar?: React.ReactNode;
+  showWorkflowStepper?: boolean;
 }
 
 export function StoryWorkflowShell({
@@ -21,6 +22,7 @@ export function StoryWorkflowShell({
   imageWorkflowKind,
   children,
   actionBar,
+  showWorkflowStepper = true,
 }: StoryWorkflowShellProps) {
   // Default to Step 1 'draft' presentation if no key/status provided
   const presentation = getWorkflowPresentation((storyKey || 's1_UkLWZg9D') as StoryRouteKey, status || 'draft', imageWorkflowKind);
@@ -29,7 +31,7 @@ export function StoryWorkflowShell({
     <div className="mx-auto w-full max-w-7xl px-5 pb-28 pt-8 sm:px-8 sm:pt-12">
       <WorkflowHeader storyTitle={storyTitle} />
 
-      {presentation && presentation.showStepper && (
+      {showWorkflowStepper && presentation && presentation.showStepper && (
         <StoryWorkflowStepper
           presentation={presentation}
           storyKey={storyKey}

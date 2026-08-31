@@ -24,6 +24,7 @@ import {
   getWorkflowRouteMode,
 } from '@/features/story-workflow/workflow';
 import type { Story, StoryCreate, StoryRouteKey } from '@/features/stories/types';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 export function areStorySetupFieldsEqual(story: Story, data: StoryCreate): boolean {
   const normA = (story.description_vi || '').trim();
@@ -51,6 +52,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
   const searchParams = useSearchParams();
   const { story, error: fetchError, loading, retry } = useStoryByRouteKey(storyKey);
   const storyId = story?.id;
+  const { copy, language } = useUiCopy();
 
   const [formData, setFormData] = useState<StoryCreate | null>(null);
   const [isValid, setIsValid] = useState(false);
@@ -59,7 +61,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
   const [needsReconcile, setNeedsReconcile] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(
-    () => (searchParams.get('success') === 'created' ? 'Tạo truyện thành công!' : null)
+    () => (searchParams.get('success') === 'created' ? copy.setupCreated : null)
   );
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
 
@@ -130,21 +132,23 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
     setSuccessMessage(null);
     try {
       await updateStory(storyId, formData);
-      setSuccessMessage('Cập nhật thiết lập thành công!');
+      setSuccessMessage(copy.setupUpdated);
       retry();
     } catch (err) {
       if (isUncertainError(err)) {
         try {
           const current = await fetchStory(storyId);
           if (areStorySetupFieldsEqual(current, formData)) {
-            setSuccessMessage('Cập nhật thiết lập thành công!');
+            setSuccessMessage(copy.setupUpdated);
             retry();
             return;
           }
         } catch {
         }
       }
-      setSubmitError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi cập nhật');
+      setSubmitError(
+        language === 'vi' && err instanceof Error ? err.message : copy.setupUpdateFailed,
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -169,12 +173,12 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
       } catch {
         setNeedsReconcile(true);
         setSubmitError(
-          'Chưa thể xác định yêu cầu đã hoàn tất hay chưa. Hãy kiểm tra lại trạng thái trước khi thử lại.'
+          copy.generationStateUncertain,
         );
         return;
       }
       setSubmitError(
-        err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi sinh nội dung'
+        language === 'vi' && err instanceof Error ? err.message : copy.contentGenerationFailed,
       );
       retry();
     } finally {
@@ -196,7 +200,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
       router.replace(`/admin/stories/${current.route_key}/edit`);
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : 'Chưa thể kiểm tra trạng thái truyện'
+        language === 'vi' && err instanceof Error ? err.message : copy.storyStateCheckFailed,
       );
     } finally {
       setIsGenerating(false);
@@ -218,14 +222,16 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
     return (
       <StoryWorkflowShell storyKey={storyKey}>
         <section className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
-          <h2 className="font-semibold text-red-100">Không thể tải thông tin truyện</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">{fetchError}</p>
+          <h2 className="font-semibold text-red-100">{copy.storyInfoUnavailable}</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">
+            {language === 'vi' ? fetchError : copy.storyInfoUnavailable}
+          </p>
           <button
             type="button"
             onClick={retry}
             className="mt-5 rounded-xl bg-katha-text px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-katha-text/90"
           >
-            Thử lại
+            {copy.retry}
           </button>
         </section>
       </StoryWorkflowShell>
@@ -239,7 +245,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
   const actionBar = isDraft ? (
     <>
       <div className="text-xs text-katha-text/50 hidden sm:block">
-        Thiết lập hiện tại sẽ được lưu trước khi tạo nội dung.
+        {copy.setupSaveBeforeGenerate}
       </div>
       <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
         <button
@@ -247,7 +253,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
           onClick={() => setIsArchiveDialogOpen(true)}
           className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20 mr-auto sm:mr-0"
         >
-          Lưu trữ
+          {copy.archive}
         </button>
         <button
           type="button"
@@ -255,7 +261,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
           disabled={!isValid || isBusy}
           className="rounded-xl border border-katha-text/15 px-4 py-2.5 text-xs font-medium text-katha-text transition hover:bg-katha-text/10 disabled:opacity-40"
         >
-          {isSubmitting ? 'Đang lưu…' : 'Lưu thay đổi'}
+          {isSubmitting ? copy.saving : copy.saveChanges}
         </button>
         <button
           type="button"
@@ -263,20 +269,20 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
           disabled={!isValid || isBusy}
           className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light disabled:opacity-40"
         >
-          {isGenerating ? 'Đang sinh nội dung…' : 'Lưu và sinh nội dung'}
+          {isGenerating ? copy.generatingContent : copy.saveAndGenerate}
         </button>
       </div>
     </>
   ) : (
     <>
       <div className="text-xs text-katha-text/50">
-        Thiết lập đã được khóa cho trạng thái hiện tại.
+        {copy.setupLockedForStatus}
       </div>
       <Link
         href={canonicalHref}
         className="rounded-xl bg-katha-primary px-5 py-2.5 text-xs font-semibold text-katha-text shadow-lg transition hover:bg-katha-primary-light"
       >
-        Chuyển tới bước hiện tại →
+        {copy.goToCurrentStep}
       </Link>
     </>
   );
@@ -291,7 +297,11 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
   return (
     <StoryWorkflowShell
       storyKey={story.route_key}
-      storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
+      storyTitle={
+        language === 'km'
+          ? story.title_km || story.title_vi || copy.untitledStory
+          : story.title_vi || story.title_km || copy.untitledStory
+      }
       status={story.status}
       imageWorkflowKind={story.image_workflow_kind}
       actionBar={actionBar}
@@ -299,10 +309,12 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-katha-text tracking-tight sm:text-3xl">
-            Thiết lập ban đầu
+            {copy.initialSetup}
           </h1>
           <p className="mt-1 text-sm text-katha-text/60">
-            {story.title_vi || 'Truyện chưa đặt tên'}
+            {language === 'km'
+              ? story.title_km || story.title_vi || copy.untitledStory
+              : story.title_vi || story.title_km || copy.untitledStory}
           </p>
         </div>
 
@@ -322,7 +334,7 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
                 disabled={isGenerating}
                 className="mt-3 rounded-lg bg-katha-text px-3 py-1.5 text-xs font-semibold text-katha-surface disabled:opacity-50"
               >
-                Kiểm tra lại trạng thái
+                {copy.checkStateAgain}
               </button>
             )}
           </div>
@@ -363,7 +375,11 @@ export function SetupPageClient({ storyKey }: { storyKey: StoryRouteKey }) {
       {isArchiveDialogOpen && (
         <ArchiveStoryDialog
           storyId={story.id}
-          storyTitle={story.title_vi || 'Truyện chưa đặt tên'}
+          storyTitle={
+            language === 'km'
+              ? story.title_km || story.title_vi || copy.untitledStory
+              : story.title_vi || story.title_km || copy.untitledStory
+          }
           onClose={() => setIsArchiveDialogOpen(false)}
           onSuccess={() => router.replace('/admin/stories')}
         />

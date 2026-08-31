@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface EditKhmerTitleDialogProps {
   open: boolean;
@@ -18,6 +19,7 @@ export function EditKhmerTitleDialog({
   const [prevTitle, setPrevTitle] = useState(initialTitle);
   const [titleKm, setTitleKm] = useState(initialTitle);
   const [error, setError] = useState<string | null>(null);
+  const { copy } = useUiCopy();
 
   if (initialTitle !== prevTitle) {
     setPrevTitle(initialTitle);
@@ -31,11 +33,11 @@ export function EditKhmerTitleDialog({
     e.preventDefault();
     const trimmed = titleKm.trim();
     if (!trimmed) {
-      setError('Tiêu đề tiếng Khmer không được để trống.');
+      setError(copy.khmerTitleRequired);
       return;
     }
     if (trimmed.length > 160) {
-      setError('Tiêu đề tối đa 160 ký tự.');
+      setError(copy.khmerTitleTooLong);
       return;
     }
     setError(null);
@@ -52,11 +54,11 @@ export function EditKhmerTitleDialog({
         onSubmit={handleSubmit}
         className="relative w-full max-w-md rounded-2xl border border-katha-text/10 bg-katha-surface p-6 shadow-2xl space-y-4"
       >
-        <h2 className="text-lg font-bold text-katha-text">Chỉnh sửa tiêu đề tiếng Khmer</h2>
+        <h2 className="text-lg font-bold text-katha-text">{copy.editKhmerTitle}</h2>
 
         <div>
           <label className="block text-xs font-medium text-katha-text/55 mb-1">
-            Tiêu đề tiếng Khmer (tối đa 160 ký tự)
+            {copy.khmerTitleLabel}
           </label>
           <input
             type="text"
@@ -64,7 +66,7 @@ export function EditKhmerTitleDialog({
             onChange={(e) => setTitleKm(e.target.value)}
             disabled={isSubmitting}
             className="w-full px-3 py-2 rounded-xl bg-katha-text/5 border border-katha-text/10 text-katha-text font-khmer text-base focus:outline-none focus:border-katha-primary"
-            placeholder="Nội dung tiêu đề tiếng Khmer"
+            placeholder={copy.khmerTitlePlaceholder}
             autoFocus
           />
           <p
@@ -84,14 +86,14 @@ export function EditKhmerTitleDialog({
             disabled={isSubmitting}
             className="px-4 py-2 rounded-xl text-sm font-medium text-katha-text/70 hover:text-katha-text hover:bg-katha-text/5 transition-colors disabled:opacity-50"
           >
-            Hủy
+            {copy.cancel}
           </button>
           <button
             type="submit"
             disabled={isSubmitting || !titleKm.trim()}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-katha-primary hover:bg-katha-primary-light text-katha-text transition-colors disabled:opacity-50"
           >
-            {isSubmitting ? 'Đang lưu...' : 'Lưu tiêu đề'}
+            {isSubmitting ? copy.savingPlain : copy.saveTitle}
           </button>
         </div>
       </form>

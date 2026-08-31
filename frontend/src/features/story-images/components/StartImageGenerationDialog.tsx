@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ImageGenerationDialogMode } from '../types';
+import { formatCopy, type UiCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface StartImageGenerationDialogProps {
   mode: ImageGenerationDialogMode;
@@ -13,28 +15,28 @@ interface StartImageGenerationDialogProps {
   onReconcile: () => void;
 }
 
-function dialogCopy(mode: ImageGenerationDialogMode, finalizationOnly: boolean) {
+function dialogCopy(mode: ImageGenerationDialogMode, finalizationOnly: boolean, copy: UiCopy) {
   if (finalizationOnly) {
     return {
-      title: 'Đồng bộ kết quả',
-      action: 'Đồng bộ kết quả',
+      title: copy.syncResultsTitle,
+      action: copy.syncResults,
     };
   }
   if (mode === 'retry') {
     return {
-      title: 'Thử lại các trang còn thiếu',
-      action: 'Thử lại sinh ảnh',
+      title: copy.retryMissingPages,
+      action: copy.retryImageGeneration,
     };
   }
   if (mode === 'resume') {
     return {
-      title: 'Tiếp tục sinh ảnh',
-      action: 'Tiếp tục sinh ảnh',
+      title: copy.continueImageGeneration,
+      action: copy.continueImageGeneration,
     };
   }
   return {
-    title: 'Bắt đầu sinh ảnh',
-    action: 'Bắt đầu sinh ảnh',
+    title: copy.startImageGeneration,
+    action: copy.startImageGeneration,
   };
 }
 
@@ -50,7 +52,8 @@ export function StartImageGenerationDialog({
   onReconcile,
 }: StartImageGenerationDialogProps) {
   const isFinalizationOnly = mode === 'resume' && finalizationOnly;
-  const copy = dialogCopy(mode, isFinalizationOnly);
+  const { copy, language } = useUiCopy();
+  const labels = dialogCopy(mode, isFinalizationOnly, copy);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
@@ -104,27 +107,27 @@ export function StartImageGenerationDialog({
     >
       <div className="w-full max-w-lg rounded-2xl border border-katha-text/10 bg-katha-surface p-6 shadow-2xl space-y-4">
         <h2 id="start-image-generation-title" className="text-xl font-semibold text-katha-text">
-          {copy.title}
+          {labels.title}
         </h2>
         <p className="text-sm leading-6 text-katha-text/65">
           {isFinalizationOnly
-            ? 'Tất cả ảnh nội dung đã được lưu. Xác nhận để đồng bộ kết quả; không tạo ảnh mới hoặc ảnh bìa.'
-            : `Sẽ tạo ${pageCount} ảnh nội dung. Không tạo ảnh bìa trong bước này.`}
+            ? copy.syncResultsHelp
+            : formatCopy(copy.imageCountHelp, { count: pageCount })}
         </p>
         <p className="rounded-xl border border-katha-primary/20 bg-katha-primary/10 p-3 text-xs leading-5 text-katha-primary-light">
           {isFinalizationOnly
-            ? 'Thao tác này chỉ đồng bộ kết quả quá trình tạo ảnh đã bị gián đoạn.'
-            : 'Ảnh đã hoàn tất sẽ được giữ lại nếu một trang sau đó gặp lỗi.'}
+            ? copy.syncOnlyHelp
+            : copy.completedImagesKept}
         </p>
         {error && (
           <div
             role="alert"
             className="rounded-xl border border-katha-error/25 bg-katha-error/10 p-3 text-sm leading-5 text-rose-200"
           >
-            <p>{error}</p>
+            <p>{language === 'vi' ? error : copy.genericError}</p>
             {blocked && (
               <p className="mt-1 text-xs text-rose-100/75">
-                Cần tải lại trạng thái mới nhất trước khi gửi lại yêu cầu.
+                {copy.reloadBeforeRequest}
               </p>
             )}
           </div>
@@ -136,7 +139,7 @@ export function StartImageGenerationDialog({
             onClick={onClose}
             className="min-h-[44px] px-4 py-2 text-sm text-katha-text/60 hover:text-katha-text disabled:opacity-50 transition"
           >
-            Hủy
+            {copy.cancel}
           </button>
           <button
             autoFocus
@@ -145,7 +148,7 @@ export function StartImageGenerationDialog({
             onClick={blocked ? onReconcile : onConfirm}
             className="min-h-[44px] rounded-xl bg-katha-primary px-4 py-2 text-sm font-semibold text-katha-text shadow-lg disabled:opacity-40 hover:bg-katha-primary-light transition"
           >
-            {pending ? 'Đang gửi yêu cầu…' : blocked ? 'Kiểm tra lại trạng thái' : copy.action}
+            {pending ? copy.sendingRequest : blocked ? copy.checkStateAgain : labels.action}
           </button>
         </div>
       </div>

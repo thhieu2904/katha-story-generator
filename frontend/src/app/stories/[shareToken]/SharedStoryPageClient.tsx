@@ -3,19 +3,15 @@
 import React from 'react';
 import { usePublicStory } from '@/features/reader/usePublicStory';
 import { StoryReader } from '@/features/reader/components/StoryReader';
+import { useUiCopy } from '@/features/language/useUiCopy';
+import { KathaLoadingScreen } from '@/components/feedback/KathaLoading';
 
 export function SharedStoryPageClient({ shareToken }: { shareToken: string }) {
   const { story, loading, error, notFound } = usePublicStory(shareToken);
+  const { copy, language } = useUiCopy();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-katha-surface flex items-center justify-center p-4">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 rounded-full border-2 border-katha-primary border-t-transparent animate-spin" />
-          <p className="text-katha-text/55">Đang tải truyện...</p>
-        </div>
-      </div>
-    );
+    return <KathaLoadingScreen label={copy.publicStoryLoading} />;
   }
 
   if (notFound) {
@@ -29,8 +25,8 @@ export function SharedStoryPageClient({ shareToken }: { shareToken: string }) {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <h1 className="text-xl font-medium text-katha-text">Không tìm thấy truyện</h1>
-          <p className="text-katha-text/55">Truyện này không tồn tại hoặc đã bị gỡ bỏ.</p>
+          <h1 className="text-xl font-medium text-katha-text">{copy.publicStoryNotFound}</h1>
+          <p className="text-katha-text/55">{copy.publicStoryNotFoundHelp}</p>
         </div>
       </div>
     );
@@ -47,13 +43,15 @@ export function SharedStoryPageClient({ shareToken }: { shareToken: string }) {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <h1 className="text-xl font-medium text-katha-text">Không thể tải truyện</h1>
-          <p className="text-katha-text/55">{error || 'Đã xảy ra lỗi không xác định.'}</p>
+          <h1 className="text-xl font-medium text-katha-text">{copy.publicStoryLoadFailed}</h1>
+          <p className="text-katha-text/55">
+            {language === 'vi' ? error || copy.unknownError : copy.unknownError}
+          </p>
           <button 
             onClick={() => window.location.reload()}
             className="mt-4 px-6 py-2 bg-katha-text/10 hover:bg-katha-text/20 rounded-full text-katha-text transition-colors"
           >
-            Thử lại
+            {copy.retry}
           </button>
         </div>
       </div>

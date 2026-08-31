@@ -16,8 +16,11 @@ import {
   validateKhmer,
 } from './api';
 import type { MutationResponse, PendingOperation, QuickAction } from './types';
+import { formatCopy, type UiCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 export function useStoryEditor(storyId: number) {
+  const { copy, language } = useUiCopy();
   const [story, setStory] = useState<Story | null>(null);
   const [text, setText] = useState<StoryText | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +56,13 @@ export function useStoryEditor(storyId: number) {
           if (active) setError(null);
         })
         .catch((reason: unknown) => {
-          if (active) setError(reason instanceof Error ? reason.message : 'Không thể tải truyện.');
+          if (active) {
+            setError(
+              language === 'vi' && reason instanceof Error
+                ? reason.message
+                : copy.storyLoadShortFailed,
+            );
+          }
         })
         .finally(() => {
           if (active) setLoading(false);
@@ -63,7 +72,7 @@ export function useStoryEditor(storyId: number) {
       active = false;
       clearTimeout(timer);
     };
-  }, [refresh]);
+  }, [copy.storyLoadShortFailed, language, refresh]);
 
   useEffect(() => {
     if (story?.status !== 'generating_text') return;
@@ -80,7 +89,11 @@ export function useStoryEditor(storyId: number) {
         }
       } catch (reason) {
         if (!active) return;
-        setError(reason instanceof Error ? reason.message : 'Không thể kiểm tra trạng thái.');
+        setError(
+          language === 'vi' && reason instanceof Error
+            ? reason.message
+            : copy.stateCheckShortFailed,
+        );
         timer = setTimeout(poll, 3000);
       }
     };
@@ -90,7 +103,7 @@ export function useStoryEditor(storyId: number) {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [story?.status, refresh]);
+  }, [copy.stateCheckShortFailed, language, story?.status, refresh]);
 
   useEffect(() => {
     if (!text || text.status !== 'text_draft' || pending || blocked) return;
@@ -103,7 +116,7 @@ export function useStoryEditor(storyId: number) {
       .then((canonical) => {
         setText(canonical);
         setValidationFailed(false);
-        setNotice('Đã chạy kiểm tra kỹ thuật Khmer cho bản hiện tại.');
+        setNotice(copy.khmerValidationDone);
       })
       .catch(async (reason: unknown) => {
         if (reason instanceof ApiError && reason.status === 409) {
@@ -113,37 +126,66 @@ export function useStoryEditor(storyId: number) {
         if (reason instanceof ApiError && reason.status === 0) {
           try {
             await refresh();
-            setError(`${reason.message} Trạng thái mới nhất đã được tải lại.`);
+            setError(
+              formatCopy(copy.latestStateReloaded, {
+                message: language === 'vi' ? reason.message : copy.actionFailed,
+              }),
+            );
           } catch {
             setBlocked(true);
-            setError('Chưa thể đối soát trạng thái sau lỗi kiểm tra Khmer.');
+            setError(copy.khmerReconcileFailed);
           }
         } else {
-          setError(reason instanceof Error ? reason.message : 'Không thể kiểm tra Khmer.');
+          setError(
+            language === 'vi' && reason instanceof Error
+              ? reason.message
+              : copy.khmerValidationFailed,
+          );
         }
         setValidationFailed(true);
       })
       .finally(() => setPending(null));
-  }, [blocked, pending, refresh, storyId, text, validationRetryToken]);
+  }, [
+    blocked,
+    copy.actionFailed,
+    copy.khmerReconcileFailed,
+    copy.khmerValidationDone,
+    copy.khmerValidationFailed,
+    copy.latestStateReloaded,
+    language,
+    pending,
+    refresh,
+    storyId,
+    text,
+    validationRetryToken,
+  ]);
 
   const recover = useCallback(async (reason: unknown) => {
-    const message = reason instanceof Error ? reason.message : 'Thao tác thất bại.';
+    const message =
+      language === 'vi' && reason instanceof Error ? reason.message : copy.actionFailed;
     if (reason instanceof ApiError && (reason.status === 409 || reason.status === 0)) {
       try {
         await refresh();
         setError(
           reason.status === 409
-            ? 'Truyện vừa được admin khác cập nhật. Nội dung mới nhất đã được tải lại.'
-            : `${message} Trạng thái mới nhất đã được tải lại.`,
+            ? copy.concurrentUpdateReloaded
+            : formatCopy(copy.latestStateReloaded, { message }),
         );
       } catch {
         setBlocked(true);
-        setError('Chưa thể đối soát trạng thái. Hãy kiểm tra lại trước khi gửi thao tác mới.');
+        setError(copy.stateReconcileFailed);
       }
       return;
     }
     setError(message);
-  }, [refresh]);
+  }, [
+    copy.actionFailed,
+    copy.concurrentUpdateReloaded,
+    copy.latestStateReloaded,
+    copy.stateReconcileFailed,
+    language,
+    refresh,
+  ]);
 
   const applyMutation = useCallback(async (
     operation: PendingOperation,
@@ -156,7 +198,7 @@ export function useStoryEditor(storyId: number) {
     try {
       const result = await call(text.text_revision);
       setText(result.story);
-      setNotice(changeMessage(result));
+      setNotice(changeMessage(result, copy));
       return true;
     } catch (reason) {
       await recover(reason);
@@ -164,7 +206,7 @@ export function useStoryEditor(storyId: number) {
     } finally {
       setPending(null);
     }
-  }, [blocked, pending, recover, text]);
+  }, [blocked, copy, pending, recover, text]);
 
   const runQuickAction = (action: QuickAction) =>
     applyMutation('edit', (revision) => quickEdit(storyId, action, revision));
@@ -206,7 +248,7 @@ export function useStoryEditor(storyId: number) {
       setStory((current) => current
         ? { ...current, status: canonical.status, text_revision: canonical.text_revision }
         : current);
-      setNotice('Nội dung đã được xác nhận và khóa. Chưa có ảnh nào được sinh.');
+      setNotice(copy.contentConfirmedNoImages);
       return true;
     } catch (reason) {
       await recover(reason);
@@ -237,14 +279,20 @@ export function useStoryEditor(storyId: number) {
   };
 }
 
-function changeMessage(result: MutationResponse) {
+function changeMessage(result: MutationResponse, copy: UiCopy) {
   const changes = result.changes;
-  if (!changes.has_changes) return 'AI không tạo thay đổi nội dung.';
+  if (!changes.has_changes) return copy.aiNoChanges;
   const parts: string[] = [];
-  if (changes.title_changed) parts.push('đổi tiêu đề');
-  if (changes.edited_page_ids.length) parts.push(`sửa ${changes.edited_page_ids.length} trang`);
-  if (changes.added_page_ids.length) parts.push(`thêm ${changes.added_page_ids.length} trang`);
-  if (changes.deleted_page_ids.length) parts.push(`xóa ${changes.deleted_page_ids.length} trang`);
-  if (changes.order_changed) parts.push('đổi thứ tự trang');
-  return `Đã lưu: ${parts.join(', ')}.`;
+  if (changes.title_changed) parts.push(copy.changedTitle);
+  if (changes.edited_page_ids.length) {
+    parts.push(formatCopy(copy.editedPages, { count: changes.edited_page_ids.length }));
+  }
+  if (changes.added_page_ids.length) {
+    parts.push(formatCopy(copy.addedPages, { count: changes.added_page_ids.length }));
+  }
+  if (changes.deleted_page_ids.length) {
+    parts.push(formatCopy(copy.deletedPages, { count: changes.deleted_page_ids.length }));
+  }
+  if (changes.order_changed) parts.push(copy.changedPageOrder);
+  return formatCopy(copy.changesSaved, { changes: parts.join(', ') });
 }

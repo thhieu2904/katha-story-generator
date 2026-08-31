@@ -1,4 +1,5 @@
 import React from 'react';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface PublishStoryDialogProps {
   open: boolean;
@@ -13,6 +14,7 @@ export function PublishStoryDialog({
   onConfirm,
   isSubmitting,
 }: PublishStoryDialogProps) {
+  const { copy } = useUiCopy();
   if (!open) return null;
 
   return (
@@ -30,18 +32,18 @@ export function PublishStoryDialog({
         </div>
         
         <h3 className="text-xl font-semibold text-katha-text mb-2">
-          Xuất bản và tạo liên kết
+          {copy.publishAndShare}
         </h3>
         
         <p className="text-sm text-katha-text/70 mb-2">
-          Truyện sẽ được xuất bản. Một liên kết chia sẻ sẽ được tạo.
+          {copy.publishHelp}
         </p>
 
         <p className="text-xs text-katha-text/55 mb-6 bg-katha-text/5 p-3 rounded-lg text-left border border-katha-text/5">
           <svg className="inline w-4 h-4 mr-1.5 align-text-bottom text-katha-text/55" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Liên kết không được liệt kê công khai, nhưng bất kỳ ai có liên kết đều đọc được.
+          {copy.privateLinkNotice}
         </p>
 
         <div className="flex justify-center space-x-3">
@@ -51,7 +53,7 @@ export function PublishStoryDialog({
             disabled={isSubmitting}
             className="px-5 py-2.5 rounded-xl text-sm font-medium text-katha-text/70 hover:bg-katha-text/5 transition-colors disabled:opacity-50"
           >
-            Hủy
+            {copy.cancel}
           </button>
           <button
             type="button"
@@ -59,7 +61,7 @@ export function PublishStoryDialog({
             disabled={isSubmitting}
             className="px-5 py-2.5 rounded-xl text-sm font-medium bg-katha-primary text-katha-text hover:bg-katha-primary-light transition-colors disabled:opacity-50"
           >
-            {isSubmitting ? 'Đang xử lý...' : 'Xuất bản'}
+            {isSubmitting ? copy.processing : copy.publish}
           </button>
         </div>
       </div>

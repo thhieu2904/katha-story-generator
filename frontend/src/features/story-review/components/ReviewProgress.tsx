@@ -1,11 +1,14 @@
 import React from 'react';
 import type { ReviewProgress as ProgressType } from '../types';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface ReviewProgressProps {
   progress: ProgressType;
 }
 
 export function ReviewProgress({ progress }: ReviewProgressProps) {
+  const { copy } = useUiCopy();
   const isComplete = progress.approved === progress.total && progress.total > 0;
 
   return (
@@ -18,7 +21,10 @@ export function ReviewProgress({ progress }: ReviewProgressProps) {
           ></div>
         </div>
         <span className="text-sm font-medium text-katha-text">
-          {progress.approved}/{progress.total} trang đã duyệt
+          {formatCopy(copy.approvedPageCount, {
+            approved: progress.approved,
+            total: progress.total,
+          })}
         </span>
       </div>
 
@@ -26,13 +32,13 @@ export function ReviewProgress({ progress }: ReviewProgressProps) {
         {progress.pending > 0 && (
           <div className="flex items-center text-amber-300">
             <span className="w-2 h-2 rounded-full bg-amber-400 mr-1.5 animate-pulse"></span>
-            {progress.pending} chờ duyệt
+            {formatCopy(copy.pendingReviewCount, { count: progress.pending })}
           </div>
         )}
         {progress.rejected > 0 && (
           <div className="flex items-center text-red-300">
             <span className="w-2 h-2 rounded-full bg-red-400 mr-1.5"></span>
-            {progress.rejected} từ chối
+            {formatCopy(copy.rejectedCount, { count: progress.rejected })}
           </div>
         )}
         {progress.pending === 0 && progress.rejected === 0 && progress.total > 0 && (
@@ -40,7 +46,7 @@ export function ReviewProgress({ progress }: ReviewProgressProps) {
             <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Hoàn tất
+            {copy.done}
           </div>
         )}
       </div>

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { formatCopy } from '@/features/language/uiCopy';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface RejectPageDialogProps {
   open: boolean;
@@ -14,6 +16,7 @@ export function RejectPageDialog({
   isSubmitting,
 }: RejectPageDialogProps) {
   const [reason, setReason] = useState('');
+  const { copy } = useUiCopy();
 
   if (!open) return null;
 
@@ -36,17 +39,17 @@ export function RejectPageDialog({
       
       <div className="relative w-full max-w-md rounded-2xl border border-katha-text/10 bg-katha-surface shadow-2xl p-6">
         <h3 className="text-xl font-semibold text-katha-text mb-2">
-          Từ chối trang
+          {copy.rejectPage}
         </h3>
         <p className="text-sm text-katha-text/55 mb-6">
-          Vui lòng nhập lý do từ chối. Lý do này sẽ được sử dụng trong lần tạo lại ảnh.
+          {copy.rejectReasonHelp}
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
           <textarea
             autoFocus
             className="w-full bg-katha-surface-light border border-katha-text/10 rounded-xl p-3 text-katha-text text-sm focus:outline-none focus:border-katha-primary transition-colors min-h-[120px] resize-y"
-            placeholder="Ví dụ: Ảnh bị lỗi hiển thị, nhân vật không đúng yêu cầu..."
+            placeholder={copy.rejectReasonPlaceholder}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             disabled={isSubmitting}
@@ -55,7 +58,7 @@ export function RejectPageDialog({
           
           <div className="flex items-center justify-between">
             <span className={`text-xs ${reason.length > 0 && isInvalid ? 'text-red-400' : 'text-katha-text/55'}`}>
-              {reason.trim().length} / 500 (tối thiểu 5 ký tự)
+              {formatCopy(copy.rejectReasonCount, { count: reason.trim().length })}
             </span>
           </div>
 
@@ -66,14 +69,14 @@ export function RejectPageDialog({
               disabled={isSubmitting}
               className="px-5 py-2.5 rounded-xl text-sm font-medium text-katha-text/70 hover:bg-katha-text/5 transition-colors disabled:opacity-50"
             >
-              Hủy
+              {copy.cancel}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || isInvalid}
               className="px-5 py-2.5 rounded-xl text-sm font-medium bg-katha-error/20 text-red-300 hover:bg-katha-error/30 transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? 'Đang xử lý...' : 'Từ chối'}
+              {isSubmitting ? copy.processing : copy.reject}
             </button>
           </div>
         </form>

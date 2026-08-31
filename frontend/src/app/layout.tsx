@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Be_Vietnam_Pro, Noto_Sans_Khmer, Noto_Serif_Khmer } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/features/auth/AuthProvider';
+import { ContentLanguageProvider } from '@/features/language/ContentLanguageProvider';
+import { FloatingContentLanguageToggle } from '@/features/language/FloatingContentLanguageToggle';
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ['latin', 'vietnamese'],
@@ -70,7 +72,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen bg-katha-surface font-sans text-katha-text antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <ContentLanguageProvider>
+          <AuthProvider>{children}</AuthProvider>
+          <FloatingContentLanguageToggle />
+        </ContentLanguageProvider>
       </body>
     </html>
   );

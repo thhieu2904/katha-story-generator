@@ -5,10 +5,13 @@ import type { Story, StoryCreate, Backbone, Genre, ArtStyle } from '../types';
 import type { Character } from '@/features/characters/types';
 import { fetchBackbones, fetchGenres, fetchArtStyles } from '../api';
 import { fetchCharacters } from '@/features/characters/api';
-import { TARGET_AGE_OPTIONS, LENGTH_PREF_OPTIONS, STATUS_LABELS } from '../constants';
+import { TARGET_AGE_OPTIONS, LENGTH_PREF_OPTIONS } from '../constants';
+import { useContentLanguage } from '@/features/language/useContentLanguage';
+import { formatCopy, getUiCopy } from '@/features/language/uiCopy';
 
 interface StorySetupFormProps {
   story?: Story;
+  initialDescriptionVi?: string;
   onSubmit?: (data: StoryCreate) => Promise<void>;
   onGenerate?: (data: StoryCreate) => Promise<void>;
   isSubmitting?: boolean;
@@ -87,6 +90,7 @@ function Thumbnail({ src, alt, kind }: ThumbnailProps) {
 
 export function StorySetupForm({
   story,
+  initialDescriptionVi = '',
   onSubmit,
   onGenerate,
   isSubmitting = false,
@@ -95,6 +99,29 @@ export function StorySetupForm({
   hideFooterButtons = false,
   onFormChange,
 }: StorySetupFormProps) {
+  const { language } = useContentLanguage();
+  const copy = getUiCopy(language);
+  const targetAgeLabels: Record<string, string> = {
+    preschool: copy.preschool,
+    early_primary: copy.earlyPrimary,
+    late_primary: copy.latePrimary,
+  };
+  const lengthLabels: Record<string, string> = {
+    short: copy.shortLength,
+    medium: copy.mediumLength,
+    long: copy.longLength,
+  };
+  const statusLabels: Record<string, string> = {
+    draft: copy.statusDraft,
+    generating_text: copy.statusGeneratingText,
+    text_draft: copy.statusTextDraft,
+    text_confirmed: copy.statusTextConfirmed,
+    generating_images: copy.statusGeneratingImages,
+    pending_review: copy.statusPendingReview,
+    approved: copy.statusApproved,
+    published: copy.statusPublished,
+    archived: copy.statusArchived,
+  };
   const [configs, setConfigs] = useState<{
     backbones: Backbone[];
     genres: Genre[];
@@ -105,7 +132,7 @@ export function StorySetupForm({
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
-    description_vi: story?.description_vi || '',
+    description_vi: story?.description_vi || initialDescriptionVi,
     character_ids: story?.character_ids || [],
     backbone_id: story?.backbone_id || 0,
     genre_id: story?.genre_id || 0,
@@ -143,7 +170,7 @@ export function StorySetupForm({
         }
       } catch (err) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : 'Lỗi tải cấu hình');
+        setError(err instanceof Error ? err.message : null);
         setConfigs(null);
       } finally {
         if (active) setFetched(true);
@@ -197,14 +224,14 @@ export function StorySetupForm({
   const validate = () => {
     const errors: Record<string, string> = {};
     if (form.description_vi.trim().length < 10) {
-      errors.description_vi = 'Mô tả cần ít nhất 10 ký tự';
+      errors.description_vi = copy.descriptionMin;
     }
     if (form.character_ids.length < 2) {
-      errors.character_ids = 'Vui lòng chọn ít nhất 2 nhân vật (tối đa 3)';
+      errors.character_ids = copy.chooseCharacters;
     }
-    if (!form.backbone_id) errors.backbone_id = 'Vui lòng chọn cấu trúc';
-    if (!form.genre_id) errors.genre_id = 'Vui lòng chọn thể loại';
-    if (!form.art_style_id) errors.art_style_id = 'Vui lòng chọn phong cách ảnh';
+    if (!form.backbone_id) errors.backbone_id = copy.chooseBackbone;
+    if (!form.genre_id) errors.genre_id = copy.chooseGenre;
+    if (!form.art_style_id) errors.art_style_id = copy.chooseArtStyle;
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -231,14 +258,16 @@ export function StorySetupForm({
   if (error || !configs) {
     return (
       <div className="rounded-2xl border border-katha-error/25 bg-katha-error/8 px-6 py-10 text-center">
-        <h2 className="font-semibold text-red-100">Không thể tải dữ liệu cấu hình</h2>
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">{error}</p>
+        <h2 className="font-semibold text-red-100">{copy.configUnavailable}</h2>
+        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-katha-text/50">
+          {language === 'vi' ? error : copy.configLoadError}
+        </p>
         <button
           type="button"
           onClick={retryLoadConfigs}
           className="mt-5 rounded-xl bg-katha-text px-4 py-2.5 text-sm font-semibold text-katha-surface transition hover:bg-katha-text/90"
         >
-          Thử lại
+          {copy.retry}
         </button>
       </div>
     );
@@ -249,8 +278,9 @@ export function StorySetupForm({
       {isReadOnly && (
         <div className="rounded-2xl border border-katha-primary/25 bg-katha-primary/10 p-4 text-center">
           <p className="text-katha-primary-light font-medium">
-            Truyện này đang ở trạng thái{' '}
-            <strong>{STATUS_LABELS[story?.status || ''] || story?.status}</strong> nên không thể chỉnh sửa thiết lập.
+            {copy.readOnlyPrefix}{' '}
+            <strong>{statusLabels[story?.status || ''] || story?.status}</strong>{' '}
+            {copy.readOnlySuffix}
           </p>
         </div>
       )}
@@ -258,7 +288,7 @@ export function StorySetupForm({
       {/* Description */}
       <section>
         <label htmlFor="description_vi" className="block text-sm font-medium mb-3">
-          Chủ đề / Mô tả câu chuyện <span className="text-katha-error">*</span>
+          {copy.storyDescription} <span className="text-katha-error">*</span>
         </label>
         <textarea
           id="description_vi"
@@ -266,7 +296,7 @@ export function StorySetupForm({
           value={form.description_vi}
           onChange={(e) => setForm({ ...form, description_vi: e.target.value })}
           disabled={controlsDisabled}
-          placeholder="Nhập mô tả ngắn gọn cho câu chuyện của bạn..."
+          placeholder={copy.storyDescriptionPlaceholder}
           className="w-full rounded-xl border border-katha-text/10 bg-katha-text/[0.03] px-4 py-3 text-sm text-katha-text placeholder-white/30 transition focus:border-katha-primary focus:outline-none focus:ring-1 focus:ring-katha-primary disabled:opacity-50 min-h-[120px]"
         />
         {validationErrors.description_vi && (
@@ -280,15 +310,17 @@ export function StorySetupForm({
       <section>
         <div className="mb-3 flex items-end justify-between">
           <label className="block text-sm font-medium">
-            Nhân vật <span className="text-katha-error">*</span>
+            {copy.characters} <span className="text-katha-error">*</span>
           </label>
-          <span className="text-xs text-katha-text/50">Đã chọn {form.character_ids.length}/3</span>
+          <span className="text-xs text-katha-text/50">
+            {formatCopy(copy.selectedCount, { count: form.character_ids.length })}
+          </span>
         </div>
         {configs.characters.length === 0 && (
           <p className="text-sm text-katha-text/40 italic py-8 text-center">
-            Chưa có nhân vật.{' '}
+            {copy.noCharacters}{' '}
             <a href="/admin/characters" className="text-katha-primary hover:underline">
-              Quản lý nhân vật →
+              {copy.manageCharacters}
             </a>
           </p>
         )}
@@ -346,11 +378,11 @@ export function StorySetupForm({
         {/* Backbone */}
         <section>
           <label className="block text-sm font-medium mb-3">
-            Cấu trúc truyện <span className="text-katha-error">*</span>
+            {copy.storyBackbone} <span className="text-katha-error">*</span>
           </label>
           {configs.backbones.length === 0 && (
             <p className="text-sm text-katha-text/40 italic py-4 text-center">
-              Chưa có cấu trúc truyện.
+              {copy.noBackbone}
             </p>
           )}
           {configs.backbones.length > 0 && (
@@ -394,11 +426,11 @@ export function StorySetupForm({
         {/* Genre */}
         <section>
           <label className="block text-sm font-medium mb-3">
-            Thể loại <span className="text-katha-error">*</span>
+            {copy.genre} <span className="text-katha-error">*</span>
           </label>
           {configs.genres.length === 0 && (
             <p className="text-sm text-katha-text/40 italic py-4 text-center">
-              Chưa có thể loại.
+              {copy.noGenre}
             </p>
           )}
           {configs.genres.length > 0 && (
@@ -443,11 +475,11 @@ export function StorySetupForm({
       {/* Art Style */}
       <section>
         <label className="block text-sm font-medium mb-3">
-          Phong cách ảnh <span className="text-katha-error">*</span>
+          {copy.artStyle} <span className="text-katha-error">*</span>
         </label>
         {configs.artStyles.length === 0 && (
           <p className="text-sm text-katha-text/40 italic py-4 text-center">
-            Chưa có phong cách ảnh.
+            {copy.noArtStyle}
           </p>
         )}
         {configs.artStyles.length > 0 && (
@@ -503,7 +535,7 @@ export function StorySetupForm({
         {/* Target Age */}
         <section>
           <label className="block text-sm font-medium mb-3">
-            Nhóm tuổi <span className="text-katha-error">*</span>
+            {copy.targetAge} <span className="text-katha-error">*</span>
           </label>
           <div className="flex flex-col gap-2">
             {TARGET_AGE_OPTIONS.map((opt) => (
@@ -519,7 +551,7 @@ export function StorySetupForm({
                   disabled={controlsDisabled}
                   className="h-4 w-4 border-katha-text/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
-                <span className="text-sm">{opt.label}</span>
+                <span className="text-sm">{targetAgeLabels[opt.value]}</span>
               </label>
             ))}
           </div>
@@ -528,7 +560,7 @@ export function StorySetupForm({
         {/* Length Preference */}
         <section>
           <label className="block text-sm font-medium mb-3">
-            Độ dài <span className="text-katha-error">*</span>
+            {copy.storyLength} <span className="text-katha-error">*</span>
           </label>
           <div className="flex flex-col gap-2">
             {LENGTH_PREF_OPTIONS.map((opt) => (
@@ -544,7 +576,7 @@ export function StorySetupForm({
                   disabled={controlsDisabled}
                   className="h-4 w-4 border-katha-text/20 bg-transparent text-katha-primary focus:ring-katha-primary focus:ring-offset-katha-surface"
                 />
-                <span className="text-sm">{opt.label}</span>
+                <span className="text-sm">{lengthLabels[opt.value]}</span>
               </label>
             ))}
           </div>
@@ -555,7 +587,7 @@ export function StorySetupForm({
         <div className="border-t border-katha-text/10 pt-4">
           {isGenerating && (
             <p className="mb-4 text-right text-sm text-katha-primary-light">
-              Đang sinh nội dung song ngữ…
+              {copy.generatingBilingual}
             </p>
           )}
           <div className="flex flex-wrap justify-end gap-3">
@@ -565,10 +597,10 @@ export function StorySetupForm({
               className="rounded-lg border border-katha-text/15 px-6 py-2.5 text-sm font-medium text-katha-text transition hover:bg-katha-text/10 disabled:opacity-50"
             >
               {isSubmitting
-                ? 'Đang cập nhật...'
+                ? copy.updating
                 : story
-                  ? 'Cập nhật thiết lập'
-                  : 'Lưu bản nháp'}
+                  ? copy.updateSetup
+                  : copy.saveDraft}
             </button>
             {story && onGenerate && (
               <button
@@ -577,7 +609,7 @@ export function StorySetupForm({
                 disabled={isBusy}
                 className="rounded-lg bg-katha-primary px-6 py-2.5 text-sm font-medium text-katha-text transition hover:bg-katha-primary-light disabled:opacity-50"
               >
-                {isGenerating ? 'Đang sinh nội dung…' : 'Sinh nội dung truyện'}
+                {isGenerating ? copy.generatingContent : copy.generateStoryContent}
               </button>
             )}
           </div>

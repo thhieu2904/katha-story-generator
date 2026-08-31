@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUiCopy } from '@/features/language/useUiCopy';
 
 interface KhmerTextEditorProps {
   value: string;
@@ -17,6 +18,7 @@ export function KhmerTextEditor({
 }: KhmerTextEditorProps) {
   const [text, setText] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
+  const { copy } = useUiCopy();
 
   const handleSave = async () => {
     const trimmed = text.trim();
@@ -39,7 +41,7 @@ export function KhmerTextEditor({
         onChange={(e) => setText(e.target.value)}
         disabled={disabled || isSaving}
         maxLength={maxLength * 2} // Allow some room during typing
-        placeholder="Nhập nội dung tiếng Khmer..."
+        placeholder={copy.khmerTextPlaceholder}
       />
       <div className="flex items-center justify-between">
         <div
@@ -56,7 +58,7 @@ export function KhmerTextEditor({
             disabled={disabled || isSaving}
             className="px-4 py-2 rounded-xl text-sm font-medium text-katha-text/70 hover:bg-katha-text/5 transition-colors disabled:opacity-50"
           >
-            Hủy
+            {copy.cancel}
           </button>
           <button
             type="button"
@@ -64,7 +66,7 @@ export function KhmerTextEditor({
             disabled={disabled || isSaving || isInvalid}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-katha-primary hover:bg-katha-primary-light text-katha-text transition-colors disabled:opacity-50"
           >
-            {isSaving ? 'Đang lưu...' : 'Lưu'}
+            {isSaving ? copy.savingPlain : copy.save}
           </button>
         </div>
       </div>
