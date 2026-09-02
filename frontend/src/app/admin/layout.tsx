@@ -1,13 +1,13 @@
 import { AdminHeader } from '@/components/layout/AdminHeader';
-import { RequireAdmin } from '@/features/auth/RequireAdmin';
+import { RequireAuth } from '@/features/auth/RequireAuth';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <RequireAdmin>
+    <RequireAuth>
       <div className="katha-page-shell min-h-screen bg-katha-surface">
         <AdminHeader />
         {children}
       </div>
-    </RequireAdmin>
+    </RequireAuth>
   );
 }

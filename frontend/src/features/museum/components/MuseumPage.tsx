@@ -1,6 +1,7 @@
 'use client';
 
 import { useUiCopy } from '@/features/language/useUiCopy';
+import { KhmerHistoryTreePrototype } from './KhmerHistoryTreePrototype';
 
 const THINGLINK_SCENE_URL = 'https://www.thinglink.com/view/scene/2149874779585250148';
 const THINGLINK_ACCESSIBLE_URL = `${THINGLINK_SCENE_URL}/accessibility`;
@@ -9,11 +10,11 @@ export function MuseumPage() {
   const { copy } = useUiCopy();
 
   return (
-    <main className="relative min-h-[calc(100vh-4rem)] overflow-hidden px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <main className="relative min-h-[calc(100vh-4rem)] overflow-clip py-8 lg:py-10">
       <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-katha-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 top-64 h-72 w-72 rounded-full bg-katha-gold/10 blur-3xl" />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <header className="mb-6 text-center sm:mb-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-katha-gold/30 bg-katha-gold/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-katha-gold">
             <span className="h-2 w-2 animate-pulse rounded-full bg-katha-gold" aria-hidden="true" />
@@ -58,6 +59,8 @@ export function MuseumPage() {
           </div>
         </section>
       </div>
+
+      <KhmerHistoryTreePrototype />
     </main>
   );
 }

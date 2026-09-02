@@ -11,6 +11,7 @@ interface ReaderControlsProps {
   onNarrationToggle?: () => void;
   navigationDisabled?: boolean;
   language?: ReaderLanguage;
+  compact?: boolean;
 }
 
 export function ReaderControls({
@@ -22,6 +23,7 @@ export function ReaderControls({
   onNarrationToggle,
   navigationDisabled = false,
   language = 'vi',
+  compact = false,
 }: ReaderControlsProps) {
   const copy = getUiCopy(language);
   const gestureRef = useRef<{ x: number; y: number } | null>(null);
@@ -113,7 +115,7 @@ export function ReaderControls({
   }, []);
 
   return (
-    <div className="relative z-40 shrink-0 bg-gradient-to-t from-katha-surface via-katha-surface to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 md:px-6 lg:px-8">
+    <div className={`relative z-40 shrink-0 bg-gradient-to-t from-katha-surface via-katha-surface to-transparent px-4 md:px-6 lg:px-8 ${compact ? 'pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5' : 'pb-[max(1rem,env(safe-area-inset-bottom))] pt-4'}`}>
       <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between">
         <button
           onClick={handlePrev}
@@ -198,7 +200,7 @@ export function ReaderControls({
           )}
         </button>
       </div>
-      <p className="mx-auto mt-2 max-w-[1400px] text-center text-[11px] leading-relaxed text-katha-text/30">
+      <p className={`mx-auto max-w-[1400px] text-center leading-relaxed text-katha-text/30 ${compact ? 'mt-1 text-[9px]' : 'mt-2 text-[11px]'}`}>
         {copy.readerCredit}
       </p>
     </div>

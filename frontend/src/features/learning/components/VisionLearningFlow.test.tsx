@@ -219,7 +219,7 @@ describe('VisionLearningFlow', () => {
 
     expect(
       await screen.findByRole('img', { name: 'Ảnh có sẵn của bài học Vision' }),
-    ).toHaveAttribute('src', 'https://cdn.example/story-page-1.webp');
+    ).toHaveAttribute('src', '/vision-samples/angkor_wat.jpg');
     expect(screen.getByText('Thông tin bài học')).toBeInTheDocument();
     expect(screen.getByText('Ảnh bài học có sẵn')).toBeInTheDocument();
     expect(screen.getByText('Giới thiệu Angkor Wat.')).toBeInTheDocument();
@@ -229,7 +229,7 @@ describe('VisionLearningFlow', () => {
       7,
       expect.any(AbortSignal),
     );
-    expect(mockedFetchStoryImages).toHaveBeenCalledWith(7, expect.any(AbortSignal));
+    expect(mockedFetchStoryImages).not.toHaveBeenCalled();
     expect(mockedClassifyImage).not.toHaveBeenCalled();
     expect(
       window.sessionStorage.getItem(
@@ -248,6 +248,28 @@ describe('VisionLearningFlow', () => {
       `/admin/stories/${storyKey}/read?source=vision&restart=1`,
     );
     expect(window.sessionStorage.getItem('katha-vision-story-draft-v1')).toBeNull();
+  });
+
+  it('uses the first story illustration only when a class has no bundled sample', async () => {
+    const storyKey = 's1_Abcdef12' as StoryRouteKey;
+    mockedFetchStoryByRouteKey.mockResolvedValue({ id: 7, route_key: storyKey } as Story);
+    mockedFetchPrivateStoryLearningContext.mockResolvedValue({
+      class_name: 'legacy_class_without_sample',
+      knowledge: result.knowledge!,
+    });
+    mockedFetchStoryImages.mockResolvedValue({
+      pages: [
+        { page_no: 2, image_url: 'https://cdn.example/story-page-2.webp' },
+        { page_no: 1, image_url: 'https://cdn.example/story-page-1.webp' },
+      ],
+    } as unknown as StoryImagesState);
+
+    render(<VisionLearningFlow initialStoryKey={storyKey} />);
+
+    expect(
+      await screen.findByRole('img', { name: 'Ảnh có sẵn của bài học Vision' }),
+    ).toHaveAttribute('src', 'https://cdn.example/story-page-1.webp');
+    expect(mockedFetchStoryImages).toHaveBeenCalledWith(7, expect.any(AbortSignal));
   });
 
   it('keeps the previous progress when relearning data cannot be restored', async () => {

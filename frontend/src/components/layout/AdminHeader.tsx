@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/admin/stories', labelKey: 'navStories', hintKey: 'navStoriesHint' },
   { href: '/admin/dictionary', labelKey: 'navDictionary', hintKey: 'navDictionaryHint' },
   { href: '/admin/museum', labelKey: 'navMuseum', hintKey: 'navMuseumHint', beta: true },
+  { href: '/admin/accounts', labelKey: 'navAccounts', hintKey: 'navAccountsHint', adminOnly: true },
 ] as const;
 
 export function AdminHeader() {
@@ -24,8 +25,11 @@ export function AdminHeader() {
   const { language } = useContentLanguage();
   const copy = getUiCopy(language);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => !('adminOnly' in item) || !item.adminOnly || user?.app_role === 'admin',
+  );
 
-  const activeItem = NAV_ITEMS.find(
+  const activeItem = visibleNavItems.find(
     (item) =>
       pathname === item.href ||
       (item.href !== '/admin/vision' && pathname.startsWith(`${item.href}/`)),
@@ -55,7 +59,7 @@ export function AdminHeader() {
 
   return (
     <header className="katha-admin-header sticky top-0 z-40 border-b border-katha-text/10 bg-katha-surface/85 backdrop-blur-xl">
-      <div className="katha-mobile-header mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 sm:hidden">
+      <div className="katha-mobile-header mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 lg:hidden">
         <Link
           href="/admin/vision"
           aria-label="Katha"
@@ -102,14 +106,14 @@ export function AdminHeader() {
           tabIndex={-1}
           disabled={!mobileMenuOpen}
           data-open={mobileMenuOpen}
-          className="katha-mobile-menu-backdrop sm:hidden"
+          className="katha-mobile-menu-backdrop lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
         <div
           id="katha-mobile-navigation"
           aria-hidden={!mobileMenuOpen}
           data-open={mobileMenuOpen}
-          className="katha-mobile-menu-sheet sm:hidden"
+          className="katha-mobile-menu-sheet lg:hidden"
         >
             <div className="katha-mobile-menu-binding" aria-hidden="true">
               <span />
@@ -123,12 +127,12 @@ export function AdminHeader() {
               </div>
               <span>
                 {activeItem
-                  ? String(NAV_ITEMS.findIndex((item) => item === activeItem) + 1).padStart(2, '0')
+                  ? String(visibleNavItems.findIndex((item) => item === activeItem) + 1).padStart(2, '0')
                   : 'K'}
               </span>
             </div>
             <nav aria-label={copy.adminNavigation} className="katha-mobile-menu-list">
-              {NAV_ITEMS.map((item, index) => {
+              {visibleNavItems.map((item, index) => {
                 const isActive = item === activeItem;
 
                 return (
@@ -166,14 +170,14 @@ export function AdminHeader() {
           </div>
       </>
 
-      <div className="mx-auto hidden min-h-16 max-w-7xl items-center justify-between gap-2 px-5 sm:flex lg:gap-4 lg:px-8">
+      <div className="mx-auto hidden min-h-16 max-w-7xl items-center justify-between gap-2 px-5 lg:flex lg:gap-3 lg:px-8">
         <div className="flex min-w-0 items-center gap-3 lg:gap-7">
           <Link href="/admin/vision" className="flex shrink-0 items-center gap-3 font-bold">
             <KathaLogo height={48} priority className="-my-2" />
             <span className="hidden xl:inline">Katha</span>
           </Link>
           <nav aria-label={copy.adminNavigation} className="flex items-center">
-            {NAV_ITEMS.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== '/admin/vision' && pathname.startsWith(`${item.href}/`));
@@ -183,7 +187,7 @@ export function AdminHeader() {
                   key={item.href}
                   href={item.href}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`katha-nav-link relative rounded-lg px-2 py-2 text-xs transition duration-200 after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-katha-gold after:transition-transform after:duration-300 active:scale-90 active:bg-katha-gold/25 active:text-katha-gold active:shadow-lg active:shadow-katha-gold/20 sm:px-3 sm:text-sm lg:px-6 ${
+                  className={`katha-nav-link relative rounded-lg px-3 py-2 text-sm transition duration-200 after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-katha-gold after:transition-transform after:duration-300 active:scale-90 active:bg-katha-gold/25 active:text-katha-gold active:shadow-lg active:shadow-katha-gold/20 xl:px-4 ${
                     isActive
                       ? 'bg-katha-primary/10 font-semibold text-katha-text shadow-sm shadow-katha-primary/10 after:scale-x-100'
                       : 'font-medium text-katha-text/65 after:scale-x-0 hover:bg-katha-text/[0.06] hover:text-katha-text'

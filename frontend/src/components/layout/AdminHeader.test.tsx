@@ -2,16 +2,18 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AdminHeader } from './AdminHeader';
 
+const authState = vi.hoisted(() => ({
+  user: { email: 'admin@example.test', app_role: 'admin' as 'admin' | 'reader' },
+  signOut: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/dictionary',
   useRouter: () => ({ replace: vi.fn() }),
 }));
 
 vi.mock('@/features/auth/useAuth', () => ({
-  useAuth: () => ({
-    user: { email: 'admin@example.test' },
-    signOut: vi.fn(),
-  }),
+  useAuth: () => authState,
 }));
 
 vi.mock('./KathaLogo', () => ({
@@ -23,7 +25,8 @@ vi.mock('./ThemeToggle', () => ({
 }));
 
 describe('AdminHeader', () => {
-  it('keeps learning and dictionary inside the authenticated admin navigation', () => {
+  it('keeps the learning areas inside the shared authenticated navigation', () => {
+    authState.user = { email: 'admin@example.test', app_role: 'admin' };
     render(<AdminHeader />);
 
     expect(screen.getByRole('link', { name: 'Nhận diện' })).toHaveAttribute(
@@ -46,6 +49,10 @@ describe('AdminHeader', () => {
       'href',
       '/admin/museum',
     );
+    expect(screen.getByRole('link', { name: 'Tài khoản' })).toHaveAttribute(
+      'href',
+      '/admin/accounts',
+    );
     expect(screen.getByRole('link', { name: 'Từ điển' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -53,6 +60,7 @@ describe('AdminHeader', () => {
   });
 
   it('opens the mobile navigation as a vertical contents sheet', () => {
+    authState.user = { email: 'admin@example.test', app_role: 'admin' };
     render(<AdminHeader />);
 
     const toggle = screen.getByRole('button', { name: 'Mở mục lục' });
@@ -79,5 +87,15 @@ describe('AdminHeader', () => {
       'true',
     );
     expect(document.body.style.overflow).toBe('');
+  });
+
+  it('hides account management from readers on desktop and mobile', () => {
+    authState.user = { email: 'reader@example.test', app_role: 'reader' };
+    render(<AdminHeader />);
+
+    expect(screen.queryByRole('link', { name: 'Tài khoản' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mở mục lục' }));
+    expect(screen.queryByRole('link', { name: /Tài khoản/ })).not.toBeInTheDocument();
   });
 });

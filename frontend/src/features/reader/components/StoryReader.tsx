@@ -485,16 +485,17 @@ export function StoryReader({
           setLearningMode(learningContext ? 'keywords' : 'reader');
         }}
         onReadStoryAgain={() => {
+          preparationAbortRef.current?.abort();
+          audioRef.current?.pause();
           setCurrentPage(0);
           setNarrationState('idle');
+          setSpeakingAttempts([]);
+          setSpeakingSkippedSentenceIds([]);
+          setSpeakingSessionId(undefined);
+          setSpeakingRestartVersion((version) => version + 1);
           setLearningMode('reader');
           if (learningSessionKey) {
-            saveSpeakingLearningProgress(learningSessionKey, {
-              stage: 'reader',
-              attempts: speakingAttempts,
-              sessionId: speakingSessionId,
-              skippedSentenceIds: speakingSkippedSentenceIds,
-            });
+            clearSpeakingLearningProgress(learningSessionKey);
           }
         }}
         onResetLearningJourney={onResetLearningJourney}
@@ -548,13 +549,12 @@ export function StoryReader({
           </div>
         </div>
         {learningActive && (
-          <div
-            className="mx-auto w-full max-w-[1400px] px-3 pb-3 sm:px-6"
-          >
+          <div className="mx-auto w-full max-w-[1400px] px-3 pb-2 sm:px-6">
             <LearningProgressBar
               currentStep={3}
               stepProgress={listeningStepProgress}
               language={language}
+              compact
             />
           </div>
         )}
@@ -572,7 +572,7 @@ export function StoryReader({
         onEnded={handleNarrationEnded}
       />
 
-      <main className="relative mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col px-4 py-6 transition-opacity duration-300 motion-reduce:transition-none md:px-6 md:py-8 lg:px-8 lg:py-4">
+      <main className="relative mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col px-4 py-5 transition-opacity duration-300 motion-reduce:transition-none md:px-6 md:py-6 lg:px-8 lg:py-2">
         {narrationState === 'preparing' && (
           <div className="absolute inset-4 z-30 flex items-center justify-center rounded-2xl bg-katha-surface/90 backdrop-blur-md md:inset-6 lg:inset-8">
             <div className="w-full max-w-md rounded-2xl border border-katha-text/10 bg-katha-text/5 p-6 text-center shadow-2xl">
@@ -619,7 +619,7 @@ export function StoryReader({
       </main>
 
       {learningActive && isOnFinalStoryPage && (
-        <div className="relative z-40 shrink-0 border-t border-katha-text/10 bg-katha-surface/95 px-4 py-3 backdrop-blur-md sm:px-6">
+        <div className="relative z-40 shrink-0 border-t border-katha-text/10 bg-katha-surface/95 px-4 py-1.5 backdrop-blur-md sm:px-6">
           <div className="mx-auto flex w-full max-w-[1400px] items-center justify-center">
             <button
               type="button"
@@ -650,6 +650,7 @@ export function StoryReader({
               language={language}
               onReset={onResetLearningJourney}
               disabled={narrationState === 'preparing'}
+              compact
             />
           </div>
         </div>
@@ -664,6 +665,7 @@ export function StoryReader({
         onNarrationToggle={handleNarrationToggle}
         navigationDisabled={narrationState === 'preparing'}
         language={language}
+        compact={learningActive}
       />
     </div>
   );

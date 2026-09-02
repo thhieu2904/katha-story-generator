@@ -10,6 +10,7 @@ interface LearningJourneyControlsProps {
   onReset: () => void;
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 export function LearningJourneyControls({
@@ -17,6 +18,7 @@ export function LearningJourneyControls({
   onReset,
   disabled = false,
   className = '',
+  compact = false,
 }: LearningJourneyControlsProps) {
   const copy = getUiCopy(language);
   const [confirmingReset, setConfirmingReset] = useState(false);
@@ -48,7 +50,7 @@ export function LearningJourneyControls({
           type="button"
           onClick={() => setConfirmingReset(true)}
           disabled={disabled}
-          className="min-h-10 cursor-pointer rounded-xl border border-katha-error/25 bg-katha-error/[0.07] px-4 text-sm font-semibold text-rose-200 transition hover:border-katha-error/40 hover:bg-katha-error/12 disabled:cursor-not-allowed disabled:opacity-40"
+          className={`${compact ? 'min-h-9 px-3 text-xs' : 'min-h-10 px-4 text-sm'} cursor-pointer rounded-xl border border-katha-error/25 bg-katha-error/[0.07] font-semibold text-rose-200 transition hover:border-katha-error/40 hover:bg-katha-error/12 disabled:cursor-not-allowed disabled:opacity-40`}
         >
           {copy.resetLearningProgress}
         </button>

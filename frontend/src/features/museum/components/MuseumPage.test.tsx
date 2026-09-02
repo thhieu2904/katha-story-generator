@@ -15,5 +15,8 @@ describe('MuseumPage', () => {
       'href',
       'https://www.thinglink.com/view/scene/2149874779585250148/accessibility',
     );
+    expect(
+      screen.getByRole('heading', { name: 'Cây lịch sử người Khmer tại Trà Vinh' }),
+    ).toBeInTheDocument();
   });
 });

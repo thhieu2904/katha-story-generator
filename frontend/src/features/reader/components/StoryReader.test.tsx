@@ -102,11 +102,23 @@ describe('StoryReader', () => {
     renderReader(<StoryReader story={highlightedStory} initialLearningActive />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Trang tiếp' }));
+    expect(screen.getByTestId('reader-primary-text')).toHaveTextContent(
+      'Lễ hội diễn ra dưới ánh Mặt Trăng.',
+    );
+    expect(screen.getByTestId('reader-secondary-text')).toHaveTextContent(
+      'ថ្ងៃបុណ្យ កុមារមើលព្រះចន្ទ។',
+    );
     expect(screen.getByText('Lễ hội', { selector: 'mark' })).toBeInTheDocument();
     expect(screen.getByText('Mặt Trăng', { selector: 'mark' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('radio', { name: 'ខ្មែរ' }));
     await waitFor(() => {
+      expect(screen.getByTestId('reader-primary-text')).toHaveTextContent(
+        'ថ្ងៃបុណ្យ កុមារមើលព្រះចន្ទ។',
+      );
+      expect(screen.getByTestId('reader-secondary-text')).toHaveTextContent(
+        'Lễ hội diễn ra dưới ánh Mặt Trăng.',
+      );
       expect(screen.getByText('បុណ្យ', { selector: 'mark' })).toBeInTheDocument();
       expect(screen.getByText('ព្រះចន្ទ', { selector: 'mark' })).toBeInTheDocument();
     });
@@ -277,6 +289,49 @@ describe('StoryReader', () => {
     expect(sessionStorage.getItem(storageKey)).toBeNull();
     expect(onRestartLearningJourney).toHaveBeenCalledOnce();
     expect(onResetLearningJourney).not.toHaveBeenCalled();
+  });
+
+  it('starts a fresh speaking session after reading the story again from results', async () => {
+    const learningSessionKey = 'private-story-5-user-admin-1';
+    const storageKey = `katha-speaking-learning-progress-v1:${learningSessionKey}`;
+    sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        version: 1,
+        stage: 'results',
+        attempts: [],
+        sessionId: 'completed-session',
+        skippedSentenceIds: ['old-skipped-sentence'],
+      }),
+    );
+
+    renderReader(
+      <StoryReader
+        story={learningStory}
+        initialLearningActive
+        learningSessionKey={learningSessionKey}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Kết quả hành trình học' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Đọc lại truyện/i }));
+
+    expect(sessionStorage.getItem(storageKey)).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Tiêu đề Việt' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trang tiếp' }));
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp tục luyện nói/i }));
+
+    await waitFor(() => {
+      const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? '{}');
+      expect(saved).toMatchObject({
+        stage: 'speaking',
+        attempts: [],
+        skippedSentenceIds: [],
+      });
+      expect(saved.sessionId).toBeUndefined();
+    });
+    expect(screen.queryByRole('heading', { name: 'Kết quả hành trình học' })).not.toBeInTheDocument();
   });
 
   it('prepares all Khmer narration before playing the first page', async () => {

@@ -7,14 +7,14 @@ import { useAuth } from '@/features/auth/useAuth';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useUiCopy } from '@/features/language/useUiCopy';
 
-function requestedAdminPath() {
+function requestedAuthenticatedPath() {
   if (typeof window === 'undefined') return '/admin/vision';
   const next = new URLSearchParams(window.location.search).get('next');
   return next?.startsWith('/admin/') ? next : '/admin/vision';
 }
 
 export default function LoginPage() {
-  const { status, user, signIn } = useAuth();
+  const { status, signIn } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,9 +24,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.replace(user?.app_role === 'admin' ? requestedAdminPath() : '/admin/vision');
+      router.replace(requestedAuthenticatedPath());
     }
-  }, [router, status, user]);
+  }, [router, status]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,12 +39,8 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      const verifiedUser = await signIn(email.trim(), password);
-      if (verifiedUser.app_role !== 'admin') {
-        router.replace('/admin/vision');
-        return;
-      }
-      router.replace(requestedAdminPath());
+      await signIn(email.trim(), password);
+      router.replace(requestedAuthenticatedPath());
     } catch {
       setError(copy.loginFailed);
     } finally {
@@ -132,7 +128,7 @@ export default function LoginPage() {
                       autoComplete="email"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      placeholder="admin@example.com"
+                      placeholder="email@example.com"
                       disabled={submitting}
                       className="h-13 w-full rounded-2xl border border-katha-text/10 bg-katha-field/80 pl-12 pr-4 text-sm outline-none transition duration-200 placeholder:text-katha-text/24 hover:border-katha-text/20 focus:border-katha-gold/60 focus:bg-katha-field focus:ring-4 focus:ring-katha-gold/10 disabled:opacity-60"
                     />

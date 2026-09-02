@@ -74,4 +74,21 @@ describe('RequireAdmin', () => {
     expect(mounted).toHaveBeenCalledOnce();
     expect(unmounted).not.toHaveBeenCalled();
   });
+
+  it('shows a permission state instead of account-management content to a reader', () => {
+    authState.value = {
+      ...verifiedAdmin('authenticated'),
+      user: { id: 'reader-1', email: 'reader@example.com', app_role: 'reader' },
+    };
+
+    render(
+      <RequireAdmin>
+        <div>Quản lý tài khoản</div>
+      </RequireAdmin>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Tài khoản không có quyền quản trị' })).toBeInTheDocument();
+    expect(screen.queryByText('Quản lý tài khoản')).not.toBeInTheDocument();
+    expect(authState.replace).not.toHaveBeenCalled();
+  });
 });

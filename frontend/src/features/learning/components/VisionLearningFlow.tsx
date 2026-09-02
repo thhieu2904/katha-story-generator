@@ -66,16 +66,26 @@ export function VisionLearningFlow({ initialStoryKey = null }: VisionLearningFlo
         void (async () => {
           try {
             const story = await fetchStoryByRouteKey(initialStoryKey);
-            const [learningContext, storyImages] = await Promise.all([
-              fetchPrivateStoryLearningContext(story.id, controller.signal),
-              fetchStoryImages(story.id, controller.signal).catch(() => null),
-            ]);
-            const storyImage = storyImages?.pages
-              .slice()
-              .sort((left, right) => left.page_no - right.page_no)
-              .find((page) => Boolean(page.image_url))
-              ?.image_url;
-            const sampleImage = storyImage ?? getVisionSampleImage(learningContext.class_name);
+            const learningContext = await fetchPrivateStoryLearningContext(
+              story.id,
+              controller.signal,
+            );
+            let sampleImage = getVisionSampleImage(learningContext.class_name);
+
+            // Relearning should show the classifier's stable sample for the
+            // recognized class. A story illustration is only a compatibility
+            // fallback for a future/legacy class without a bundled sample.
+            if (!sampleImage) {
+              const storyImages = await fetchStoryImages(story.id, controller.signal).catch(
+                () => null,
+              );
+              sampleImage =
+                storyImages?.pages
+                  .slice()
+                  .sort((left, right) => left.page_no - right.page_no)
+                  .find((page) => Boolean(page.image_url))
+                  ?.image_url ?? null;
+            }
 
             if (!sampleImage) {
               throw new Error('VISION_SAMPLE_UNAVAILABLE');
