@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/features/auth/useAuth';
 import { KathaLogo } from './KathaLogo';
 import { ThemeToggle } from './ThemeToggle';
@@ -10,6 +10,7 @@ import { useContentLanguage } from '@/features/language/useContentLanguage';
 import { getUiCopy } from '@/features/language/uiCopy';
 
 const NAV_ITEMS = [
+  { href: '/admin/introduction', labelKey: 'navHome', hintKey: 'navHomeHint' },
   { href: '/admin/vision', labelKey: 'navLearn', hintKey: 'navLearnHint' },
   { href: '/admin/characters', labelKey: 'navCharacters', hintKey: 'navCharactersHint' },
   { href: '/admin/stories', labelKey: 'navStories', hintKey: 'navStoriesHint' },
@@ -25,6 +26,8 @@ export function AdminHeader() {
   const { language } = useContentLanguage();
   const copy = getUiCopy(language);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
   const visibleNavItems = NAV_ITEMS.filter(
     (item) => !('adminOnly' in item) || !item.adminOnly || user?.app_role === 'admin',
   );
@@ -34,6 +37,42 @@ export function AdminHeader() {
       pathname === item.href ||
       (item.href !== '/admin/vision' && pathname.startsWith(`${item.href}/`)),
   );
+
+  // Headroom: hide navbar on scroll-down, reveal on scroll-up.
+  // Uses a plain scroll listener — no GSAP dependency needed here.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          // Only apply headroom after the first 80px of scroll
+          if (currentScrollY > 80) {
+            if (currentScrollY > lastScrollY) {
+              // Scrolling down → hide
+              header!.style.transform = 'translateY(-100%)';
+            } else {
+              // Scrolling up → show
+              header!.style.transform = 'translateY(0)';
+            }
+          } else {
+            header!.style.transform = 'translateY(0)';
+          }
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -58,10 +97,10 @@ export function AdminHeader() {
   }
 
   return (
-    <header className="katha-admin-header sticky top-0 z-40 border-b border-katha-text/10 bg-katha-surface/85 backdrop-blur-xl">
+    <header ref={headerRef} className="katha-admin-header sticky top-0 z-40 border-b border-katha-text/10 bg-katha-surface/95 md:bg-katha-surface/85 md:backdrop-blur-xl" style={{ transition: 'transform 300ms ease' }}>
       <div className="katha-mobile-header mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 lg:hidden">
         <Link
-          href="/admin/vision"
+          href="/admin/introduction"
           aria-label="Katha"
           onClick={() => setMobileMenuOpen(false)}
           className="flex min-w-0 items-center gap-2 font-bold"
@@ -158,7 +197,9 @@ export function AdminHeader() {
               })}
             </nav>
             <div className="katha-mobile-menu-account">
-              <span className="min-w-0 truncate">{user?.email}</span>
+              <span className="min-w-0 truncate">
+                {user?.app_role === 'admin' ? copy.accountRoleAdmin : copy.accountRoleReader}
+              </span>
               <button
                 type="button"
                 tabIndex={mobileMenuOpen ? undefined : -1}
@@ -172,7 +213,7 @@ export function AdminHeader() {
 
       <div className="mx-auto hidden min-h-16 max-w-7xl items-center justify-between gap-2 px-5 lg:flex lg:gap-3 lg:px-8">
         <div className="flex min-w-0 items-center gap-3 lg:gap-7">
-          <Link href="/admin/vision" className="flex shrink-0 items-center gap-3 font-bold">
+          <Link href="/admin/introduction" className="flex shrink-0 items-center gap-3 font-bold">
             <KathaLogo height={48} priority className="-my-2" />
             <span className="hidden xl:inline">Katha</span>
           </Link>
@@ -209,8 +250,8 @@ export function AdminHeader() {
 
         <div className="flex min-w-0 items-center gap-2 lg:gap-3">
           <ThemeToggle />
-          <span className="hidden max-w-52 truncate text-sm text-katha-text/45 xl:block">
-            {user?.email}
+          <span className="hidden max-w-52 truncate text-sm font-semibold text-katha-text/55 xl:block">
+            {user?.app_role === 'admin' ? copy.accountRoleAdmin : copy.accountRoleReader}
           </span>
           <button
             type="button"

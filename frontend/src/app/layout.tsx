@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Be_Vietnam_Pro, Noto_Sans_Khmer, Noto_Serif_Khmer } from 'next/font/google';
+import { Be_Vietnam_Pro, Noto_Sans_Khmer, Noto_Serif_Khmer, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { ContentLanguageProvider } from '@/features/language/ContentLanguageProvider';
@@ -26,6 +26,14 @@ const notoSerifKhmer = Noto_Serif_Khmer({
   weight: ['400', '600', '700'],
 });
 
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-serif-display',
+  display: 'swap',
+  weight: ['400', '600', '700', '800', '900'],
+  style: ['normal', 'italic'],
+});
+
 const themeInitScript = `
   (() => {
     try {
@@ -47,10 +55,10 @@ export const metadata: Metadata = {
     ? new URL(process.env.NEXT_PUBLIC_SITE_URL)
     : undefined,
   title: 'Katha — កថា',
-  description: 'Truyện tranh song ngữ Khmer – Việt · Bilingual Khmer–Vietnamese picture stories',
+  description: 'Khám phá văn hóa và ngôn ngữ Khmer qua hình ảnh, truyện song ngữ và trải nghiệm tương tác.',
   openGraph: {
     title: 'Katha — កថា',
-    description: 'Truyện tranh song ngữ Khmer – Việt · Bilingual Khmer–Vietnamese picture stories',
+    description: 'Khám phá văn hóa và ngôn ngữ Khmer qua hình ảnh, truyện song ngữ và trải nghiệm tương tác.',
     siteName: 'Katha',
     type: 'website',
     locale: 'vi_VN',
@@ -66,10 +74,17 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${beVietnamPro.variable} ${notoSansKhmer.variable} ${notoSerifKhmer.variable}`}
+      className={`${beVietnamPro.variable} ${notoSansKhmer.variable} ${notoSerifKhmer.variable} ${playfairDisplay.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/* Preconnect to external origins to reduce cold-start latency */}
+        {process.env.NEXT_PUBLIC_API_URL && (
+          <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL} />
+        )}
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+        )}
       </head>
       <body className="min-h-screen bg-katha-surface font-sans text-katha-text antialiased">
         <ContentLanguageProvider>

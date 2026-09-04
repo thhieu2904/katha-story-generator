@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { AuthContext, type AuthStatus, type AuthUser } from './auth';
 import { clearFloatingLanguagePosition } from '@/features/language/floatingLanguagePosition';
+import { resetLearningJourneyProgress } from '@/features/learning/resetLearningJourney';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
@@ -98,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     validationId.current += 1;
     clearFloatingLanguagePosition();
+    resetLearningJourneyProgress();
     if (supabase) {
       await supabase.auth.signOut();
     }

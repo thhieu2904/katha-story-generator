@@ -138,10 +138,11 @@ export function ReviewPageCard({
             <img
               src={page.image_url}
               alt={formatCopy(copy.pageLabel, { page: page.page_no })}
+              loading="lazy"
+              decoding="async"
               className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                 isRegenerating ? 'opacity-50' : ''
               }`}
-              loading="lazy"
             />
             {isRegenerating && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">

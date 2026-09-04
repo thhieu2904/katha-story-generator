@@ -3,8 +3,8 @@ import { RequireAdmin } from '@/features/auth/RequireAdmin';
 import { ReaderAccountsPage } from '@/features/accounts/components/ReaderAccountsPage';
 
 export const metadata: Metadata = {
-  title: 'Quản lý tài khoản — Katha',
-  description: 'Trang quản trị tài khoản reader của Katha.',
+  title: 'Quản lý tài khoản',
+  description: 'Trang quản trị tài khoản reader và admin của Katha.',
 };
 
 export default function AccountsPage() {

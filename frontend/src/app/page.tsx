@@ -15,7 +15,7 @@ export default function HomePage() {
     if (status === 'unauthenticated') {
       router.replace('/login');
     } else if (status === 'authenticated') {
-      router.replace('/admin/vision');
+      router.replace('/admin/introduction');
     }
   }, [router, status]);
 

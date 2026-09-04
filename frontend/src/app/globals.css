@@ -12,9 +12,1264 @@
   }
 }
 
+/* Public cultural introduction */
+.katha-cultural-intro {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--color-katha-surface);
+}
+
+/* Fixed gradient layer — gets its own GPU compositor layer, never repaints on scroll */
+.katha-cultural-intro::before {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 4% 8%, color-mix(in srgb, var(--color-katha-gold) 15%, transparent), transparent 27rem),
+    radial-gradient(circle at 94% 54%, color-mix(in srgb, var(--color-katha-primary) 12%, transparent), transparent 32rem);
+  content: '';
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: katha-ambient-breathe 10s ease-in-out infinite alternate;
+}
+
+@keyframes katha-ambient-breathe {
+  from { opacity: 0.7; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1.02); }
+}
+
+.katha-intro-pattern {
+  position: fixed;
+  inset: -260px; /* Expand so the translated edges aren't visible */
+  z-index: -1;
+  opacity: 0.07;
+  background-image: url('/khmer-kbach-pattern.svg');
+  background-size: 260px auto;
+  pointer-events: none;
+  will-change: transform;
+  animation: katha-intro-drift 30s linear infinite;
+}
+
+@keyframes katha-intro-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(260px, 260px, 0); } /* Matches background-size for seamless loop */
+}
+
+:root[data-theme='dark'] .katha-intro-pattern {
+  opacity: 0.045;
+}
+
+body:has(.katha-cultural-intro) .katha-admin-header {
+  background: color-mix(in srgb, var(--color-katha-surface) 97%, transparent);
+  backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+
+.katha-intro-shell {
+  width: min(1220px, calc(100% - 36px));
+  margin-inline: auto;
+  padding-block: 1rem 3.75rem;
+}
+
+.katha-intro-nav,
+.katha-intro-brand,
+.katha-intro-nav-actions,
+.katha-intro-hero-actions,
+.katha-intro-journey-heading,
+.katha-intro-footer-cta {
+  display: flex;
+  align-items: center;
+}
+
+.katha-intro-nav {
+  justify-content: space-between;
+  gap: 1.125rem;
+}
+
+.katha-intro-brand {
+  gap: 0.625rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.katha-intro-logo {
+  width: 2.875rem;
+  height: 2.875rem;
+  border-radius: 0.95rem;
+  object-fit: cover;
+  filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--color-katha-gold) 30%, transparent));
+}
+
+.katha-intro-nav > p {
+  color: color-mix(in srgb, var(--color-katha-text) 56%, transparent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.katha-intro-nav-actions {
+  gap: 0.75rem;
+}
+
+.katha-intro-nav .katha-theme-switch {
+  --width: clamp(76px, 9vw, 104px);
+}
+
+.katha-intro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-katha-gold) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-katha-gold) 35%, transparent);
+  color: var(--color-katha-gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-katha-gold) 12%, transparent);
+}
+
+.katha-intro-badge-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--color-katha-gold);
+  box-shadow: 0 0 10px var(--color-katha-gold);
+  animation: katha-pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes katha-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+.katha-intro-button {
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-katha-text) 14%, transparent);
+  border-radius: 999px;
+  padding: 0.62rem 1.25rem;
+  color: var(--color-katha-text);
+  background: color-mix(in srgb, var(--color-katha-surface-light) 85%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--color-katha-text) 5%, transparent);
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.katha-intro-button:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-katha-gold) 65%, transparent);
+  box-shadow: 0 14px 35px color-mix(in srgb, var(--color-katha-gold) 15%, transparent);
+}
+
+.katha-intro-button-primary {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-katha-gold) 40%, transparent);
+  color: var(--color-katha-on-solid);
+  background: linear-gradient(135deg, var(--color-katha-heritage), color-mix(in srgb, var(--color-katha-heritage) 64%, black));
+  box-shadow: 0 12px 35px color-mix(in srgb, var(--color-katha-heritage) 35%, transparent);
+}
+
+.katha-intro-button-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.25) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 600ms ease;
+}
+
+.katha-intro-button-primary:hover::after {
+  transform: translateX(100%);
+}
+
+.katha-intro-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(26.25rem, 1.05fr);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 5.25rem);
+  padding-block: clamp(3.5rem, 8vw, 6rem) 3.5rem;
+}
+
+.katha-intro-hero-copy {
+  min-width: 0;
+}
+
+.katha-intro-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--color-katha-gold);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.katha-intro-eyebrow::before {
+  width: 2.1rem;
+  height: 1px;
+  flex: 0 0 auto;
+  background: currentColor;
+  content: '';
+}
+
+.katha-intro-hero h1 {
+  max-width: 45rem;
+  margin-block: 0.9rem;
+  font-size: clamp(2.8rem, 6vw, 5.2rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+:root[lang='km'] .katha-intro-hero h1,
+:root[lang='km'] .katha-intro-purpose h2,
+:root[lang='km'] .katha-intro-journey-heading h2,
+:root[lang='km'] .katha-intro-slide-copy h3,
+:root[lang='km'] .katha-intro-footer-cta blockquote {
+  font-family: var(--font-khmer-serif), serif;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.katha-intro-hero h1 span {
+  display: block;
+  margin-top: 0.2em;
+  background: linear-gradient(135deg, #ffd700 0%, #f59e0b 55%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 24px color-mix(in srgb, var(--color-katha-gold) 35%, transparent));
+}
+
+.katha-intro-lead {
+  max-width: 35rem;
+  color: color-mix(in srgb, var(--color-katha-text) 68%, transparent);
+  font-size: clamp(0.98rem, 1.45vw, 1.12rem);
+  line-height: 1.72;
+}
+
+.katha-intro-hero-actions {
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.75rem;
+}
+
+.katha-intro-collage {
+  position: relative;
+  min-height: 28rem;
+}
+
+.katha-intro-collage-main,
+.katha-intro-collage-small {
+  position: absolute;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 16px 48px rgb(31 19 12 / 22%);
+}
+
+.katha-intro-collage-main {
+  inset: 1.25rem 3.4rem 1.6rem 1.1rem;
+  border-radius: 2.15rem;
+  transform: rotate(-2.5deg);
+}
+
+.katha-intro-collage-main img {
+  object-fit: cover;
+}
+
+.katha-intro-collage-main::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 52%, rgb(9 7 6 / 58%));
+  content: '';
+}
+
+.katha-intro-collage-small {
+  right: 0;
+  bottom: 0.25rem;
+  width: 38%;
+  aspect-ratio: 1.08;
+  border: 0.44rem solid var(--color-katha-surface);
+  border-radius: 1.6rem;
+  transform: rotate(4deg);
+  animation: katha-intro-float-in 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.katha-intro-collage-small img {
+  object-fit: cover;
+}
+
+.katha-intro-collage-note {
+  position: absolute;
+  bottom: 2.7rem;
+  left: 0;
+  z-index: 2;
+  max-width: 16rem;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 1.2rem;
+  padding: 0.95rem 1.05rem;
+  color: rgb(255 248 239);
+  background: rgb(18 13 11 / 88%);
+}
+
+.katha-intro-collage-note small {
+  display: block;
+  color: rgb(239 195 111);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.katha-intro-collage-note strong {
+  display: block;
+  margin-top: 0.38rem;
+  font-size: 1.18rem;
+  line-height: 1.28;
+}
+
+.katha-intro-collage-badge {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  padding: 0.65rem 0.95rem;
+  border-radius: 1.1rem;
+  background: color-mix(in srgb, var(--color-katha-surface) 90%, black);
+  border: 1px solid color-mix(in srgb, var(--color-katha-gold) 35%, transparent);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  animation: katha-float-subtle 4s ease-in-out infinite alternate;
+}
+
+.katha-intro-collage-badge span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-katha-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.katha-intro-collage-badge strong {
+  font-size: 0.82rem;
+  color: var(--color-katha-text);
+  white-space: nowrap;
+}
+
+.katha-intro-collage-badge-tr {
+  top: 2rem;
+  right: 1.2rem;
+  animation-delay: 0s;
+}
+
+@keyframes katha-float-subtle {
+  from { transform: translateY(0); }
+  to { transform: translateY(-7px); }
+}
+
+/* Modern Stats & Highlights Bar */
+.katha-intro-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.1rem;
+  margin-block: 1rem 4.5rem;
+}
+
+.katha-intro-stat-card {
+  position: relative;
+  padding: 1.6rem 1.4rem;
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--color-katha-surface-light) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-katha-text) 10%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--color-katha-text) 4%, transparent);
+  transition: transform 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.katha-intro-stat-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-katha-gold) 50%, transparent);
+  box-shadow: 0 18px 45px color-mix(in srgb, var(--color-katha-gold) 12%, transparent);
+}
+
+.katha-intro-stat-value {
+  display: block;
+  font-size: clamp(2.2rem, 3.8vw, 3rem);
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--color-katha-gold) 0%, #f59e0b 60%, #ea580c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.katha-intro-stat-label {
+  margin-top: 0.75rem;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--color-katha-text);
+}
+
+.katha-intro-stat-desc {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--color-katha-text) 55%, transparent);
+  line-height: 1.45;
+}
+
+/* Modern 4 Pillars Bento Grid */
+.katha-intro-pillars {
+  margin-block: 2rem 5rem;
+}
+
+.katha-intro-pillars-header {
+  text-align: center;
+  max-width: 48rem;
+  margin-inline: auto;
+  margin-bottom: 2.75rem;
+}
+
+.katha-intro-pillars-header .katha-intro-eyebrow {
+  justify-content: center;
+}
+
+.katha-intro-pillars-header h2 {
+  margin-top: 0.75rem;
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.katha-intro-pillars-lead {
+  margin-top: 0.85rem;
+  color: color-mix(in srgb, var(--color-katha-text) 62%, transparent);
+  font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+  line-height: 1.6;
+}
+
+.katha-intro-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.25rem;
+}
+
+.katha-intro-pillar-card {
+  position: relative;
+  min-height: 23rem;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-katha-text) 12%, transparent);
+  background: color-mix(in srgb, var(--color-katha-surface-light) 80%, transparent);
+  cursor: pointer;
+  transition: transform 350ms cubic-bezier(0.2, 0.85, 0.2, 1), border-color 350ms ease, box-shadow 350ms ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.katha-intro-pillar-card:hover {
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, var(--color-katha-gold) 60%, transparent);
+  box-shadow: 0 24px 50px color-mix(in srgb, var(--color-katha-gold) 18%, transparent);
+}
+
+.katha-intro-pillar-card-1 {
+  grid-column: span 7;
+}
+
+.katha-intro-pillar-card-2 {
+  grid-column: span 5;
+}
+
+.katha-intro-pillar-card-3 {
+  grid-column: span 5;
+}
+
+.katha-intro-pillar-card-4 {
+  grid-column: span 7;
+}
+
+.katha-intro-pillar-image {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.katha-intro-pillar-image img {
+  object-fit: cover;
+  transition: transform 700ms cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+
+.katha-intro-pillar-card:hover .katha-intro-pillar-image img {
+  transform: scale(1.06);
+}
+
+.katha-intro-pillar-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 8, 8, 0.2) 0%, rgba(10, 8, 8, 0.78) 55%, rgba(10, 8, 8, 0.95) 100%);
+}
+
+.katha-intro-pillar-content {
+  position: relative;
+  z-index: 2;
+  padding: 1.85rem;
+  color: white;
+}
+
+.katha-intro-pillar-tag {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-katha-gold) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-katha-gold) 45%, transparent);
+  color: #ffd700;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.65rem;
+}
+
+.katha-intro-pillar-content h3 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: white;
+}
+
+.katha-intro-pillar-sub {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-katha-gold) 90%, white);
+  margin-top: 0.25rem;
+}
+
+.katha-intro-pillar-body {
+  margin-top: 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 32rem;
+}
+
+.katha-intro-pillar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-katha-gold);
+  transition: gap 200ms ease;
+}
+
+.katha-intro-pillar-card:hover .katha-intro-pillar-action {
+  gap: 0.75rem;
+}
+
+.katha-intro-purpose {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 2.5rem;
+  padding-block: 2rem 5rem;
+  align-items: center;
+}
+
+.katha-intro-purpose h2,
+.katha-intro-journey-heading h2 {
+  margin-top: 0.75rem;
+  font-size: clamp(2.2rem, 5vw, 3.65rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.katha-intro-purpose h2 {
+  max-width: 29rem;
+}
+
+.katha-intro-purpose-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.katha-intro-purpose-grid article {
+  min-height: 14rem;
+  padding: 1.6rem;
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--color-katha-surface-light) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-katha-text) 10%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--color-katha-text) 3%, transparent);
+  transition: transform 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.katha-intro-purpose-grid article:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-katha-gold) 45%, transparent);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--color-katha-gold) 10%, transparent);
+}
+
+.katha-intro-purpose-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--color-katha-gold) 14%, transparent);
+  color: var(--color-katha-gold);
+  border: 1px solid color-mix(in srgb, var(--color-katha-gold) 25%, transparent);
+  margin-bottom: 1.25rem;
+}
+
+.katha-intro-purpose-grid b,
+.katha-intro-step-number {
+  color: var(--color-katha-gold);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.katha-intro-purpose-grid strong {
+  display: block;
+  margin-block: 0.8rem 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.katha-intro-purpose-grid p,
+.katha-intro-slide-copy > p {
+  color: color-mix(in srgb, var(--color-katha-text) 62%, transparent);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.katha-intro-marquee {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden;
+  padding-block: 2rem;
+  mask-image: linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%);
+  transform: translateZ(0);
+}
+
+.katha-intro-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: katha-intro-marquee 28s linear infinite;
+}
+
+.katha-intro-marquee-group {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.katha-intro-marquee-group span {
+  flex: 0 0 auto;
+  padding-right: clamp(2.5rem, 5vw, 5rem);
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--color-katha-text) 22%, transparent);
+  font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+:root[lang='km'] .katha-intro-marquee-group span {
+  font-family: var(--font-khmer), sans-serif;
+  line-height: 1.55;
+}
+
+.katha-intro-journey {
+  padding-block: 3rem 1.5rem;
+  scroll-margin-top: 1.5rem;
+}
+
+.katha-intro-journey-heading {
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.6rem;
+}
+
+.katha-intro-counter {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--color-katha-text) 52%, transparent);
+  font-size: 0.82rem;
+}
+
+.katha-intro-counter strong {
+  color: var(--color-katha-text);
+  font-size: 1.8rem;
+}
+
+.katha-intro-stage {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-katha-text) 10%, transparent);
+  border-radius: 2rem;
+  background: var(--color-katha-surface-light);
+  box-shadow: 0 20px 48px color-mix(in srgb, var(--color-katha-text) 9%, transparent);
+  transform: translateZ(0);
+}
+
+.katha-intro-track {
+  display: flex;
+  width: 100%;
+  touch-action: pan-y;
+  transition: transform 720ms cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+
+.katha-intro-track.is-dragging {
+  cursor: grabbing;
+  transition: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.katha-intro-slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(19.5rem, 0.75fr);
+  min-width: 100%;
+  min-height: 32rem;
+  will-change: transform;
+}
+
+.katha-intro-slide-image {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.katha-intro-slide-image img {
+  object-fit: cover;
+  transform: scale(1.15) translateX(3%);
+  filter: saturate(0) brightness(0.6) contrast(1.1);
+  transition: transform 1400ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 1400ms ease;
+}
+
+.katha-intro-slide.is-active .katha-intro-slide-image img {
+  transform: scale(1) translateX(0);
+  filter: saturate(1) brightness(1) contrast(1);
+}
+
+.katha-intro-slide-image::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 62%, color-mix(in srgb, var(--color-katha-surface-light) 28%, transparent));
+  content: '';
+}
+
+.katha-intro-stage-badge {
+  position: absolute;
+  top: 1.4rem;
+  left: 1.4rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.25rem;
+  border-radius: 999px;
+  padding: 0.48rem 0.8rem;
+  color: white;
+  background: rgb(10 8 8 / 82%);
+  font-size: 0.75rem;
+}
+
+.katha-intro-stage-badge i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--color-katha-gold);
+  box-shadow: 0 0 0 0.36rem color-mix(in srgb, var(--color-katha-gold) 20%, transparent);
+}
+
+.katha-intro-slide-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(2rem, 5vw, 3.75rem);
+}
+
+.katha-intro-slide-copy .katha-intro-eyebrow {
+  margin-top: 0.8rem;
+}
+
+.katha-intro-slide-copy h3 {
+  margin-block: 0.9rem 1rem;
+  font-size: clamp(2.2rem, 4vw, 3.45rem);
+  font-weight: 600;
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+}
+
+.katha-intro-slide-copy > p {
+  font-size: 0.94rem;
+  line-height: 1.68;
+}
+
+.katha-intro-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1.4rem;
+}
+
+.katha-intro-tags span {
+  border-radius: 999px;
+  padding: 0.42rem 0.68rem;
+  color: color-mix(in srgb, var(--color-katha-text) 62%, transparent);
+  background: color-mix(in srgb, var(--color-katha-text) 7%, transparent);
+  font-size: 0.72rem;
+}
+
+.katha-intro-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin-top: -1.625rem;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 1.45rem;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.katha-intro-arrow:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.katha-intro-arrow:disabled {
+  opacity: 0.22;
+}
+
+.katha-intro-arrow-left {
+  left: 1rem;
+}
+
+.katha-intro-arrow-right {
+  right: 1rem;
+}
+
+.katha-intro-flow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: start;
+  margin-top: 1.55rem;
+}
+
+.katha-intro-flow button {
+  position: relative;
+  min-width: 0;
+  border: 0;
+  padding-inline: 0.75rem;
+  color: color-mix(in srgb, var(--color-katha-text) 44%, transparent);
+  background: transparent;
+  text-align: left;
+  transition: color 220ms ease;
+}
+
+.katha-intro-flow button::after {
+  position: absolute;
+  top: -0.56rem;
+  right: 0.5rem;
+  left: 2.2rem;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--color-katha-text) 16%, transparent);
+  font-size: 1.5rem;
+  letter-spacing: 0.65em;
+  line-height: 1;
+  white-space: nowrap;
+  content: '→';
+}
+
+.katha-intro-flow button:last-child::after {
+  display: none;
+}
+
+.katha-intro-flow i {
+  display: block;
+  width: 0.62rem;
+  height: 0.62rem;
+  margin-bottom: 0.78rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-katha-text) 16%, transparent);
+  transition: transform 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+
+.katha-intro-flow button.is-active {
+  color: var(--color-katha-text);
+}
+
+.katha-intro-flow button.is-active i {
+  background: var(--color-katha-gold);
+  box-shadow: 0 0 0 0.42rem color-mix(in srgb, var(--color-katha-gold) 18%, transparent);
+  transform: scale(1.25);
+}
+
+.katha-intro-flow button.is-done i {
+  background: var(--color-katha-success);
+}
+
+.katha-intro-flow span,
+.katha-intro-flow small {
+  display: block;
+}
+
+.katha-intro-flow span {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.katha-intro-flow small {
+  margin-top: 0.25rem;
+  font-size: 0.68rem;
+}
+
+.katha-intro-footer-cta {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-katha-gold) 35%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-katha-surface-light) 85%, transparent), color-mix(in srgb, var(--color-katha-surface) 92%, transparent));
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.5rem, 5vw, 3.5rem);
+  margin-top: 5rem;
+  text-align: center;
+  box-shadow: 0 25px 60px color-mix(in srgb, var(--color-katha-text) 8%, transparent);
+  display: block;
+}
+
+.katha-intro-footer-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--color-katha-gold) 20%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.katha-intro-footer-content {
+  position: relative;
+  z-index: 2;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+.katha-intro-footer-content .katha-intro-eyebrow {
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.katha-intro-footer-cta blockquote {
+  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.28;
+  color: var(--color-katha-text);
+  margin-bottom: 2rem;
+}
+
+.katha-intro-footer-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.katha-intro-footer-badges {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-katha-text) 52%, transparent);
+}
+
+@keyframes katha-intro-float-in {
+  from { opacity: 0; transform: translate(2rem, 1.8rem) rotate(8deg); }
+  to { opacity: 1; transform: translate(0, 0) rotate(4deg); }
+}
+
+@keyframes katha-intro-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (max-width: 900px) {
+  .katha-intro-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .katha-intro-pillar-card-1,
+  .katha-intro-pillar-card-2,
+  .katha-intro-pillar-card-3,
+  .katha-intro-pillar-card-4 {
+    grid-column: span 12;
+  }
+
+  .katha-intro-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .katha-intro-hero-copy {
+    text-align: center;
+  }
+
+  .katha-intro-hero-copy .katha-intro-eyebrow,
+  .katha-intro-hero-actions {
+    justify-content: center;
+  }
+
+  .katha-intro-hero h1,
+  .katha-intro-lead {
+    margin-inline: auto;
+  }
+
+  .katha-intro-collage {
+    width: min(42rem, 100%);
+    margin-inline: auto;
+  }
+
+  .katha-intro-purpose {
+    grid-template-columns: 1fr;
+  }
+
+  .katha-intro-purpose h2 {
+    max-width: 42rem;
+  }
+
+  .katha-intro-slide {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .katha-intro-slide-image {
+    min-height: 24rem;
+  }
+
+  .katha-intro-slide-copy {
+    min-height: 19rem;
+  }
+
+  .katha-intro-arrow {
+    top: 12rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .katha-intro-shell {
+    width: 100%;
+    padding: 0.75rem 0.8rem 3rem;
+  }
+
+  .katha-intro-nav > p,
+  .katha-intro-nav .katha-theme-switch {
+    display: none;
+  }
+
+  .katha-intro-brand {
+    font-size: 1rem;
+  }
+
+  .katha-intro-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .katha-intro-button {
+    min-height: 2.65rem;
+    padding-inline: 0.85rem;
+    font-size: 0.78rem;
+  }
+
+  .katha-intro-hero {
+    padding-block: 3.3rem 3rem;
+  }
+
+  .katha-intro-hero h1 {
+    font-size: clamp(2.65rem, 12vw, 3.65rem);
+  }
+
+  :root[lang='km'] .katha-intro-hero h1 {
+    font-size: clamp(2.15rem, 10vw, 3rem);
+  }
+
+  .katha-intro-lead {
+    font-size: 0.92rem;
+  }
+
+  .katha-intro-hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .katha-intro-collage {
+    min-height: 23rem;
+  }
+
+  .katha-intro-collage-main {
+    inset: 0.65rem 1.25rem 2rem 0.5rem;
+    border-radius: 1.55rem;
+  }
+
+  .katha-intro-collage-small {
+    width: 43%;
+    border-width: 0.32rem;
+  }
+
+  .katha-intro-collage-note {
+    bottom: 2.2rem;
+    left: 0.15rem;
+    max-width: 13.8rem;
+  }
+
+  .katha-intro-purpose {
+    padding-bottom: 3rem;
+  }
+
+  .katha-intro-purpose-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .katha-intro-purpose-grid article {
+    min-height: 0;
+    padding: 1.2rem;
+  }
+
+  .katha-intro-purpose-grid strong {
+    margin-top: 1rem;
+  }
+
+  .katha-intro-journey-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .katha-intro-stage {
+    border-radius: 1.45rem;
+  }
+
+  .katha-intro-slide-image {
+    min-height: 18.5rem;
+  }
+
+  .katha-intro-slide-copy {
+    min-height: 21rem;
+    padding: 1.8rem 1.45rem;
+  }
+
+  .katha-intro-slide-copy h3 {
+    font-size: 2.25rem;
+  }
+
+  :root[lang='km'] .katha-intro-slide-copy h3 {
+    font-size: 1.9rem;
+  }
+
+  .katha-intro-arrow {
+    top: 9.25rem;
+    width: 2.9rem;
+    height: 2.9rem;
+    margin-top: -1.45rem;
+  }
+
+  .katha-intro-arrow-left {
+    left: 0.65rem;
+  }
+
+  .katha-intro-arrow-right {
+    right: 0.65rem;
+  }
+
+  .katha-intro-flow button {
+    padding-inline: 0.2rem;
+    text-align: center;
+  }
+
+  .katha-intro-flow button::after {
+    top: -0.45rem;
+    right: -38%;
+    left: 62%;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+  }
+
+  .katha-intro-flow i {
+    margin-inline: auto;
+  }
+
+  .katha-intro-flow span {
+    font-size: 0.6rem;
+  }
+
+  .katha-intro-flow small {
+    display: none;
+  }
+
+  .katha-intro-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .katha-intro-collage-badge {
+    display: none;
+  }
+
+  .katha-intro-footer-cta {
+    margin-top: 3.5rem;
+    padding: 2.2rem 1.25rem;
+    border-radius: 1.75rem;
+  }
+
+  .katha-intro-footer-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .katha-intro-footer-actions .katha-intro-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .katha-intro-collage-small,
+  .katha-intro-marquee-track {
+    animation: none;
+  }
+
+  .katha-intro-track,
+  .katha-intro-slide-image img,
+  .katha-intro-button,
+  .katha-intro-arrow,
+  .katha-intro-flow i {
+    transition: none;
+  }
+}
+
 @theme {
   /* Fonts - mapped from next/font CSS variables */
   --font-sans: var(--font-be-vietnam), system-ui, sans-serif;
+  --font-serif: var(--font-serif-display), var(--font-noto-serif-khmer), "Playfair Display", "Times New Roman", serif;
   --font-khmer: var(--font-noto-khmer), "Noto Sans Khmer", sans-serif;
   --font-khmer-serif: var(--font-noto-serif-khmer), "Noto Serif Khmer", serif;
 
@@ -572,8 +1827,11 @@
   inset: 4rem 0 0;
   width: 100%;
   border: 0;
-  background: color-mix(in oklab, var(--color-katha-text) 18%, transparent);
-  backdrop-filter: blur(2px);
+  background: color-mix(in oklab, var(--color-katha-text) 80%, transparent); /* darker solid fallback */
+  @supports (backdrop-filter: blur(2px)) {
+    background: color-mix(in oklab, var(--color-katha-text) 18%, transparent);
+    backdrop-filter: blur(2px);
+  }
   opacity: 0;
   visibility: hidden;
   transition:
@@ -1264,22 +2522,11 @@
 }
 
 @media (max-width: 639px) {
-  .katha-login-brand {
-    background:
-      radial-gradient(circle at 82% 48%, rgb(255 190 55 / 0.22), transparent 36%),
-      linear-gradient(125deg, rgb(24 16 22) 0%, rgb(50 29 18) 58%, rgb(16 14 25) 100%);
-  }
-
   .katha-login-brand::after {
     right: -7rem;
     bottom: -10rem;
     width: 18rem;
     height: 18rem;
-  }
-
-  .katha-login-brand-grid {
-    background-size: 38px 38px;
-    mask-image: linear-gradient(to right, rgb(0 0 0 / 0.75), transparent 88%);
   }
 
   .katha-login-form-pane {
@@ -1643,3 +2890,100 @@
     }
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Scroll Reveal Animations */
+/* -------------------------------------------------------------------------- */
+
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 1200ms cubic-bezier(0.2, 0.85, 0.2, 1), transform 1200ms cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Lenis Smooth Scroll Setup */
+/* -------------------------------------------------------------------------- */
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Grand Entrance Doors */
+/* -------------------------------------------------------------------------- */
+
+.katha-grand-doors {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  pointer-events: none;
+}
+
+.katha-door {
+  width: 50%;
+  height: 100vh;
+  background: var(--color-katha-text);
+  position: relative;
+  will-change: transform;
+}
+
+/* Gold accent strip where doors meet */
+.katha-door-left .katha-door-accent {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-katha-gold);
+  box-shadow: -2px 0 15px color-mix(in srgb, var(--color-katha-gold) 50%, transparent);
+}
+
+.katha-door-right .katha-door-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-katha-gold);
+  box-shadow: 2px 0 15px color-mix(in srgb, var(--color-katha-gold) 50%, transparent);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile Global Performance Overrides */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  /* 
+   * Disable expensive backdrop-filter operations on mobile GPUs. 
+   * Constantly re-blurring content behind sticky headers or cards while scrolling 
+   * causes severe frame drops on iOS and low-end Androids.
+   */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+

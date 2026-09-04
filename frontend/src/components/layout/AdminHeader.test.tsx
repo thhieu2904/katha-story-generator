@@ -29,6 +29,10 @@ describe('AdminHeader', () => {
     authState.user = { email: 'admin@example.test', app_role: 'admin' };
     render(<AdminHeader />);
 
+    expect(screen.getByRole('link', { name: 'Chính' })).toHaveAttribute(
+      'href',
+      '/admin/introduction',
+    );
     expect(screen.getByRole('link', { name: 'Nhận diện' })).toHaveAttribute(
       'href',
       '/admin/vision',
@@ -57,6 +61,8 @@ describe('AdminHeader', () => {
       'aria-current',
       'page',
     );
+    expect(screen.getAllByText('Admin')).not.toHaveLength(0);
+    expect(screen.queryByText('admin@example.test')).not.toBeInTheDocument();
   });
 
   it('opens the mobile navigation as a vertical contents sheet', () => {
@@ -97,5 +103,7 @@ describe('AdminHeader', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Mở mục lục' }));
     expect(screen.queryByRole('link', { name: /Tài khoản/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Reader')).not.toHaveLength(0);
+    expect(screen.queryByText('reader@example.test')).not.toBeInTheDocument();
   });
 });

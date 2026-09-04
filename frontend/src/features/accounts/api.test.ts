@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createReaderAccount } from './api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createAccount, deleteAccount, listAccounts } from './api';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 
@@ -15,36 +15,51 @@ vi.mock('@/lib/api', () => ({
   apiFetch: apiFetchMock,
 }));
 
-describe('createReaderAccount', () => {
+describe('account API', () => {
   beforeEach(() => {
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'publishable-test-key');
+    apiFetchMock.mockReset();
     apiFetchMock.mockResolvedValue({
       id: 'reader-1',
+      display_name: 'Sok Dara',
       email: 'reader@example.com',
       app_role: 'reader',
-      confirmation_required: true,
+      created_at: null,
+      last_sign_in_at: null,
     });
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('sends the authenticated reader-creation request with the configured publishable key', async () => {
-    await createReaderAccount({
+  it('sends account creation without exposing a Supabase secret in browser headers', async () => {
+    await createAccount({
+      display_name: 'Sok Dara',
       email: 'reader@example.com',
       password: 'reader-pass',
+      app_role: 'admin',
     });
 
-    expect(apiFetchMock).toHaveBeenCalledWith('/api/auth/readers', {
+    expect(apiFetchMock).toHaveBeenCalledWith('/api/auth/accounts', {
       method: 'POST',
-      headers: {
-        'X-Supabase-Publishable-Key': 'publishable-test-key',
-      },
       body: JSON.stringify({
+        display_name: 'Sok Dara',
         email: 'reader@example.com',
         password: 'reader-pass',
+        app_role: 'admin',
       }),
     });
+  });
+
+  it('lists and deletes accounts through the protected backend', async () => {
+    apiFetchMock.mockResolvedValueOnce({ accounts: [] }).mockResolvedValueOnce(undefined);
+
+    await expect(listAccounts()).resolves.toEqual([]);
+    await deleteAccount('account/unsafe id');
+
+    expect(apiFetchMock).toHaveBeenNthCalledWith(1, '/api/auth/accounts', {
+      signal: undefined,
+    });
+    expect(apiFetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/auth/accounts/account%2Funsafe%20id',
+      { method: 'DELETE' },
+    );
   });
 });

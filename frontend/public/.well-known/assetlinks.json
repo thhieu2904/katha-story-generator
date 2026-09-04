@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "vn.io.katha",
+      "sha256_cert_fingerprints": [
+        "4D:54:7C:06:6F:6F:6C:D0:15:0B:BA:56:AA:09:C4:5A:5D:10:C3:A2:FF:0F:6E:89:94:B6:2D:A5:FB:35:F2:77"
+      ]
+    }
+  }
+]

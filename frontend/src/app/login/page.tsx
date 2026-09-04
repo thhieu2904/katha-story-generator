@@ -6,11 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useUiCopy } from '@/features/language/useUiCopy';
+import { FloatingParticles } from '@/features/landing/components/FloatingParticles';
 
 function requestedAuthenticatedPath() {
-  if (typeof window === 'undefined') return '/admin/vision';
-  const next = new URLSearchParams(window.location.search).get('next');
-  return next?.startsWith('/admin/') ? next : '/admin/vision';
+  return '/admin/introduction';
 }
 
 export default function LoginPage() {
@@ -49,17 +48,21 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="katha-login-page relative min-h-dvh overflow-hidden bg-katha-surface text-katha-text">
-      <div className="katha-login-aurora pointer-events-none absolute -left-32 -top-40 size-[32rem] rounded-full bg-katha-gold/15 blur-3xl" />
-      <div className="katha-login-aurora katha-login-aurora-delayed pointer-events-none absolute -bottom-48 -right-32 size-[36rem] rounded-full bg-katha-primary/20 blur-3xl" />
+    <main className="katha-login-page relative isolate min-h-dvh overflow-hidden bg-katha-surface text-katha-text">
+      {/* Background Magic */}
+      <FloatingParticles />
+      <div className="katha-intro-pattern" aria-hidden="true" />
+      <div className="katha-login-aurora pointer-events-none absolute -left-32 -top-40 size-[32rem] rounded-full bg-katha-gold/20 blur-[100px]" />
+      <div className="katha-login-aurora katha-login-aurora-delayed pointer-events-none absolute -bottom-48 -right-32 size-[36rem] rounded-full bg-katha-primary/25 blur-[120px]" />
+      
       <div className="absolute right-4 top-4 z-30 sm:right-7 sm:top-6">
         <ThemeToggle />
       </div>
 
       <div className="relative z-10 mx-auto grid min-h-dvh w-full max-w-[1380px] place-items-center px-3 py-[4.75rem] sm:px-7 sm:py-20 lg:px-10 lg:py-12">
-        <section className="katha-login-panel grid w-full max-w-[1160px] overflow-hidden rounded-[1.5rem] border border-katha-gold/20 bg-katha-surface-light/88 shadow-2xl backdrop-blur-2xl sm:rounded-[2rem] lg:grid-cols-[1.06fr_0.94fr]">
+        <section className="katha-login-panel grid w-full max-w-[1160px] overflow-hidden rounded-[1.75rem] border border-white/10 bg-katha-surface-light/70 shadow-[0_32px_64px_rgba(0,0,0,0.15)] backdrop-blur-3xl sm:rounded-[2.25rem] lg:grid-cols-[1.06fr_0.94fr]">
           <aside className="katha-login-brand relative isolate flex min-h-[180px] flex-col justify-between overflow-hidden px-5 py-5 text-white sm:min-h-[300px] sm:px-9 sm:py-8 lg:min-h-[680px] lg:px-12 lg:py-11">
-            <div className="katha-login-brand-grid pointer-events-none absolute inset-0 opacity-35" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/40 to-transparent" />
             <div className="katha-login-sparkles pointer-events-none absolute inset-0" aria-hidden="true">
               <span /><span /><span /><span /><span /><span />
             </div>
@@ -101,7 +104,7 @@ export default function LoginPage() {
             </div>
           </aside>
 
-          <div className="katha-login-form-pane flex items-center bg-katha-surface-light/90 px-5 py-7 sm:px-10 sm:py-12 lg:px-14">
+          <div className="katha-login-form-pane flex items-center bg-transparent px-5 py-7 sm:px-10 sm:py-12 lg:px-14">
             <div className="mx-auto w-full max-w-md">
               <div className="mb-6 sm:mb-8">
                 <div className="katha-eyebrow text-xs font-bold uppercase tracking-[0.24em] text-katha-gold">
@@ -130,7 +133,7 @@ export default function LoginPage() {
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder="email@example.com"
                       disabled={submitting}
-                      className="h-13 w-full rounded-2xl border border-katha-text/10 bg-katha-field/80 pl-12 pr-4 text-sm outline-none transition duration-200 placeholder:text-katha-text/24 hover:border-katha-text/20 focus:border-katha-gold/60 focus:bg-katha-field focus:ring-4 focus:ring-katha-gold/10 disabled:opacity-60"
+                      className="h-13 w-full rounded-2xl border border-katha-text/10 bg-katha-field/60 backdrop-blur-md pl-12 pr-4 text-sm outline-none transition duration-200 placeholder:text-katha-text/24 hover:border-katha-text/20 focus:border-katha-gold/60 focus:bg-katha-field/80 focus:ring-4 focus:ring-katha-gold/10 disabled:opacity-60"
                     />
                   </div>
                 </label>
@@ -149,7 +152,7 @@ export default function LoginPage() {
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder="••••••••"
                       disabled={submitting}
-                      className="h-13 w-full rounded-2xl border border-katha-text/10 bg-katha-field/80 pl-12 pr-4 text-sm outline-none transition duration-200 placeholder:text-katha-text/24 hover:border-katha-text/20 focus:border-katha-gold/60 focus:bg-katha-field focus:ring-4 focus:ring-katha-gold/10 disabled:opacity-60"
+                      className="h-13 w-full rounded-2xl border border-katha-text/10 bg-katha-field/60 backdrop-blur-md pl-12 pr-4 text-sm outline-none transition duration-200 placeholder:text-katha-text/24 hover:border-katha-text/20 focus:border-katha-gold/60 focus:bg-katha-field/80 focus:ring-4 focus:ring-katha-gold/10 disabled:opacity-60"
                     />
                   </div>
                 </label>
